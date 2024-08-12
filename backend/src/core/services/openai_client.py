@@ -1,0 +1,57 @@
+from typing import Generator
+import openai
+from src.settings import settings
+
+openai.api_key = settings.openai_api_key
+
+def generate_summary(content: str, client: openai.ChatCompletion) -> Generator[str, None, None]:
+    prompt = f"以下の内容を基にデューデリジェンス向けのエグゼクティブサマリーを作成してください：\n\n{content}"
+    # ストリーミングの作成
+    stream = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        stream=True,
+    )
+
+    for chunk in stream:
+        if chunk.choices[0].delta.content is not None:
+            yield chunk.choices[0].delta.content
+
+
+def generate_market_status(content: str, client: openai.ChatCompletion) -> Generator[str, None, None]:
+    prompt = f"以下の内容を基に、市場の状況に関する分析を行ってください：\n\n{content}"
+    stream = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        stream=True,
+    )
+
+    for chunk in stream:
+        if chunk.choices[0].delta.content is not None:
+            yield chunk.choices[0].delta.content
+
+
+def generate_financial_status(content: str, client: openai.ChatCompletion) -> Generator[str, None, None]:
+    prompt = f"以下の内容を基に、財務状況に関する分析を行ってください：\n\n{content}"
+    stream = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        stream=True,
+    )
+
+    for chunk in stream:
+        if chunk.choices[0].delta.content is not None:
+            yield chunk.choices[0].delta.content
+
+
+def generate_services_status(content: str, client: openai.ChatCompletion) -> Generator[str, None, None]:
+    prompt = f"以下の内容を基に、会社の主なサービスや事業に関するレポートを作成してください：\n\n{content}"
+    stream = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        stream=True,
+    )
+
+    for chunk in stream:
+        if chunk.choices[0].delta.content is not None:
+            yield chunk.choices[0].delta.content
