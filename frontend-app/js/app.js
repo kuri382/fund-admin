@@ -1,26 +1,52 @@
 const API_BASE_URL = 'http://localhost:8000';
 
-document.getElementById('startAnalysis').addEventListener('click', function() {
-    const fileInput = document.getElementById('pdfUpload');
-    const file = fileInput.files[0];
+document.getElementById('startAnalysis').addEventListener('click', async () => {
+    // サマリーの検索と作成を開始
+    updateStepStatus('step1-status', '進行中', 'is-info');
+    await fetchMarkdownContent('get-summary', 'summary');
+    updateStepStatus('step1-status', '詳細調査中', 'is-success');
 
-    if (file) {
-        // ファイルが選択された場合、アップロードしてから解析を開始
-        uploadPDF(file).then(() => {
-            fetchResults();
-        }).catch(error => {
-            console.error('Error during file upload:', error);
-        });
-    } else {
-        // ファイルが選択されていない場合、ローカルストレージからファイル名を取得して解析
-        const storedFileName = localStorage.getItem('uploadedFileName');
-        if (storedFileName) {
-            fetchResults();
-        } else {
-            alert('ファイルを選択するか、アップロード済みのファイルを選択してください。');
-        }
-    }
+    // 市場調査を開始
+    updateStepStatus('step2-status', '進行中', 'is-info');
+    await fetchMarkdownContent('get-market-status', 'marketStatus');
+    updateStepStatus('step2-status', '詳細調査中', 'is-success');
+
+    // 財務状況の解析を開始
+    updateStepStatus('step3-status', '進行中', 'is-info');
+    await fetchMarkdownContent('get-financial-status', 'financialStatus');
+    updateStepStatus('step3-status', '詳細調査中', 'is-success');
+
+    // 各種事業の状況確認を開始
+    updateStepStatus('step4-status', '進行中', 'is-info');
+    await fetchMarkdownContent('get-services-status', 'servicesStatus');
+    updateStepStatus('step4-status', '詳細調査中', 'is-success');
+
+    // 各種事業の状況確認を開始
+    await fetchMarkdownContent('get-strong-point', 'servicesStatus');
 });
+
+document.querySelectorAll('.tabs li').forEach(tab => {
+    tab.addEventListener('click', () => {
+        const target = tab.dataset.target;
+
+        // タブのアクティブ状態を切り替え
+        document.querySelectorAll('.tabs li').forEach(t => t.classList.remove('is-active'));
+        tab.classList.add('is-active');
+
+        // コンテンツの表示を切り替え
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('is-active');
+        });
+        document.getElementById(target).classList.add('is-active');
+    });
+});
+
+function updateStepStatus(stepId, statusText, statusClass) {
+    const stepElement = document.getElementById(stepId);
+    stepElement.textContent = statusText;
+    stepElement.className = `tag ${statusClass}`;
+}
+
 
 function uploadPDF(file) {
     return new Promise((resolve, reject) => {
@@ -77,36 +103,9 @@ document.getElementById('pdfUpload').addEventListener('change', function() {
     }
 });
 
-/*
-function fetchResults() {
-    fetchSummary('get-summary', 'summary');
-    fetchMarkdownContent('get-market-status', 'marketStatus');
-    //fetchMarketStatus();
-    //fetchFinancialStatus();
-    //fetchServicesStatus();
-}
-*/
-/*
-function fetchResults() {
-    const summaryPromise = fetchSummary('get-summary', 'summary');
-    const marketStatusPromise = fetchMarkdownContent('get-market-status', 'marketStatus');
-
-    // Promise.allで並列に処理
-    Promise.all([summaryPromise, marketStatusPromise])
-        .then(() => {
-            console.log('Both summary and market status fetched successfully.');
-        })
-        .catch(error => {
-            console.error('Error fetching data:', error);
-        });
-}
-*/
 
 function fetchMarkdownContent(endpoint, elementId) {
-    // ローカルストレージからファイル名を取得
     const fileName = localStorage.getItem('uploadedFileName');
-
-    // ファイル名をクエリパラメータとしてAPIリクエストに追加
     fetch(`${API_BASE_URL}/${endpoint}?file_name=${encodeURIComponent(fileName)}`)
         .then(response => {
             const reader = response.body.getReader();
@@ -116,13 +115,14 @@ function fetchMarkdownContent(endpoint, elementId) {
             return reader.read().then(function processText({ done, value }) {
                 if (done) {
                     console.log("Stream complete");
-                    document.getElementById(elementId).innerText = content;
                     return;
                 }
                 // データをデコードし、内容を累積
                 content += decoder.decode(value, { stream: true });
+                // マークダウンをHTMLに変換
+                const htmlContent = marked.parse(content);
                 // 中間結果を更新
-                document.getElementById(elementId).innerText = content;
+                document.querySelector(`#${elementId} .result-box`).innerHTML = htmlContent;
                 // 再帰的に次のチャンクを処理
                 return reader.read().then(processText);
             });

@@ -1,4 +1,3 @@
-import os
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 import openai
