@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>デューデリジェンス</title>
+    <link href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+
+<body>
+    <section class="section">
+        <div class="container is-max-tablet">
+            <!--<h1 class="title has-text-centered">デューデリジェンス</h1>-->
+
+            <div class="columns is-mobile">
+                <div class="column is-half">
+                    <div class="box" style="height:130px">
+                        <p style="padding-bottom:10px"><b>IR資料をアップロードしてください</b></p>
+                        <div class="file has-name is-fullwidth">
+                            <label class="file-label">
+                                <input class="file-input" type="file" id="pdfUpload" accept="application/pdf">
+                                <span class="file-cta">
+                                    <span class="file-icon">
+                                        <i class="fas fa-upload"></i>
+                                    </span>
+                                    <span class="file-label">
+                                        PDFファイルを選択
+                                    </span>
+                                </span>
+                                <span class="file-name">選択されたファイル名がここに表示されます</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-half">
+                    <div class="box" style="height:100%">
+                        <div class="field">
+                            <label class="label" for="fileDropdown">ファイルを選択:</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="fileDropdown">
+                                        <option value="">-- ファイルを選択 --</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box">
+
+                <div class="has-text-centered">
+                    <p><b>
+                            IR資料と各種データベースを参照しながら、自動で調査作業が開始されます。
+                            <br>
+                            30秒程度で簡易調査、半日ほどで情報が拡充されていきます。</b></p>
+                    <button class="button is-link mt-2 is-fullwidth" id="startAnalysis">
+                        解析開始
+                    </button>
+                    <br>
+                    <br>
+                </div>
+
+                <div class="columns">
+
+                    <div class="column" style="padding: 0px 50px">
+                        <p><b>短期調査進行状況</b></p>
+                        <br>
+                        <div class="tags has-addons" style="margin-bottom: 0.5rem;">
+                            <span id="step1" class="tag is-light" style="padding: 0.3rem 0.5rem;">サマリーの検索と作成</span>
+                            <span id="step1-status" class="tag is-warning" style="padding: 0.3rem 0.5rem;">待機中</span>
+                        </div>
+                        <div class="tags has-addons" style="margin-bottom: 0.5rem;">
+                            <span id="step2" class="tag is-light" style="padding: 0.3rem 0.5rem;">市場調査</span>
+                            <span id="step2-status" class="tag is-warning" style="padding: 0.3rem 0.5rem;">待機中</span>
+                        </div>
+                        <div class="tags has-addons" style="margin-bottom: 0.5rem;">
+                            <span id="step3" class="tag is-light" style="padding: 0.3rem 0.5rem;">財務状況の解析</span>
+                            <span id="step3-status" class="tag is-warning" style="padding: 0.3rem 0.5rem;">待機中</span>
+                        </div>
+                        <div class="tags has-addons" style="margin-bottom: 0.5rem;">
+                            <span id="step4" class="tag is-light" style="padding: 0.3rem 0.5rem;">各種事業の状況確認</span>
+                            <span id="step4-status" class="tag is-warning" style="padding: 0.3rem 0.5rem;">待機中</span>
+                        </div>
+                    </div>
+
+                    <div class="column" style="padding: 0px 50px">
+                        <p><b>長期(半日~1日)調査進行状況</b></p>
+                        <br>
+                        <div class="tags has-addons" style="margin-bottom: 0.5rem;">
+                            <span id="step1" class="tag is-light" style="padding: 0.3rem 0.5rem;">サマリーの検索と作成</span>
+                            <span class="tag is-warning" style="padding: 0.3rem 0.5rem;">待機中</span>
+                        </div>
+                        <div class="tags has-addons" style="margin-bottom: 0.5rem;">
+                            <span id="step2" class="tag is-light" style="padding: 0.3rem 0.5rem;">市場調査</span>
+                            <span class="tag is-warning" style="padding: 0.3rem 0.5rem;">待機中</span>
+                        </div>
+                        <div class="tags has-addons" style="margin-bottom: 0.5rem;">
+                            <span id="step3" class="tag is-light" style="padding: 0.3rem 0.5rem;">財務状況の解析</span>
+                            <span class="tag is-warning" style="padding: 0.3rem 0.5rem;">待機中</span>
+                        </div>
+                        <div class="tags has-addons" style="margin-bottom: 0.5rem;">
+                            <span id="step4" class="tag is-light" style="padding: 0.3rem 0.5rem;">各種事業の状況確認</span>
+                            <span class="tag is-warning" style="padding: 0.3rem 0.5rem;">待機中</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--
+            <div class="columns mt-5">
+                <div class="column">
+                    <h2 class="subtitle">エグゼクティブサマリー</h2>
+                    <div id="summary" class="box result-box"></div>
+                </div>
+                <div class="column">
+                    <h2 class="subtitle">市場の状況</h2>
+                    <div id="marketStatus" class="box result-box"></div>
+                </div>
+            </div>
+            <div class="columns mt-5">
+                <div class="column">
+                    <h2 class="subtitle">財務状況</h2>
+                    <div id="financialStatus" class="box result-box"></div>
+                </div>
+                <div class="column">
+                    <h2 class="subtitle">各種事業（サービス）の状況</h2>
+                    <div id="servicesStatus" class="box result-box"></div>
+                </div>
+            </div>
+            -->
+
+
+            <div class="tabs is-centered mt-5">
+                <ul>
+                    <li class="is-active" data-target="summary"><a>エグゼクティブサマリー</a></li>
+                    <li data-target="financialStatus"><a>財務状況</a></li>
+                    <li data-target="marketStatus"><a>市場の状況</a></li>
+                    <li data-target="servicesStatus"><a>各種事業（サービス）の状況</a></li>
+                    <li data-target="strongPoint"><a>会社の強み</a></li>
+                    <li data-target="keyPersons"><a>業界のキーパーソン</a></li>
+                </ul>
+            </div>
+
+            <div class="tab-content is-active" id="summary">
+                <h2 class="subtitle">エグゼクティブサマリー</h2>
+                <div class="buttons">
+                    <button class="button is-link">より詳しく調査</button>
+                    <button class="button is-link">参考文献を確認</button>
+                    <button class="button is-link">競合企業の情報確認</button>
+                </div>
+                <div class="box result-box"></div>
+            </div>
+
+            <div class="tab-content" id="financialStatus">
+                <h2 class="subtitle">財務状況</h2>
+                <div class="buttons">
+                    <button class="button is-link">より詳しく調査</button>
+                    <button class="button is-success">財務状況スプレッドシート</button>
+                    <button class="button is-link">競合企業の情報確認</button>
+                </div>
+                <div class="box result-box"></div>
+            </div>
+
+            <div class="tab-content" id="marketStatus">
+                <h2 class="subtitle">市場の状況</h2>
+                <div class="buttons">
+                    <button class="button is-link">より詳しく調査</button>
+                    <button class="button is-link">参考文献を確認</button>
+                    <button class="button is-link">競合企業の情報確認</button>
+                </div>
+                <div class="box result-box"></div>
+            </div>
+
+            <div class="tab-content" id="servicesStatus">
+                <h2 class="subtitle">各種事業（サービス）の状況</h2>
+                <div class="buttons">
+                    <button class="button is-link">より詳しく調査</button>
+                    <button class="button is-link">参考文献を確認</button>
+                    <button class="button is-link">競合サービスの情報確認</button>
+                </div>
+                <div class="box result-box"></div>
+            </div>
+
+            <div class="tab-content" id="strongPoint">
+                <h2 class="subtitle">会社の強み</h2>
+                <div class="buttons">
+                    <button class="button is-link">より詳しく調査</button>
+                    <button class="button is-link">参考文献を確認</button>
+                    <button class="button is-link">競合サービスの情報確認</button>
+                </div>
+                <div class="box result-box"></div>
+            </div>
+
+            <div class="tab-content" id="keyPersons" style="margin-bottom: 40px">
+                <h2 class="subtitle">業界のキーパーソン</h2>
+                <div class="columns is-multiline">
+                    <div class="column is-one-fifth">
+                        <div class="card">
+                            <div class="card-image p-2">
+                                <figure class="image is-64x64 mx-auto mt-4">
+                                    <img src="./data/images/avatar01.png" alt="山田太郎" class="is-rounded">
+                                </figure>
+                            </div>
+                            <div class="card-content">
+                                <p class="title is-4 has-text-centered">山田太郎</p>
+                                <p class="subtitle is-6 has-text-centered">テックイノベーション株式会社 CEO</p>
+                                <div class="content">
+                                    AIとロボティクスの分野で20年以上の経験を持つ。複数のテクノロジースタートアップを成功に導いた実績あり。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-fifth">
+                        <div class="card" style="height:100%;">
+                            <div class="card-image p-2">
+                                <figure class="image is-64x64 mx-auto mt-4">
+                                    <img src="./data/images/avatar05.png" alt="山田太郎" class="is-rounded">
+                                </figure>
+                            </div>
+                            <div class="card-content">
+                                <p class="title is-4 has-text-centered">鈴木花子</p>
+                                <p class="subtitle is-6 has-text-centered">グローバルテック研究所 主任研究員 CEO</p>
+                                <div class="content">
+                                    量子コンピューティングの第一人者。複数の特許を持ち、国際的な賞を受賞。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-fifth">
+                        <div class="card" style="height:100%;">
+                            <div class="card-image p-2">
+                                <figure class="image is-64x64 mx-auto mt-4">
+                                    <img src="./data/images/avatar03.png" alt="山田太郎" class="is-rounded">
+                                </figure>
+                            </div>
+                            <div class="card-content">
+                                <p class="title is-4 has-text-centered">佐藤健一</p>
+                                <p class="subtitle is-6 has-text-centered">エコテクノロジー株式会社 CTO</p>
+                                <div class="content">
+                                    再生可能エネルギー技術の専門家。持続可能な技術開発において業界をリード。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column is-one-fifth">
+                        <div class="card" style="height:100%;">
+                            <div class="card-image p-2">
+                                <figure class="image is-64x64 mx-auto mt-4">
+                                    <img src="./data/images/avatar04.png" alt="山田太郎" class="is-rounded">
+                                </figure>
+                            </div>
+                            <div class="card-content">
+                                <p class="title is-4 has-text-centered">高橋美咲</p>
+                                <p class="subtitle is-6 has-text-centered">バイオテックソリューションズ 創業者</p>
+                                <div class="content">
+                                    バイオテクノロジーの革新的なアプローチで注目を集める。医療分野での貢献が評価され、多数の賞を受賞。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-fifth">
+                        <div class="card" style="height:100%;">
+                            <div class="card-image p-2">
+                                <figure class="image is-64x64 mx-auto mt-4">
+                                    <img src="./data/images/avatar02.png" alt="山田太郎" class="is-rounded">
+                                </figure>
+                            </div>
+                            <div class="card-content">
+                                <p class="title is-4 has-text-centered">田中誠</p>
+                                <p class="subtitle is-6 has-text-centered">サイバーセキュリティエキスパート</p>
+                                <div class="content">
+                                    情報セキュリティのコンサルタントとして世界中の企業にアドバイスを提供。多数の著書がある。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+    <script src="js/app.js"></script>
+    <script src="js/fetchUploadFiles.js"></script>
+    <script src="js/uploadFile.js"></script>
+</body>
+
+</html>

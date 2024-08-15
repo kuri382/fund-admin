@@ -5,31 +5,58 @@ document.getElementById('startAnalysis').addEventListener('click', function() {
     const file = fileInput.files[0];
 
     if (file) {
+        // ファイルが選択された場合、アップロードしてから解析を開始
+        uploadPDF(file).then(() => {
+            fetchResults();
+        }).catch(error => {
+            console.error('Error during file upload:', error);
+        });
+    } else {
+        // ファイルが選択されていない場合、ローカルストレージからファイル名を取得して解析
+        const storedFileName = localStorage.getItem('uploadedFileName');
+        if (storedFileName) {
+            fetchResults();
+        } else {
+            alert('ファイルを選択するか、アップロード済みのファイルを選択してください。');
+        }
+    }
+});
+
+function uploadPDF(file) {
+    return new Promise((resolve, reject) => {
         const formData = new FormData();
         formData.append('file', file);
 
-        // PDFをアップロードして解析を開始
         fetch(`${API_BASE_URL}/upload`, {
             method: 'POST',
             body: formData
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
+            localStorage.setItem('uploadedFileName', data.filename); // アップロード後にファイル名をローカルストレージに保存
             console.log('Upload successful:', data);
-            fetchResults();
+            resolve();
         })
         .catch(error => {
             console.error('Error uploading PDF:', error);
+            reject(error);
         });
-    } else {
-        alert('PDFファイルを選択してください。');
-    }
-});
+    });
+}
+
+function fetchResults() {
+    const summaryPromise = fetchSummary('get-summary', 'summary');
+    const marketStatusPromise = fetchMarkdownContent('get-market-status', 'marketStatus');
+
+    Promise.all([summaryPromise, marketStatusPromise])
+        .then(() => {
+            console.log('Both summary and market status fetched successfully.');
+        })
+        .catch(error => {
+            console.error('Error fetching data:', error);
+        });
+}
+
 
 document.addEventListener('DOMContentLoaded', function() {
     fetchUploadedFiles();
@@ -59,6 +86,7 @@ function fetchResults() {
     //fetchServicesStatus();
 }
 */
+/*
 function fetchResults() {
     const summaryPromise = fetchSummary('get-summary', 'summary');
     const marketStatusPromise = fetchMarkdownContent('get-market-status', 'marketStatus');
@@ -72,6 +100,7 @@ function fetchResults() {
             console.error('Error fetching data:', error);
         });
 }
+*/
 
 function fetchMarkdownContent(endpoint, elementId) {
     // ローカルストレージからファイル名を取得
