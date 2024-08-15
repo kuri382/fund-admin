@@ -21,7 +21,7 @@ async def get_summary(file_name: str = Query(...), client: openai.ChatCompletion
     return StreamingResponse(stream_wrapper(), media_type="text/plain")
 
 @router.get("/get-strong-point")
-async def get_summary(file_name: str = Query(...), client: openai.ChatCompletion = Depends(get_openai_client)):
+async def get_strong_point(file_name: str = Query(...), client: openai.ChatCompletion = Depends(get_openai_client)):
     content = read_pdf_content(file_name)
     generator = generate_strong_point(content, client)
 

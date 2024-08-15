@@ -57,7 +57,7 @@ def generate_services_status(content: str, client: openai.ChatCompletion) -> Gen
 
 
 def generate_strong_point(content: str, client: openai.ChatCompletion) -> Generator[str, None, None]:
-    prompt = f"以下の内容を基にデューデリジェンス資料を作成します。この会社の強みについてWebで調査した結果をまとめてください：\n\n{content}"
+    prompt = f"以下の内容を基にデューデリジェンス資料を作成します。この会社の強みおよびリスクについて、客観的に分析をお願いします。IR資料内部の綺麗な表現だけでなく実際に市場で評価されるものなのか分析してください：\n\n{content}"
     stream = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
