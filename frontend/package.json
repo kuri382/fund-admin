@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate-api-client": "swagger-typescript-api -p http://localhost:8000/openapi.json -o ./src/api -n api.ts"
+    "generate-api-client": "swagger-typescript-api -p http://localhost:8000/openapi.json -o ./src/api-client -n api.ts"
   },
   "dependencies": {
     "@ant-design/nextjs-registry": "^1.0.1",

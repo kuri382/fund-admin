@@ -3,13 +3,9 @@
 import { useState } from 'react'
 import { Upload, message, Card } from 'antd'
 import { InboxOutlined } from '@ant-design/icons'
-import { Api } from '@/api/api'
+import { api } from '@/utils/api'
 
 const { Dragger } = Upload
-
-const api = new Api({
-  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-});
 
 export default function FileUpload() {
   const [fileName, setFileName] = useState<string>('')
@@ -49,7 +45,7 @@ export default function FileUpload() {
         </p>
         <p className="ant-upload-text">クリックまたはドラッグしてファイルをアップロード</p>
       </Dragger>
-      {fileName && <p style={{ marginTop: '10px' }}>{fileName}</p>}
+      {/*fileName && <p style={{ marginTop: '10px' }}>{fileName}</p>*/}
     </Card>
   )
 }

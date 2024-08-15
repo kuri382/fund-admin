@@ -1,8 +1,7 @@
 "use client"
-
 import React, { useEffect, useState } from 'react';
 import { Select } from 'antd';
-import { fetchUploadedFiles } from '@/api/api';
+import { api } from '@/utils/api'
 
 const { Option } = Select;
 
@@ -12,10 +11,18 @@ const FileDropdown: React.FC = () => {
 
   useEffect(() => {
     const loadFiles = async () => {
-      const fetchedFiles = await fetchUploadedFiles();
-      setFiles(fetchedFiles);
+      try {
+        const response = await api.uploadedFiles.getUploadedFilesUploadedFilesGet();
+        if (response.data) {
+          // APIレスポンスの構造に応じて適切にデータを取り出す
+          // 例: レスポンスが { files: string[] } の形式だと仮定
+          setFiles(response.data.files || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch files:', error);
+        // エラー処理を追加する（例：ユーザーへの通知）
+      }
     };
-
     loadFiles();
   }, []);
 
@@ -42,4 +49,3 @@ const FileDropdown: React.FC = () => {
 };
 
 export default FileDropdown;
-
