@@ -1,8 +1,8 @@
 import React from 'react';
-import { Button, Layout } from 'antd';
 import FileUpload from '@/components/FileUpload';
 import FileDropdown from '@/components/FileDropdown';
 import ResultTabs from '@/components/ResultTabs';
+import AnalysisStatus from '@/components/AnalysisStatus';
 
 
 const Home: React.FC = () => {
@@ -15,7 +15,7 @@ const Home: React.FC = () => {
       <FileDropdown />
       <div style={{ marginBottom: '20px' }}>
       </div>
-      <Button>test</Button>
+      <AnalysisStatus />
       <ResultTabs />
     </div>
   );
