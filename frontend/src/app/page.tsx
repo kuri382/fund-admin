@@ -2,7 +2,7 @@ import React from 'react';
 import FileUpload from '@/components/FileUpload';
 import FileDropdown from '@/components/FileDropdown';
 import ResultTabs from '@/components/ResultTabs';
-import AnalysisStatus from '@/components/AnalysisStatus';
+import AnalysisResults from '@/components/AnalysisResults';
 
 
 const Home: React.FC = () => {
@@ -15,8 +15,7 @@ const Home: React.FC = () => {
       <FileDropdown />
       <div style={{ marginBottom: '20px' }}>
       </div>
-      <AnalysisStatus />
-      <ResultTabs />
+      <AnalysisResults />
     </div>
   );
 };
