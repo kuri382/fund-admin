@@ -34,7 +34,7 @@ const FileDropdown: React.FC = () => {
 
   return (
     <Select
-      placeholder="-- ファイルを選択 --"
+      placeholder="-- サンプルから選ぶ --"
       onChange={handleChange}
       value={selectedFile || undefined}
       style={{ width: '100%' }}

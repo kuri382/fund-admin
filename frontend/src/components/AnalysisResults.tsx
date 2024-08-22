@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import { Button, message, Tabs, Card } from 'antd';
+import { CloudSyncOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
+
 import KeyPersons from './KeyPersons';
 
 interface StepStatus {
@@ -156,20 +158,29 @@ export default function AnalysisResults() {
 
     return (
         <div>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
             <Button
                 onClick={startAnalysis}
                 disabled={isAnalyzing}
                 loading={isAnalyzing}
+                size='large'
+                style={{
+                    width: '40%',
+                    background: 'linear-gradient(135deg, #6253E1, #04BEFE)',
+                }}
+                type="primary"
+                icon={<CloudSyncOutlined />}
             >
                 解析開始
             </Button>
+            </div>
             {Object.entries(status).map(([step, stepStatus]) => (
                 <div key={step} className={`step-status ${stepStatus.class}`}>
                     {step}: {stepStatus.text}
                 </div>
             ))}
-            <Card style={{ marginTop: '20px' }}>
-                <Tabs items={items} />
+            <Card style={{ marginTop: '20px'}}>
+                <Tabs items={items} style = {{height: '500px', padding: '10px', marginBottom: '20px'}} />
             </Card>
         </div>
     );

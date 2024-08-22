@@ -7,4 +7,8 @@ class Settings:
 
     pdf_storage_path: str = "data/pdf_storage"
 
+    def __init__(self):
+        if not os.path.exists(self.pdf_storage_path):
+            os.makedirs(self.pdf_storage_path)
+
 settings = Settings()
