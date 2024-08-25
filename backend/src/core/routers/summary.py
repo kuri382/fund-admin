@@ -10,7 +10,10 @@ from src.core.services.pdf_processing import read_pdf_content
 router = APIRouter()
 
 @router.get("/get-summary")
-async def get_summary(file_name: str = Query(...), client: openai.ChatCompletion = Depends(get_openai_client)):
+async def get_summary(
+    file_name: str = Query(...),
+    client: openai.ChatCompletion = Depends(get_openai_client)
+):
     content = read_pdf_content(file_name)
     generator = generate_summary(content, client)
 
@@ -19,6 +22,7 @@ async def get_summary(file_name: str = Query(...), client: openai.ChatCompletion
             yield chunk
 
     return StreamingResponse(stream_wrapper(), media_type="text/plain")
+
 
 @router.get("/get-strong-point")
 async def get_strong_point(file_name: str = Query(...), client: openai.ChatCompletion = Depends(get_openai_client)):

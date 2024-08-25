@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import { Button, message, Tabs, Card } from 'antd';
+import { Button, message, Tag, Tabs, Card } from 'antd';
 import { CloudSyncOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 
@@ -176,11 +176,11 @@ export default function AnalysisResults() {
             </div>
             {Object.entries(status).map(([step, stepStatus]) => (
                 <div key={step} className={`step-status ${stepStatus.class}`}>
-                    {step}: {stepStatus.text}
+                    {step}: <Tag color="blue">{stepStatus.text}</Tag>
                 </div>
             ))}
-            <Card style={{ marginTop: '20px'}}>
-                <Tabs items={items} style = {{height: '500px', padding: '10px', marginBottom: '20px'}} />
+            <Card style={{ marginTop: '20px'}}> {/* styles written in globals.css 'result-box */}
+                <Tabs items={items} style = {{height: '1400px', minHeight: '100%', padding: '20px', marginBottom: '20px'}} />
             </Card>
         </div>
     );

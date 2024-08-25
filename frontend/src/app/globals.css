@@ -105,3 +105,16 @@ a {
     color-scheme: dark;
   }
 }
+
+.result-box {
+  padding: 10px;
+}
+
+.result-box ul, li {
+    padding-left: 20px; /* 全体のインデント量を指定 */
+}
+
+.result-box h1,h2{
+  font-size: 18px;
+  padding-top: 10px;
+}

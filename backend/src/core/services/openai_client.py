@@ -1,8 +1,39 @@
 from typing import Generator
 import openai
+from openpyxl import load_workbook
+
 from src.settings import settings
 
+
 openai.api_key = settings.openai_api_key
+
+
+def send_xlsx_content_to_openai(file_path: str, client: openai.ChatCompletion) -> list[str]:
+    workbook = load_workbook(file_path)
+    sheet = workbook.active
+    content = []
+
+    for row in sheet.iter_rows(values_only=True):
+        content.append("\t".join([str(cell) for cell in row if cell is not None]))
+    text_content = "\n".join(content)
+
+    # OpenAI APIにテキストを送信
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": f"次のビジネスで用いられる表の内容に基づいて適切な英語ファイル名のみを回答せよ。拡張子は不要。:\n\n{text_content}"}],
+        stream=False,
+    )
+    title = response.choices[0].message.content
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": f"次のビジネスで用いられる表の概要を1行で短く簡潔説明してください:\n\n{text_content}"}],
+        stream=False,
+    )
+    sentence = response.choices[0].message.content
+
+    return title, sentence
+
 
 def generate_summary(content: str, client: openai.ChatCompletion) -> Generator[str, None, None]:
     prompt = f"以下の内容を基にデューデリジェンス向けのエグゼクティブサマリーを作成してください。日本語でお願いします：\n\n{content}"
