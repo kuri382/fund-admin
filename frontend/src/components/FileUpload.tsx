@@ -53,7 +53,7 @@ export default function FileUpload() {
   }
 
   return (
-    <Card title="IR資料をアップロードしてください" style={{height:'100%'}}>
+    <Card title="資料をアップロードしてください" style={{height:'100%'}}>
       <Dragger {...props}>
         <p className="ant-upload-drag-icon">
           <InboxOutlined />

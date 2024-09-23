@@ -6,10 +6,7 @@
 .env.production # for `npm run build` or `npm run start`
 ```
 
-# Development
-
-First, run the development server:
-
+# Develop
 ```bash
 npm run dev
 
@@ -18,9 +15,6 @@ firebase serve --only hosting
 ```
 
 # Deploy
-
-First, run the development server:
-
 ```bash
 npm run build
 firebase deploy

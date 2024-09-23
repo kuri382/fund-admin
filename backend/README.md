@@ -9,7 +9,7 @@ poetry run uvicorn src.server:app --reload
 ```
 gcloud auth login
 gcloud auth application-default login
-gcloud config set project medical-advisor-399305
+gcloud config set project granite
 ```
 
 ```sh

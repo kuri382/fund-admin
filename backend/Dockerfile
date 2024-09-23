@@ -17,7 +17,9 @@ COPY --from=builder /venv /venv
 # Copy source code and start script
 COPY src/ ./src/
 COPY data/ ./data/
+
 COPY bin/start.sh ./bin/start.sh
+COPY env.bak ./env.bak
 
 # Make the start script executable
 RUN chmod +x ./bin/start.sh

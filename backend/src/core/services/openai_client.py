@@ -17,7 +17,6 @@ def send_xlsx_content_to_openai(file_path: str, client: openai.ChatCompletion) -
         content.append("\t".join([str(cell) for cell in row if cell is not None]))
     text_content = "\n".join(content)
 
-    # OpenAI APIにテキストを送信
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": f"次のビジネスで用いられる表の内容に基づいて適切な英語ファイル名のみを回答せよ。拡張子は不要。:\n\n{text_content}"}],

@@ -1,4 +1,5 @@
 import os
+import uuid
 import shutil
 from fastapi import APIRouter, Depends, UploadFile, HTTPException
 import openai
@@ -6,16 +7,16 @@ import openai
 from src.core.services.pdf_processing import extract_text_from_pdf
 from src.core.services.openai_client import send_xlsx_content_to_openai
 from src.dependencies import get_openai_client
+from src.core.services.firebase_client import FirebaseClient, get_firestore
 from src.settings import settings
 
 router = APIRouter()
 
-@router.post("/upload")
+@router.post("/upload/pdf")
 async def upload_file(
     file: UploadFile,
     client: openai.ChatCompletion = Depends(get_openai_client)
 ):
-    # ファイルの拡張子を取得
     file_extension = os.path.splitext(file.filename)[1].lower()
 
     match file_extension:
@@ -34,6 +35,29 @@ async def upload_file(
             with open(file_name, 'w') as f:
                 f.write(pdf_text)
             return {"filename": file.filename, "status": "PDFからテキスト抽出保存完了"}
+
+        case _:
+            raise HTTPException(status_code=400, detail="サポートされていないファイル形式です")
+
+
+@router.post("/upload")
+async def upload_file(
+    file: UploadFile,
+    firestore_client: FirebaseClient = Depends(get_firestore),
+    openai_clients: openai.ChatCompletion = Depends(get_openai_client),
+):
+    file_extension = os.path.splitext(file.filename)[1].lower()
+
+    contents = await file.read()
+    unique_filename = f"{uuid.uuid4()}_{file.filename}"
+
+    match file_extension:
+
+        case ".xlsx":
+            blob = firestore_client.storage.blob(f"excel_uploads/{unique_filename}")
+            blob.upload_from_string(contents, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            #result = await process_uploaded_file(file, firestore_client, storage_client, openai_client)
+            return {"filename": file.filename, "status": f"概要：.xlsxとしてリネームし整形・保存しました"}
 
         case _:
             raise HTTPException(status_code=400, detail="サポートされていないファイル形式です")

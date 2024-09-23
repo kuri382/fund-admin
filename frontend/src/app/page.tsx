@@ -5,6 +5,7 @@ import FileUpload from '@/components/FileUpload';
 import FileDropdown from '@/components/FileDropdown';
 import AnalysisResults from '@/components/AnalysisResults';
 import FileList from '@/components/FileList';
+import MoveButton from '@/components/MoveButton';
 
 
 const Top: React.FC = () => {
@@ -26,6 +27,7 @@ const Top: React.FC = () => {
             </div>
 
             <FileDropdown />
+            <MoveButton />
             <div style={{ marginBottom: '20px' }}>
             </div>
             <AnalysisResults />
