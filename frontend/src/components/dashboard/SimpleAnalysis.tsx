@@ -25,9 +25,10 @@ const ExcelFileTabs: React.FC = () => {
       setError(null);
       try {
         const apiUrl = `${api.baseUrl}/upload/files`;
+        const accessToken = await user.getIdToken(/* forceRefresh */ true);
         const response = await axios.get(apiUrl, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+            'Authorization': `Bearer ${accessToken}`,
           },
         });
         setFiles(response.data.files);
@@ -51,8 +52,8 @@ const ExcelFileTabs: React.FC = () => {
     return (
       <span>
         {text.split(/(\bUnnamed:\s*\d+\b)/).map((part, index) => (
-          part.match(/\bUnnamed:\s*\d+\b/) ? 
-            <span key={index} style={{ color: 'transparent' }}>{part}</span> : 
+          part.match(/\bUnnamed:\s*\d+\b/) ?
+            <span key={index} style={{ color: 'transparent' }}>{part}</span> :
             part
         ))}
       </span>

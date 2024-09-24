@@ -5,6 +5,7 @@ import { Form, Input, Button } from 'antd';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/services/firebase';
+import axios from 'axios';
 
 interface SignInFormValues {
   email: string;
@@ -12,25 +13,27 @@ interface SignInFormValues {
 }
 
 const SignInForm: React.FC = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
 
   const onFinish = async ({ email, password }: SignInFormValues) => {
-    setLoading(true);
+    setIsLoading(true);
     setError('');
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      const user = auth.currentUser;
-      if (user) {
-        const token = await user.getIdToken(); // Firebaseのアクセストークンを取得
-        localStorage.setItem('accessToken', token);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      if (userCredential) {
+        // サーバーにトークンを送信してセッションを開始
+        //const token = await user.getIdToken();
+        //await axios.post('/api/auth/set-token', { token });
+        // ダッシュボードにリダイレクト
         router.push('/dashboard');
       }
+
     } catch (error: any) {
       setError('ログインに失敗しました: ' + error.message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 

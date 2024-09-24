@@ -41,7 +41,6 @@ export default function FileUpload() {
           });
           console.log('Upload success:', response.data);
 
-          // APIレスポンスを処理
           const { filename, status } = response.data;
           setFileName(filename);
           setStatusMessage(status);

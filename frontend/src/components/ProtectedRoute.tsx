@@ -1,6 +1,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { Spin } from 'antd';
 
 interface ProtectedRouteProps {
@@ -8,24 +9,25 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { user, loading } = useAuth();
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setAuthenticated(false); // トークンが存在しない場合にも状態を更新
+    if (!loading && !user) {
       router.push('/signin');
-    } else {
-      setAuthenticated(true);
     }
-  }, [router]);
+  }, [user, loading, router]);
 
-  if (authenticated === null) {
-    return <Spin size="large" />; // 認証状態の確認中はスピナーを表示
+  if (loading) {
+    return <Spin size="large" />;
   }
 
-  return authenticated ? <>{children}</> : null;
+  if (!user) {
+    return null;
+  }
+
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;
