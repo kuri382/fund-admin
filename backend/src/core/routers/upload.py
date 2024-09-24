@@ -74,7 +74,8 @@ async def upload_file(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"File read error: {str(e)}")
 
-    unique_filename = f"{uuid.uuid4()}_{file.filename}"
+    file_uuid = uuid.uuid4()
+    unique_filename = f"{file_uuid}_{file.filename}"
 
     match file_extension:
 
@@ -98,10 +99,11 @@ async def upload_file(
 
                 def save_analysis_result(user_id: str, file_name: str, analysis_result: AnalysisResult):
                     firestore_client = firebase_client.get_firestore()
-                    doc_ref = firestore_client.collection('analysis_results').document(f"{user_id}_{file_name}")
+                    doc_ref = firestore_client.collection('analysis_results').document(user_id).collection('files').document(str(file_uuid))
 
                     doc_ref.set({
                         "file_name": file_name,
+                        "file_uuid": str(file_uuid),
                         "abstract": analysis_result['abstract'],
                         "feature": analysis_result['feature'],
                         "extractable_info": analysis_result['extractable_info'],
@@ -112,14 +114,13 @@ async def upload_file(
                 save_analysis_result(user_id, file.filename, analysis_result)
 
             except Exception as e:
-                print(f"Error: {str(e)}")  # エラーメッセージ
-                traceback.print_exc()  # 詳細なトレースバックを表示
+                print(f"Error: {str(e)}")
                 raise HTTPException(status_code=500, detail=f"Error uploading Excel file: {str(e)}")
 
         case _:
             raise HTTPException(status_code=400, detail="サポートされていないファイル形式です")
 
-    return {"filename": file.filename, "status": f"概要：.xlsxとしてリネームし整形・保存しました"}
+    return {"filename": file.filename, "status": f"ファイルを解析し保存しました"}
 
 
 @router.get("/upload/files")
@@ -143,7 +144,8 @@ async def list_excel_files(
         for blob in blobs:
             if blob.name.endswith(".xlsx"):
                 full_filename = os.path.basename(blob.name)
-                filename = full_filename.split("_", 1)[1]
+                file_uuid = full_filename.split("_", 1)[0]
+                file_name = full_filename.split("_", 1)[1]
 
                 excel_bytes = blob.download_as_bytes()
                 excel_io = io.BytesIO(excel_bytes)
@@ -156,7 +158,7 @@ async def list_excel_files(
                 output = output.astype(str)
                 json_data = output.to_dict(orient="records")
 
-                doc_ref = firestore_client.collection('analysis_results').document(f"{user_id}_{filename}")
+                doc_ref = firestore_client.collection('analysis_results').document(user_id).collection('files').document(file_uuid)
                 doc = doc_ref.get()
 
                 if doc.exists:
@@ -172,7 +174,7 @@ async def list_excel_files(
                     feature = ""
 
                 file_data_list.append({
-                    "file_name": filename,
+                    "file_name": file_name,
                     "data": json_data,
                     "feature": feature,
                     "abstract": abstract,

@@ -13,7 +13,7 @@ const ExcelFileTabs: React.FC = () => {
       <Button onClick={fetchFiles} type="primary" style={{ marginBottom: '20px', margin: '10px' }}>
         読み込んだファイルを解析する
       </Button>
-      {loading && <Spin size="large" />}
+      {loading && <Spin size="small" />}
       {error && <Alert message={error} type="error" />}
       {!loading && !error && files.length > 0 && (
         <Row justify="center" style={{ marginTop: '20px' }}>

@@ -3,7 +3,7 @@
 import React from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 //import ExcelAnalysis from '@/components/dashboard/ExcelAnalysis';
-import SimpleAnalysis from '@/components/dashboard/SimpleAnalysis';
+import SimpleAnalysis from '@/components/dashboard/TableAnalysis/SimpleAnalysis';
 import Navbar from '@/components/Navbar/Navbar';
 
 const ExcelAnalyzer = () => {

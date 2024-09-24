@@ -60,6 +60,7 @@ export default function FileUpload() {
       const { status } = info.file;
       if (status !== 'uploading') {
         //console.log(info.file, info.fileList);
+        message.success(`${info.file.name} ファイルを分析しています。`);
       }
       if (status === 'done') {
         // ファイルアップロード完了時の処理

@@ -10,7 +10,7 @@ from src.core.services import firebase_client
 
 
 TITLE: Final[str] = 'Granite API'
-VERSION: Final[str] = '0.4.1'
+VERSION: Final[str] = '0.4.3'
 
 app = FastAPI(title=TITLE, version=VERSION)
 

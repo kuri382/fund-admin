@@ -5,7 +5,6 @@ import { Form, Input, Button } from 'antd';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/services/firebase';
-import axios from 'axios';
 
 interface SignInFormValues {
   email: string;
@@ -24,16 +23,17 @@ const SignInForm: React.FC = () => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       if (userCredential) {
         // サーバーにトークンを送信してセッションを開始
-        //const token = await user.getIdToken();
-        //await axios.post('/api/auth/set-token', { token });
+        // const token = await user.getIdToken();
+        // await axios.post('/api/auth/set-token', { token });
+
         // ダッシュボードにリダイレクト
-        router.push('/dashboard');
+        await router.push('/dashboard');  // 画面遷移が完了するまで待機
       }
 
     } catch (error: any) {
       setError('ログインに失敗しました: ' + error.message);
     } finally {
-      setIsLoading(false);
+      setIsLoading(false);  // 画面遷移が完了したらloading解除
     }
   };
 

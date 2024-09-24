@@ -21,9 +21,11 @@ const styleTabPane: React.CSSProperties = {
   padding: '5px'
 }
 
-const FileTabs: React.FC<FileTabsProps> = ({ files }) => (
+const FileTabs: React.FC<FileTabsProps> = ({ files }) => {
+  console.log(files);
+  return(
   <Tabs>
-    {files.map((file) => (
+    {files.map((file, index) => (
       <Tabs.TabPane
         tab={
           <>
@@ -32,7 +34,7 @@ const FileTabs: React.FC<FileTabsProps> = ({ files }) => (
             </div>
           </>
         }
-        key={file.file_name}
+        key={`${file.file_name}_${index}`}
         style={{background: '#f0f6fa'}}
       >
         <Row justify="center">
@@ -46,6 +48,7 @@ const FileTabs: React.FC<FileTabsProps> = ({ files }) => (
       </Tabs.TabPane>
     ))}
   </Tabs>
-);
+  );
+};
 
 export default FileTabs;
