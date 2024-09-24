@@ -14,8 +14,7 @@ let firebaseApp: FirebaseApp;
 if (!getApps().length) {
   firebaseApp = initializeApp(firebaseConfig);
 } else {
-  firebaseApp = getApps()[0]; // 既に初期化されている場合、そのインスタンスを再利用
+  firebaseApp = getApps()[0];
 }
 
-// Firebase Authのインスタンスをエクスポート
 export const auth: Auth = getAuth(firebaseApp);

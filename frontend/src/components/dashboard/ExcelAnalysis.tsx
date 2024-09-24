@@ -18,7 +18,10 @@ import type { TabsProps } from 'antd';
 import FileUpload from '@/components/FileUpload'
 
 import styles from './SalesData.module.css';
+import Navbar from "../Navbar/Navbar";
 import { api } from '@/utils/api'
+import { auth } from '@/services/firebase';
+
 
 export interface SalesData {
   time: string;
@@ -65,21 +68,42 @@ const ExcelAnalysis: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const apiUrl = `${api.baseUrl}/users/user_123/companies/company_456/sources`
     const fetchData = async () => {
-      try {
-        const response = await axios.get<{ sources: SourceData[] }>(
-          apiUrl
-        );
-        console.log("API response:", response.data);
-        setSources(response.data.sources);
-        setLoading(false);
-      } catch (err) {
-        setError("Error fetching source data");
-        setLoading(false);
+      setLoading(true);
+      const user = auth.currentUser;
+
+      if (user) {
+        try {
+          // アクセストークンを取得
+          const accessToken = await user.getIdToken(/* forceRefresh */ true);
+          const apiUrl = `${api.baseUrl}/companies/company_456/sources`;
+
+          // APIリクエストを送信
+          console.log('apiurl', apiUrl)
+          const response = await axios.get<{ sources: SourceData[] }>(apiUrl, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+          console.log('response 得られた')
+
+          // データを状態にセット
+          setSources(response.data.sources);
+          setLoading(false); // ローディング状態を解除
+        } catch (err) {
+          // エラーハンドリング
+          setError("Error fetching source data");
+          setLoading(false); // ローディング状態を解除
+        }
+      } else {
+        console.log('error', user)
+
+        setError("No user is signed in.");
+        setLoading(false); // ローディング状態を解除
       }
     };
-    fetchData();
+
+    fetchData(); // 非同期関数の呼び出し
   }, []);
 
   if (loading) return <div className={styles.loading}>Loading...</div>;
@@ -176,22 +200,25 @@ const ExcelAnalysis: React.FC = () => {
   }));
 
   return (
-    <div className={styles.mainContainer}>
-      <div className={styles.container}>
-        <FileUpload />
-        <h2 className={styles.title}></h2>
+    <>
+      <Navbar />
+      <div className={styles.mainContainer}>
+        <div className={styles.container}>
+          <FileUpload />
+          <h2 className={styles.title}></h2>
 
-        {/* source_idごとのタブ (Ant DesignのTabs) */}
-        <Tabs
-          activeKey={String(selectedSourceIndex)}
-          onChange={(key) => {
-            setSelectedSourceIndex(Number(key));
-            setSelectedTab(0);  // 新しいsourceに切り替えたとき、最初のタブを表示
-          }}
-          items={sourceTabs}
-        />
+          {/* source_idごとのタブ (Ant DesignのTabs) */}
+          <Tabs
+            activeKey={String(selectedSourceIndex)}
+            onChange={(key) => {
+              setSelectedSourceIndex(Number(key));
+              setSelectedTab(0);  // 新しいsourceに切り替えたとき、最初のタブを表示
+            }}
+            items={sourceTabs}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

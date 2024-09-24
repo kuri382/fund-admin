@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isClient) {
       await firebaseSignOut(auth);
       setUser(null);
-      router.push('/auth/login');
+      router.push('/signin');
     }
   };
 

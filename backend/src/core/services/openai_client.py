@@ -97,3 +97,44 @@ def generate_strong_point(content: str, client: openai.ChatCompletion) -> Genera
     for chunk in stream:
         if chunk.choices[0].delta.content is not None:
             yield chunk.choices[0].delta.content
+
+
+def generate_file_analysis(content: str, openai_client: openai.ChatCompletion) -> Generator[str, None, None]:
+
+    system_prompt = ("次のビジネスに関するテーブルデータを分析してください\
+        それぞれのエクセルから全ての情報を整理して引き出せるように日本語でまとめてください。回答はJSON形式でしてください。\
+        abstract: 参照したデータの概要を日本語でまとめてください。一般的な用語説明は不要です\
+        extractable_info: このデータから抽出可能な情報の一覧\
+        feature: このデータにおいて特徴的な傾向を詳細にまとめてください\
+        category:財務会計/管理会計(売上)/管理会計(コスト)/その他 \
+        ")
+
+    response = openai_client.chat.completions.create(
+        model="gpt-4o-2024-08-06",
+        messages=[
+            {'role': 'system', 'content': system_prompt},
+            {"role": "user", "content": content}
+        ],
+
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "file_analysis",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "abstract": {"type": "string"},
+                        "feature": {"type": "string"},
+                        "extractable_info": {"type": "string"},
+                        "category": {"type": "string"},
+                    },
+                    "required": ["abstract", "feature", "extractable_info", "category"],
+                    "additionalProperties": False
+                },
+                "strict": True
+            }
+        }
+
+    )
+    result_raw_abstracts = response.choices[0].message.content
+    return result_raw_abstracts

@@ -3,14 +3,17 @@
 
 import React from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import ExcelAnalysis from '@/components/dashboard/ExcelAnalysis';
+//import ExcelAnalysis from '@/components/dashboard/ExcelAnalysis';
+import SimpleAnalysis from '@/components/dashboard/SimpleAnalysis';
+import Navbar from '@/components/Navbar/Navbar';
 
-const Dashboard = () => {
+const ExcelAnalyzer = () => {
   return (
     <ProtectedRoute>
-      <ExcelAnalysis />
+      <Navbar />
+      <SimpleAnalysis />
     </ProtectedRoute>
   );
 };
 
-export default Dashboard;
+export default ExcelAnalyzer;

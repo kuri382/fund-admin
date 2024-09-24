@@ -24,8 +24,8 @@ const SignInForm: React.FC = () => {
       const user = auth.currentUser;
       if (user) {
         const token = await user.getIdToken(); // Firebaseのアクセストークンを取得
-        localStorage.setItem('token', token); // トークンを保存（セキュリティに注意）
-        router.push('/dashboard'); // ダッシュボードにリダイレクト
+        localStorage.setItem('accessToken', token);
+        router.push('/dashboard');
       }
     } catch (error: any) {
       setError('ログインに失敗しました: ' + error.message);

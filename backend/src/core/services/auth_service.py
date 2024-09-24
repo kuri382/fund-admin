@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from firebase_admin import auth as firebase_auth
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 
@@ -27,12 +28,11 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
-def verify_token(token: str):
+def verify_token(authorization: str):
     try:
-        payload = jwt.decode(token, settings.firebase_auth_secret_key, algorithms=[settings.algorithm])
-        uid: str = payload.get("uid")
-        if uid is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        return TokenData(uid=uid)
-    except JWTError:
+        token = authorization.split(" ")[1]
+        decoded_token = firebase_auth.verify_id_token(token)
+        user_id = decoded_token["uid"]
+        return user_id
+    except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid token")

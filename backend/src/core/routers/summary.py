@@ -81,20 +81,18 @@ class SourceResponse(BaseModel):
 
 
 @router.get(
-    "/users/{user_id}/companies/{company_id}/sources",
+    "/companies/{company_id}/sources",
     response_model=SourceResponse
 )
 async def get_sources(
-    user_id: str,
     company_id: str,
     db: firestore.client = Depends(get_firestore),
 ):
     try:
         # Firestoreから該当するcompany_idのデータを取得
+        user_id = 'user_123'
         sources_ref = db.collection('users').document(user_id).collection('companies').document(company_id).collection('sources')
-        print(f"Collection reference: {sources_ref}")
         sources = sources_ref.stream()
-        print(sources)
 
         result = []
         for source in sources:

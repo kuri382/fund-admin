@@ -6,10 +6,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.core.routers import auth, upload, summary, market, financial, services
+from src.core.services import firebase_client
 
 
 TITLE: Final[str] = 'Granite API'
-VERSION: Final[str] = '0.3.3'
+VERSION: Final[str] = '0.4.0'
 
 app = FastAPI(title=TITLE, version=VERSION)
 
@@ -28,6 +29,9 @@ app.include_router(financial.router)
 app.include_router(services.router)
 app.include_router(auth.router)
 
+@app.on_event("startup")
+def startup_event():
+    firebase_client.FirebaseClient.initialize_firebase()
 
 if __name__ == "__main__":
     import uvicorn

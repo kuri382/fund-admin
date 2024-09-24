@@ -1,11 +1,11 @@
 import React from 'react';
 
-import ExcelAnalysis from '@/components/dashboard/ExcelAnalysis';
+import PdfAnalyzer from '@/components/dashboard/PdfAnalyzer';
 
 
 const SignUpPage: React.FC = () => {
   return (
-    <ExcelAnalysis />
+    <PdfAnalyzer />
   );
 };
 
