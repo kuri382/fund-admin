@@ -2,6 +2,8 @@
 
 ```bash
 poetry run uvicorn src.server:app --reload
+# debug
+poetry run uvicorn src.server:app --reload --log-level debug
 ```
 
 # Deployment

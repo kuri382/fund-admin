@@ -1,11 +1,11 @@
 import React from 'react';
 import { Button, Row, Col, Spin, Alert } from 'antd';
 import FileUpload from '@/components/FileUpload';
-import useFetchFiles from '@/hooks/useFetchFiles';
+import useFetchTable from '@/hooks/fetchTable';
 import FileTabs from '@/components/dashboard/TableAnalysis/FileTabs';
 
 const ExcelFileTabs: React.FC = () => {
-  const { files, loading, error, fetchFiles } = useFetchFiles();
+  const { files, loading, error, fetchFiles } = useFetchTable();
 
   return (
     <>

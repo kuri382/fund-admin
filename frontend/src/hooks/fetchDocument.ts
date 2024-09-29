@@ -1,18 +1,17 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { auth } from '@/services/firebase';
-import { api } from '@/utils/api';
+import { apiUrlCheckDocumentData } from '@/utils/api';
 import { message } from 'antd';
 
 interface FileData {
   file_name: string;
-  data: any[];
   abstract: string;
   category: string;
   feature: string;
 }
 
-const useFetchFiles = () => {
+const fetchDocument = () => {
   const [files, setFiles] = useState<FileData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,9 +22,9 @@ const useFetchFiles = () => {
       setLoading(true);
       setError(null);
       try {
-        const apiUrl = `${api.baseUrl}/upload/files`;
+        //const apiUrl = `${api.baseUrl}/check/document_data`;
         const accessToken = await user.getIdToken(/* forceRefresh */ true);
-        const response = await axios.get(apiUrl, {
+        const response = await axios.get(apiUrlCheckDocumentData, {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
           },
@@ -50,4 +49,4 @@ const useFetchFiles = () => {
   return { files, loading, error, fetchFiles };
 };
 
-export default useFetchFiles;
+export default fetchDocument;

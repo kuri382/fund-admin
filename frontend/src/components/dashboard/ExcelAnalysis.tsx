@@ -74,11 +74,9 @@ const ExcelAnalysis: React.FC = () => {
 
       if (user) {
         try {
-          // アクセストークンを取得
           const accessToken = await user.getIdToken(/* forceRefresh */ true);
           const apiUrl = `${api.baseUrl}/companies/company_456/sources`;
 
-          // APIリクエストを送信
           console.log('apiurl', apiUrl)
           const response = await axios.get<{ sources: SourceData[] }>(apiUrl, {
             headers: {
