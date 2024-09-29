@@ -5,6 +5,6 @@ export const api = new Api({
 });
 
 //ドキュメントデータを取得する
-export const apiUrlCheckDocumentData = `${api.baseUrl}/check/document_data`;
+export const apiUrlCheckDocumentData = `${api.baseUrl}/check/document-data`;
 // テーブルデータを取得する
-export const apiUrlCheckTableData = `${api.baseUrl}/check/table_data`;
+export const apiUrlCheckTableData = `${api.baseUrl}/check/table-data`;

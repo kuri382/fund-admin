@@ -12,11 +12,11 @@ interface FileData {
 }
 
 const fetchDocument = () => {
-  const [files, setFiles] = useState<FileData[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [filesDocument, setFiles] = useState<FileData[]>([]);
+  const [loadingDocument, setLoading] = useState<boolean>(true);
+  const [errorDocument, setError] = useState<string | null>(null);
 
-  const fetchFiles = async () => {
+  const fetchFilesDocument = async () => {
     const user = auth.currentUser;
     if (user) {
       setLoading(true);
@@ -43,10 +43,10 @@ const fetchDocument = () => {
   };
 
   useEffect(() => {
-    fetchFiles();
+    fetchFilesDocument();
   }, []);
 
-  return { files, loading, error, fetchFiles };
+  return { filesDocument, loadingDocument, errorDocument, fetchFilesDocument };
 };
 
 export default fetchDocument;

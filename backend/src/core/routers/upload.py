@@ -2,7 +2,6 @@ import io
 import os
 import json
 import uuid
-import shutil
 from fastapi import APIRouter, Depends, UploadFile, HTTPException, Request
 from fastapi.responses import JSONResponse
 import openai
@@ -11,9 +10,8 @@ import pandas as pd
 import traceback
 from typing import TypedDict
 
-
 from src.core.services.pdf_processing import extract_text_from_pdf
-from src.core.services.openai_client import generate_pdf_analysis, generate_file_analysis
+from src.core.services.openai_client import generate_pdf_analysis, generate_table_analysis
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services import auth_service
 from src.dependencies import get_openai_client
@@ -66,7 +64,7 @@ async def upload_file(
                     for row in sheet.iter_rows(values_only=True):
                         sheet_content.append("\t".join([str(cell) for cell in row if cell is not None]))
                     text_content = "\n".join(sheet_content)
-                    analysis_result = generate_file_analysis(text_content, openai_client)
+                    analysis_result = generate_table_analysis(text_content, openai_client)
                     return json.loads(analysis_result)
 
                 def save_analysis_result(user_id: str, file_name: str, analysis_result: AnalysisResult):
@@ -91,7 +89,6 @@ async def upload_file(
 
         case ".pdf":
             try:
-                # storageに保存する
                 storage_client = firebase_client.get_storage()
                 blob = storage_client.blob(f"{user_id}/{unique_filename}")
                 blob.upload_from_string(contents, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -112,6 +109,8 @@ async def upload_file(
                         "category": analysis_result['category']
                     })
 
+                save_analysis_result(user_id, file.filename, analysis_result)
+
             except Exception as e:
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=f"error")
@@ -122,7 +121,7 @@ async def upload_file(
     return {"filename": file.filename, "status": f"ファイルを解析し保存しました"}
 
 
-@router.get("/check/table_data")
+@router.get("/check/table-data")
 async def list_excel_files(
     request: Request,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
@@ -192,9 +191,9 @@ async def list_excel_files(
 
 
 
-'''
-@router.get("/check/pdf_data")
-async def list_pdf_files(
+
+@router.get("/check/document-data")
+async def list_document_files(
     request: Request,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
 ):
@@ -217,9 +216,6 @@ async def list_pdf_files(
                 file_uuid = full_filename.split("_", 1)[0]
                 file_name = full_filename.split("_", 1)[1]
 
-                output = output.astype(str)
-                json_data = output.to_dict(orient="records")
-
                 doc_ref = firestore_client.collection('analysis_results').document(user_id).collection('files_pdf').document(file_uuid)
                 doc = doc_ref.get()
 
@@ -237,7 +233,6 @@ async def list_pdf_files(
 
                 file_data_list.append({
                     "file_name": file_name,
-                    "path": json_data,
                     "feature": feature,
                     "abstract": abstract,
                     "extractable_info": extractable_info,
@@ -252,7 +247,7 @@ async def list_pdf_files(
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error retrieving or processing files: {str(e)}")
-'''
+
 
 @router.get("/upload/description")
 async def list_excel_files(

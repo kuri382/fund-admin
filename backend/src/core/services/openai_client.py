@@ -1,3 +1,5 @@
+import json
+
 from typing import Generator
 import openai
 from openpyxl import load_workbook
@@ -99,7 +101,7 @@ def generate_strong_point(content: str, client: openai.ChatCompletion) -> Genera
             yield chunk.choices[0].delta.content
 
 
-def generate_file_analysis(content: str, openai_client: openai.ChatCompletion) -> Generator[str, None, None]:
+def generate_table_analysis(content: str, openai_client: openai.ChatCompletion) -> Generator[str, None, None]:
 
     system_prompt = ("次のビジネスに関するテーブルデータを分析してください\
         全ての情報を整理して引き出せるように日本語でまとめてください。回答はJSON形式でしてください。\
@@ -178,4 +180,4 @@ def generate_pdf_analysis(content: str, openai_client: openai.ChatCompletion) ->
         }
     )
     result_raw_abstracts = response.choices[0].message.content
-    return result_raw_abstracts
+    return json.loads(result_raw_abstracts)

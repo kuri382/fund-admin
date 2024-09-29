@@ -10,7 +10,7 @@ interface FileData {
   feature: string;
 }
 
-interface FileTabsProps {
+interface TablesFileTabProps {
   files: FileData[];
 }
 
@@ -36,9 +36,11 @@ const styleTabPane: React.CSSProperties = {
   padding: '5px'
 }
 
-const FileTabs: React.FC<FileTabsProps> = ({ files }) => {
+const TablesFileTab: React.FC<TablesFileTabProps> = ({ files }) => {
   return (
-    <Tabs>
+    <Tabs
+      type="card"
+    >
       {files.map((file, index) => {
         const extension = getFileExtension(file.file_name);
         const tagColor = getExtensionColor(extension);
@@ -48,7 +50,7 @@ const FileTabs: React.FC<FileTabsProps> = ({ files }) => {
             tab={
               <>
                 <div>{file.file_name}</div>
-                <div style={{ fontSize: '11px', color: 'gray' }}>{file.abstract.slice(0, 20)}...
+                <div style={{ fontSize: '11px', color: 'gray' }}>{file.abstract.slice(0, 18)}...
                   <br />
                   <Tag color={tagColor}>{extension}</Tag>
                 </div>
@@ -72,4 +74,4 @@ const FileTabs: React.FC<FileTabsProps> = ({ files }) => {
   );
 };
 
-export default FileTabs;
+export default TablesFileTab;
