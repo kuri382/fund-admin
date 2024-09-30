@@ -3,10 +3,8 @@ import os
 import json
 import uuid
 from fastapi import APIRouter, Depends, UploadFile, HTTPException, Request
-from fastapi.responses import JSONResponse
 import openai
 from openpyxl import load_workbook
-import pandas as pd
 import traceback
 from typing import TypedDict
 
@@ -69,7 +67,14 @@ async def upload_file(
 
                 def save_analysis_result(user_id: str, file_name: str, analysis_result: AnalysisResult):
                     firestore_client = firebase_client.get_firestore()
-                    doc_ref = firestore_client.collection('analysis_results').document(user_id).collection('files_excel').document(str(file_uuid))
+
+                    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+                    selected_project = projects_ref.where('is_selected', '==', True).limit(1).get()
+                    if not selected_project:
+                        raise ValueError("No project selected for the user")
+                    selected_project_id = selected_project[0].id
+                    doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection('tables').document(str(file_uuid))
+                    #doc_ref = firestore_client.collection('users').document(user_id).collection('files_excel').document(str(file_uuid))
 
                     doc_ref.set({
                         "file_name": file_name,
@@ -98,7 +103,13 @@ async def upload_file(
 
                 def save_analysis_result(user_id: str, file_name: str, analysis_result: AnalysisResult):
                     firestore_client = firebase_client.get_firestore()
-                    doc_ref = firestore_client.collection('analysis_results').document(user_id).collection('files_pdf').document(str(file_uuid))
+
+                    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+                    selected_project = projects_ref.where('is_selected', '==', True).limit(1).get()
+                    if not selected_project:
+                        raise ValueError("No project selected for the user")
+                    selected_project_id = selected_project[0].id
+                    doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection('documents').document(str(file_uuid))
 
                     doc_ref.set({
                         "file_name": file_name,
@@ -121,134 +132,6 @@ async def upload_file(
     return {"filename": file.filename, "status": f"ファイルを解析し保存しました"}
 
 
-@router.get("/check/table-data")
-async def list_excel_files(
-    request: Request,
-    firebase_client: FirebaseClient = Depends(get_firebase_client),
-):
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-
-    user_id = auth_service.verify_token(authorization)
-
-    try:
-        storage_client = firebase_client.get_storage()
-        firestore_client = firebase_client.get_firestore()
-
-        blobs = storage_client.list_blobs(prefix=f"{user_id}/")
-        file_data_list = []
-
-        for blob in blobs:
-            if blob.name.endswith(".xlsx"):
-                full_filename = os.path.basename(blob.name)
-                file_uuid = full_filename.split("_", 1)[0]
-                file_name = full_filename.split("_", 1)[1]
-
-                excel_bytes = blob.download_as_bytes()
-                excel_io = io.BytesIO(excel_bytes)
-
-                df = pd.read_excel(excel_io, engine="openpyxl")
-                df = df.replace('^Unnamed.*', '', regex=True)
-                df = df.fillna('')
-                output = df.head(100) # fix later
-
-                output = output.astype(str)
-                json_data = output.to_dict(orient="records")
-
-                doc_ref = firestore_client.collection('analysis_results').document(user_id).collection('files_excel').document(file_uuid)
-                doc = doc_ref.get()
-
-                if doc.exists:
-                    analysis_data = doc.to_dict()
-                    abstract = analysis_data.get("abstract", "")
-                    extractable_info = analysis_data.get("extractable_info", {})
-                    category = analysis_data.get("category", "")
-                    feature = analysis_data.get("feature", "")
-                else:
-                    abstract = ""
-                    extractable_info = {}
-                    category = ""
-                    feature = ""
-
-                file_data_list.append({
-                    "file_name": file_name,
-                    "data": json_data,
-                    "feature": feature,
-                    "abstract": abstract,
-                    "extractable_info": extractable_info,
-                    "category": category
-                })
-
-        if not file_data_list:
-            raise HTTPException(status_code=404, detail="No Excel files with numeric data found for the given user.")
-
-        return JSONResponse(content={"files": file_data_list})
-
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error retrieving or processing files: {str(e)}")
-
-
-
-
-@router.get("/check/document-data")
-async def list_document_files(
-    request: Request,
-    firebase_client: FirebaseClient = Depends(get_firebase_client),
-):
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-
-    user_id = auth_service.verify_token(authorization)
-
-    try:
-        storage_client = firebase_client.get_storage()
-        firestore_client = firebase_client.get_firestore()
-
-        blobs = storage_client.list_blobs(prefix=f"{user_id}/")
-        file_data_list = []
-
-        for blob in blobs:
-            if blob.name.endswith(".pdf"):
-                full_filename = os.path.basename(blob.name)
-                file_uuid = full_filename.split("_", 1)[0]
-                file_name = full_filename.split("_", 1)[1]
-
-                doc_ref = firestore_client.collection('analysis_results').document(user_id).collection('files_pdf').document(file_uuid)
-                doc = doc_ref.get()
-
-                if doc.exists:
-                    analysis_data = doc.to_dict()
-                    abstract = analysis_data.get("abstract", "")
-                    extractable_info = analysis_data.get("extractable_info", {})
-                    category = analysis_data.get("category", "")
-                    feature = analysis_data.get("feature", "")
-                else:
-                    abstract = ""
-                    extractable_info = {}
-                    category = ""
-                    feature = ""
-
-                file_data_list.append({
-                    "file_name": file_name,
-                    "feature": feature,
-                    "abstract": abstract,
-                    "extractable_info": extractable_info,
-                    "category": category
-                })
-
-        if not file_data_list:
-            raise HTTPException(status_code=404, detail="No Excel files with numeric data found for the given user.")
-
-        return JSONResponse(content={"files": file_data_list})
-
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error retrieving or processing files: {str(e)}")
-
-
 @router.get("/upload/description")
 async def list_excel_files(
     request: Request,
@@ -266,19 +149,3 @@ async def list_excel_files(
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error retrieving or processing files: {str(e)}")
-
-
-@router.get("/uploaded-files")
-async def get_uploaded_files():
-    # ディレクトリ内のファイル名を取得
-    files = os.listdir(settings.pdf_storage_path)
-    # 拡張子を削除してファイル名を返す
-    file_names = [os.path.splitext(file)[0] for file in files if file.endswith('.txt')]
-    return {"files": file_names}
-
-
-@router.get("/uploaded-table-data")
-async def get_uploaded_table_data():
-    files = os.listdir(settings.table_storage_path)
-    file_names = [os.path.splitext(file)[0] for file in files if file.endswith('.txt')]
-    return {"files": file_names}

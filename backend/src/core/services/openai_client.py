@@ -10,6 +10,32 @@ from src.settings import settings
 openai.api_key = settings.openai_api_key
 
 
+def generate_dd_answer_test(client: openai.ChatCompletion, background: str, dd_prompt):
+    response = client.chat.completions.create(
+        model="gpt-4-0125-preview",
+        messages=[
+            {"role": "system", "content": f"こちらの情報をもとに回答しなさい\n\n{background}"},
+            {"role": "user", "content": dd_prompt}
+        ],
+        stream=False,
+    )
+    return response.choices[0].message.content
+
+
+def stream_generate_dd_answer_test(client: openai.ChatCompletion, background: str, dd_prompt):
+    stream = client.chat.completions.create(
+        model="gpt-4-0125-preview",
+        messages=[
+            {"role": "system", "content": f"こちらの情報をもとに回答しなさい\n\n{background}"},
+            {"role": "user", "content": dd_prompt}
+        ],
+        stream=True,
+    )
+
+    for chunk in stream:
+        if chunk.choices[0].delta.content is not None:
+            yield chunk.choices[0].delta.content
+
 def send_xlsx_content_to_openai(file_path: str, client: openai.ChatCompletion) -> list[str]:
     workbook = load_workbook(file_path)
     sheet = workbook.active

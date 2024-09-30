@@ -1,38 +1,37 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { auth } from '@/services/firebase';
-import { apiUrlCheckTableData } from '@/utils/api';
+import { apiUrlCheckDocumentData } from '@/utils/api';
 import { message } from 'antd';
 
 interface FileData {
   file_name: string;
-  data: any[];
   abstract: string;
   category: string;
   feature: string;
 }
 
-const fetchDocument = () => {
-  const [filesTable, setFiles] = useState<FileData[]>([]);
-  const [loadingTable, setLoading] = useState<boolean>(true);
-  const [errorTable, setError] = useState<string | null>(null);
+const useFetchDocument = () => {
+  const [filesDocument, setFiles] = useState<FileData[]>([]);
+  const [loadingDocument, setLoading] = useState<boolean>(true);
+  const [errorDocument, setError] = useState<string | null>(null);
 
-  const fetchFilesTable = async () => {
+  const fetchFilesDocument = async () => {
     const user = auth.currentUser;
     if (user) {
       setLoading(true);
       setError(null);
       try {
-        //const apiUrl = `${api.baseUrl}/check/table_data`;
+        //const apiUrl = `${api.baseUrl}/check/document_data`;
         const accessToken = await user.getIdToken(/* forceRefresh */ true);
-        const response = await axios.get(apiUrlCheckTableData, {
+        const response = await axios.get(apiUrlCheckDocumentData, {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
           },
         });
         setFiles(response.data.files);
       } catch (err) {
-        message.error('データがまだありません');
+        //message.error('データがまだありません');
         setError('データがまだありません');
       } finally {
         setLoading(false);
@@ -44,10 +43,10 @@ const fetchDocument = () => {
   };
 
   useEffect(() => {
-    fetchFilesTable();
+    fetchFilesDocument();
   }, []);
 
-  return { filesTable, loadingTable, errorTable, fetchFilesTable };
+  return { filesDocument, loadingDocument, errorDocument, fetchFilesDocument };
 };
 
-export default fetchDocument;
+export default useFetchDocument;

@@ -4,7 +4,21 @@ export const api = new Api({
   baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://granite-dev-wk5yf4fywa-an.a.run.app'
 });
 
+export const apiUrlFileUploader = `${api.baseUrl}/data/document`;
+
 //ドキュメントデータを取得する
-export const apiUrlCheckDocumentData = `${api.baseUrl}/check/document-data`;
+export const apiUrlCheckDocumentData = `${api.baseUrl}/data/document`;
 // テーブルデータを取得する
-export const apiUrlCheckTableData = `${api.baseUrl}/check/table-data`;
+export const apiUrlCheckTableData = `${api.baseUrl}/data/table`;
+// プロジェクトデータを管理する
+export const apiUrlGetProjects = `${api.baseUrl}/projects`;
+export const apiUrlSelectProject = `${api.baseUrl}/projects`;
+export const apiUrlGetSelectedProject = `${api.baseUrl}/projects/selected`;
+export const apiUrlPostProjects = `${api.baseUrl}/projects`;
+export const apiUrlArciveProjects = `${api.baseUrl}/projects`;
+
+// llm オペレーション
+export const apiUrlCreateEmbeddings = `${api.baseUrl}/explorer/create`;
+export const apiUrlQueryRag = `${api.baseUrl}/explorer/query`;
+export const apiUrlQueryQuestionAnswer = `${api.baseUrl}/explorer/query/qa`;
+export const apiUrlQueryIssueAnalysis = `${api.baseUrl}/explorer/query/ia`;
