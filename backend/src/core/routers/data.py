@@ -46,18 +46,26 @@ async def list_excel_files_by_project(
             file_info = doc.to_dict()
             file_uuid = doc.id  # FirestoreのドキュメントIDを使用（ファイルUUID）
             file_name = file_info.get('file_name', 'Unknown File')  # Firestoreに保存されているファイル名
-
+            file_extension = file_name.split('.')[-1].lower()
             # ストレージからファイルを取得 (file_uuidをキーとして使用)
             blob_path = f"{user_id}/{file_uuid}_{file_name}"
             blob = storage_client.blob(blob_path)
             if not blob.exists():
                 continue  # ファイルがストレージに存在しない場合はスキップ
 
-            excel_bytes = blob.download_as_bytes()
-            excel_io = io.BytesIO(excel_bytes)
+            file_bytes = blob.download_as_bytes()
+            file_io = io.BytesIO(file_bytes)
 
-            # Excelファイルを読み込む
-            df = pd.read_excel(excel_io, engine="openpyxl")
+            if file_extension == 'xlsx':
+                # Excelファイルを読み込む
+                df = pd.read_excel(file_io, engine="openpyxl")
+            elif file_extension == 'csv':
+                # CSVファイルを読み込む
+                print('csv読み込み中')
+                df = pd.read_csv(file_io)
+            else:
+                continue
+
             df = df.replace('^Unnamed.*', '', regex=True)
             df = df.fillna('')
             output = df.head(100)  # 必要に応じて表示行数を調整
@@ -76,7 +84,7 @@ async def list_excel_files_by_project(
             })
 
         if not file_data_list:
-            raise HTTPException(status_code=404, detail="No files found for the selected project.")
+            raise HTTPException(status_code=204, detail="No files found for the selected project.")
 
         return JSONResponse(content={"files": file_data_list})
 
@@ -105,7 +113,7 @@ async def list_document_files(
         selected_project = projects_ref.where('is_selected', '==', True).limit(1).get()
 
         if not selected_project:
-            raise HTTPException(status_code=204, detail="No files found for the selected project.")
+            raise HTTPException(status_code=204, detail="No project selected.")  # プロジェクトがない場合は204
 
         selected_project_id = selected_project[0].id
 
@@ -143,10 +151,9 @@ async def list_document_files(
             })
 
         if not file_data_list:
-            raise HTTPException(status_code=404, detail="No document files found for the selected project.")
+            raise HTTPException(status_code=204, detail="No document files found for the selected project.")  # ファイルがない場合は204
 
-        return JSONResponse(content={"files": file_data_list})
+        return JSONResponse(content={"files": file_data_list}, status_code=200)
 
     except Exception as e:
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error retrieving or processing files: {str(e)}")

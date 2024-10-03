@@ -20,7 +20,7 @@ const formatText = (text: string | undefined) => {
         .replace(/\n/g, '<br>'); // 改行に変換
 };
 
-const LlmOperator: React.FC = () => {
+const ResultReport: React.FC = () => {
     const [answer, setAnswer] = useState('');
     const [loading, setLoading] = useState(false);
     const auth = getAuth();
@@ -79,4 +79,4 @@ const LlmOperator: React.FC = () => {
     );
 };
 
-export default LlmOperator;
+export default ResultReport;

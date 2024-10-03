@@ -251,7 +251,7 @@ async def query_rag(
                 "description": "主要な顧客ベースやパートナーシップについての評価。顧客満足度やパートナーとの契約内容を分析。"},
                 {"chapter": "11. Conclusion and Recommendations（結論および提言）", 
                 "description": "報告書全体をまとめ、主要なリスクとチャンスに基づいた推奨事項を提示。"},
-                {"chapter": "12. Appendix（付録）", 
+                {"chapter": "12. Appendix（付録）",
                 "description": "追加資料や詳細なデータ、参考文献、グラフや表などの補足情報を提供。"}
             ]
 

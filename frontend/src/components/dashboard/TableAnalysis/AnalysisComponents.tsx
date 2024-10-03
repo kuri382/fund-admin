@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Row, Col, Spin, Alert, Tabs, Tag } from 'antd';
+import { Button, Row, Col, Spin, Alert, Tabs, Tag, Space } from 'antd';
+import { AndroidOutlined, AppleOutlined } from '@ant-design/icons';
 import FileUpload from '@/components/FileUpload';
 
 import fetchTable from '@/hooks/useFetchTable';
@@ -8,7 +9,7 @@ import fetchDocument from '@/hooks/useFetchDocument';
 import TableFileTabs from '@/components/dashboard/TableAnalysis/TablesFileTabs';
 import PdfsFileTabs from '@/components/dashboard/TableAnalysis/PdfsFileTabs';
 import ProjectManager from '@/components/dashboard/ProjectManager';
-import LlmOperator from '@/components/dashboard/LlmOperator';
+import LlmOperator from '@/components/dashboard/ResultReport';
 import IssueAnalysisComponent from '@/components/dashboard/IssueAnalysis/IssueAnalysisComponent';
 import QuestionAnswerComponent from '@/components/dashboard/IssueAnalysis/QuestionAnswerComponent';
 
@@ -66,7 +67,7 @@ const AnalysisComponents: React.FC = () => {
 
               <Tabs.TabPane tab={
                 <>
-                  <div>入力 ドキュメントデータ</div>
+                  <div style={{ width: '150px' }}>入力 ドキュメントデータ</div>
                   <Tag color='red'>pdf, wordなど</Tag>
                 </>
               }
@@ -78,7 +79,7 @@ const AnalysisComponents: React.FC = () => {
 
               <Tabs.TabPane tab={
                 <>
-                  <div>出力 QA一覧</div>
+                  <div style={{ width: '150px' }}>出力 QA一覧</div>
                   <Tag color='gray'>β版</Tag>
                 </>
               } key="3"
@@ -89,7 +90,7 @@ const AnalysisComponents: React.FC = () => {
 
               <Tabs.TabPane tab={
                 <>
-                  <div>出力 Issue Analysis</div>
+                  <div style={{ width: '150px' }}>出力 Issue Analysis</div>
                   <Tag color='gray'>β版</Tag>
                 </>
               } key="4"
@@ -100,7 +101,7 @@ const AnalysisComponents: React.FC = () => {
 
               <Tabs.TabPane tab={
                 <>
-                  <div>出力 分析結果</div>
+                  <div style={{ width: '150px' }}>出力 分析結果</div>
                   <Tag color='orange'>β版</Tag>
                 </>
               } key="5"
