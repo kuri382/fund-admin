@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Row, Col, Spin, Alert, Tabs, Tag, Space } from 'antd';
 import { AndroidOutlined, AppleOutlined } from '@ant-design/icons';
-import FileUpload from '@/components/FileUpload';
+import FileUpload from '@/components/dashboard/old/FileUpload';
 
 import fetchTable from '@/hooks/useFetchTable';
 import fetchDocument from '@/hooks/useFetchDocument';
@@ -9,7 +9,8 @@ import fetchDocument from '@/hooks/useFetchDocument';
 import TableFileTabs from '@/components/dashboard/TableAnalysis/TablesFileTabs';
 import PdfsFileTabs from '@/components/dashboard/TableAnalysis/PdfsFileTabs';
 import ProjectManager from '@/components/dashboard/ProjectManager';
-import LlmOperator from '@/components/dashboard/ResultReport';
+import ResultReport from '@/components/dashboard/TableAnalysis/ResultReport';
+import ABEJAReport from '@/components/dashboard/TableAnalysis/ABEJAReport';
 import IssueAnalysisComponent from '@/components/dashboard/IssueAnalysis/IssueAnalysisComponent';
 import QuestionAnswerComponent from '@/components/dashboard/IssueAnalysis/QuestionAnswerComponent';
 
@@ -107,7 +108,8 @@ const AnalysisComponents: React.FC = () => {
               } key="5"
                 style={{ height: '800px' }}
               >
-                <LlmOperator />
+                {/*<ResultReport />*/}
+                <ABEJAReport />
               </Tabs.TabPane>
 
             </Tabs>

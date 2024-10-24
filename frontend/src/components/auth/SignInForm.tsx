@@ -32,9 +32,7 @@ const SignInForm: React.FC = () => {
 
     } catch (error: any) {
       setError('ログインに失敗しました: ' + error.message);
-    } finally {
-      setIsLoading(false);  // 画面遷移が完了したらloading解除
-    }
+    };
   };
 
   return (
@@ -53,8 +51,8 @@ const SignInForm: React.FC = () => {
       </Form.Item>
       {error && <p>{error}</p>}
       <Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading}>
-          ログイン
+        <Button type="primary" htmlType="submit" loading={loading} disabled={loading}>
+          {loading ? '読み込み中' : 'ログイン'}
         </Button>
       </Form.Item>
     </Form>

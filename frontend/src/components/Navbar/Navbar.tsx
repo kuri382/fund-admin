@@ -2,18 +2,26 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/services/firebase';
 import { Menu, Button } from 'antd';
 
 const Navbar: React.FC = () => {
   const router = useRouter();
 
-  // ログアウト処理
-  const handleLogout = () => {
-    // localStorageからaccessTokenを削除
-    localStorage.removeItem('accessToken');
+  const handleLogout = async () => {
+    try {
+      // Firebaseからログアウト
+      await signOut(auth);
 
-    // ログインページにリダイレクト
-    router.push('/signin');
+      // localStorageからaccessTokenを削除
+      localStorage.removeItem('accessToken');
+
+      // ログインページにリダイレクト
+      router.push('/signin');
+    } catch (error) {
+      console.error('ログアウトに失敗しました:', error);
+    }
   };
 
   return (
