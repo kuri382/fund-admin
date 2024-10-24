@@ -6,7 +6,7 @@ import { getAuth } from "firebase/auth";
 
 import QADrawer from '@/components/dashboard/TableAnalysis/QADrawer';
 
-const { Title, Paragraph } = Typography;
+const { Title } = Typography;
 
 
 const formatText = (text: string | undefined) => {

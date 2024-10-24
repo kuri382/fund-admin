@@ -18,7 +18,7 @@ import type { TabsProps } from 'antd';
 import FileUpload from '@/components/dashboard/old/FileUpload'
 
 import styles from './SalesData.module.css';
-import Navbar from "../navbar/Navbar";
+import Navbar from "../../navbar/Navbar";
 import { api } from '@/utils/api'
 import { auth } from '@/services/firebase';
 

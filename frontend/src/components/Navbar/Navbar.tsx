@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/services/firebase';
 import { Menu, Button } from 'antd';
+import type { MenuProps } from 'antd';
 
 const Navbar: React.FC = () => {
   const router = useRouter();
@@ -24,23 +25,32 @@ const Navbar: React.FC = () => {
     }
   };
 
-  return (
-    <Menu mode="horizontal">
-      <Menu.Item key="home">
-        <a href="/">ホーム</a>
-      </Menu.Item>
-      {/*<Menu.Item key="about">
-        <a href="/about">About</a>
-      </Menu.Item>
-  */}
-
-      {/* ログアウトボタン */}
-      <Menu.Item key="logout">
+  const menuItems: MenuProps['items'] = [
+    {
+      key: 'home',
+      label: <a href="/">ホーム</a>,
+    },
+    /* 必要に応じて復活させる
+    {
+      key: 'about',
+      label: <a href="/about">About</a>,
+    },
+    */
+    {
+      key: 'logout',
+      label: (
         <Button type="primary" onClick={handleLogout}>
           ログアウト
         </Button>
-      </Menu.Item>
-    </Menu>
+      ),
+    },
+  ];
+
+  return (
+    <Menu
+      mode="horizontal"
+      items={menuItems}
+    />
   );
 };
 

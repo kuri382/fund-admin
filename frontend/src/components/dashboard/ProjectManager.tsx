@@ -153,10 +153,12 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
       <Card
         title="プロジェクト管理"
         style={{ margin: '20px 0px' }}
-        bodyStyle={{
-          padding: '0px 20px',
-          backgroundColor: '#f0f0f0',
-          border: '1px solid #d9d9d9',
+        styles={{
+          body: {
+            padding: '0px 20px',
+            backgroundColor: '#f0f0f0',
+            border: '1px solid #d9d9d9',
+          },
         }}
       >
         <p>データを紐づけるプロジェクトを作成または選択してください</p>

@@ -1,13 +1,11 @@
 "use client"
 
 import { useState } from 'react'
-import axios from "axios";
+import axios from "axios"
 import { Upload, message, Card } from 'antd'
 import { InboxOutlined } from '@ant-design/icons'
-
 import { api } from '@/utils/api'
-import { auth } from '@/services/firebase';
-
+import { auth } from '@/services/firebase'
 
 const { Dragger } = Upload
 
@@ -16,38 +14,71 @@ const divUpload: React.CSSProperties = {
   backgroundColor: 'white',
   padding: '20px',
   borderRadius: '10px',
-};
+}
 
-export default function FileUpload() {
-  const [fileName, setFileName] = useState<string>('');
-  const [statusMessage, setStatusMessage] = useState<string>('');
+interface FileStatus {
+  filename: string;
+  status: string;
+}
+
+interface FileUploadProps {
+  onUploadComplete?: () => void;
+}
+
+export default function FileUpload({ onUploadComplete }: FileUploadProps) {
+  const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
+  const [uploadingCount, setUploadingCount] = useState(0);
+
+  const handleUploadComplete = () => {
+    message.loading('ファイルの処理を待機しています...', 2);
+
+    // 2秒後にコールバックを実行
+    setTimeout(() => {
+      if (onUploadComplete) {
+        onUploadComplete();
+      }
+    }, 3000);
+  };
 
   const props = {
     name: 'file',
-    multiple: false,
+    multiple: true,
     customRequest: async ({ file, onSuccess, onError }: any) => {
       const user = auth.currentUser;
       if (user) {
         try {
-          const accessToken = await user.getIdToken(/* forceRefresh */ true);
+          setUploadingCount(prev => prev + 1);
+
+          const accessToken = await user.getIdToken(true);
           const apiUrl = `${api.baseUrl}/upload`;
           const formData = new FormData();
           formData.append('file', file);
+
           const response = await axios.post(apiUrl, formData, {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'multipart/form-data',
             },
           });
+
           console.log('Upload success:', response.data);
-
           const { filename, status } = response.data;
-          setFileName(filename);
-          setStatusMessage(status);
-
+          setFileStatuses(prev => [...prev, { filename, status }]);
           onSuccess();
           message.success(`${filename} ファイルを変換し格納しました`);
+
+          // アップロード完了時の処理
+          setUploadingCount(prev => {
+            const newCount = prev - 1;
+            // すべてのファイルのアップロードが完了したら待機処理を開始
+            if (newCount === 0) {
+              handleUploadComplete();
+            }
+            return newCount;
+          });
+
         } catch (err) {
+          setUploadingCount(prev => prev - 1);
           onError({ err });
           message.error(`${file.name} ファイルのアップロードに失敗しました。`);
         }
@@ -59,18 +90,13 @@ export default function FileUpload() {
     onChange(info: any) {
       const { status } = info.file;
       if (status !== 'uploading') {
-        //console.log(info.file, info.fileList);
         message.success(`${info.file.name} ファイルを分析しています。`);
       }
-      if (status === 'done') {
-        // ファイルアップロード完了時の処理
-        //console.log(`${info.file.name} ファイルがアップロードされました。`);
-      } else if (status === 'error') {
+      if (status === 'error') {
         message.error(`${info.file.name} ファイルのアップロードに失敗しました。`);
       }
     },
   };
-
 
   return (
     <Card title="資料をアップロードしてください" style={{ height: '100%' }}>
@@ -78,10 +104,19 @@ export default function FileUpload() {
         <p className="ant-upload-drag-icon">
           <InboxOutlined />
         </p>
-        <p className="ant-upload-text">クリックまたはドラッグしてファイルをアップロード</p>
+        <p className="ant-upload-text">クリックまたはドラッグして複数のファイルをアップロード</p>
+        <p className="ant-upload-hint">複数のファイルを選択またはドラッグできます</p>
       </Dragger>
-      {statusMessage && <p style={{ marginTop: '5px' }}>{statusMessage}</p>}
-      {/*fileName && <p style={{ marginTop: '10px' }}>アップロードされたファイル: {fileName}</p>*/}
+      {fileStatuses.length > 0 && (
+        <div style={{ marginTop: '15px' }}>
+          <h4>アップロード状況:</h4>
+          {fileStatuses.map((file, index) => (
+            <p key={index} style={{ marginTop: '5px' }}>
+              {file.filename}: {file.status}
+            </p>
+          ))}
+        </div>
+      )}
     </Card>
-  )
+  );
 }
