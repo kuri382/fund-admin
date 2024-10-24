@@ -1,13 +1,16 @@
 import io
-import os
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from google.cloud.firestore_v1.base_query import FieldFilter
 import pandas as pd
 import traceback
 
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services import auth_service
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -29,7 +32,9 @@ async def list_excel_files_by_project(
 
         # Firestoreから選択中のプロジェクトを取得
         projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
-        selected_project = projects_ref.where('is_selected', '==', True).limit(1).get()
+        is_selected_filter = FieldFilter("is_selected", "==", True)
+        query = projects_ref.where(filter=is_selected_filter).limit(1)
+        selected_project = query.get()
 
         if not selected_project:
             raise HTTPException(status_code=204, detail="No files found for the selected project.")
@@ -57,11 +62,8 @@ async def list_excel_files_by_project(
             file_io = io.BytesIO(file_bytes)
 
             if file_extension == 'xlsx':
-                # Excelファイルを読み込む
                 df = pd.read_excel(file_io, engine="openpyxl")
             elif file_extension == 'csv':
-                # CSVファイルを読み込む
-                print('csv読み込み中')
                 df = pd.read_csv(file_io)
             else:
                 continue
@@ -84,7 +86,7 @@ async def list_excel_files_by_project(
             })
 
         if not file_data_list:
-            raise HTTPException(status_code=204, detail="No files found for the selected project.")
+            return Response(status_code=204)
 
         return JSONResponse(content={"files": file_data_list})
 
@@ -110,7 +112,9 @@ async def list_document_files(
 
         # 選択中のプロジェクトをFirestoreから取得
         projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
-        selected_project = projects_ref.where('is_selected', '==', True).limit(1).get()
+        is_selected_filter = FieldFilter("is_selected", "==", True)
+        query = projects_ref.where(filter=is_selected_filter).limit(1)
+        selected_project = query.get()
 
         if not selected_project:
             raise HTTPException(status_code=204, detail="No project selected.")  # プロジェクトがない場合は204
@@ -151,7 +155,7 @@ async def list_document_files(
             })
 
         if not file_data_list:
-            raise HTTPException(status_code=204, detail="No document files found for the selected project.")  # ファイルがない場合は204
+            return Response(status_code=204)
 
         return JSONResponse(content={"files": file_data_list}, status_code=200)
 

@@ -1,6 +1,5 @@
 "use client"
-
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import axios from "axios"
 import { Upload, message, Card } from 'antd'
 import { InboxOutlined } from '@ant-design/icons'
@@ -29,16 +28,12 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
   const [uploadingCount, setUploadingCount] = useState(0);
 
-  const handleUploadComplete = () => {
-    message.loading('ファイルの処理を待機しています...', 2);
-
-    // 2秒後にコールバックを実行
-    setTimeout(() => {
-      if (onUploadComplete) {
-        onUploadComplete();
-      }
-    }, 3000);
-  };
+  const handleUploadComplete = useCallback(() => {
+    if (onUploadComplete) {
+      onUploadComplete();
+      message.success('ファイル情報を更新しました');
+    }
+  }, [onUploadComplete]);
 
   const props = {
     name: 'file',
@@ -48,6 +43,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
       if (user) {
         try {
           setUploadingCount(prev => prev + 1);
+          message.loading(`${file.name}を分析しています...`);
 
           const accessToken = await user.getIdToken(true);
           const apiUrl = `${api.baseUrl}/upload`;
@@ -63,24 +59,36 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
 
           console.log('Upload success:', response.data);
           const { filename, status } = response.data;
+
           setFileStatuses(prev => [...prev, { filename, status }]);
           onSuccess();
           message.success(`${filename} ファイルを変換し格納しました`);
 
-          // アップロード完了時の処理
+          // アップロード中のファイル数を更新し、すべて完了したら処理完了を呼び出す
           setUploadingCount(prev => {
             const newCount = prev - 1;
-            // すべてのファイルのアップロードが完了したら待機処理を開始
             if (newCount === 0) {
               handleUploadComplete();
             }
             return newCount;
           });
 
-        } catch (err) {
+        } catch (err: any) {
+          console.error('Upload error:', err);
           setUploadingCount(prev => prev - 1);
-          onError({ err });
-          message.error(`${file.name} ファイルのアップロードに失敗しました。`);
+
+          if (axios.isAxiosError(err) && err.response) {
+            const { status, data } = err.response;
+
+            if (status === 429) {
+              message.error(`データ容量が大きすぎるため、現在は対応できないファイルです。申し訳ありません。`);
+            } else if (status === 500) {
+              message.error(`現在は対応できないファイルです。申し訳ありません。`);
+            } else {
+              message.error(`${file.name} ファイルのアップロードに失敗しました: ${data?.detail || '不明なエラー'}`);
+            }
+          }
+          onError(err);
         }
       } else {
         onError({ message: 'ユーザーがサインインしていません。' });
@@ -89,9 +97,6 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
     },
     onChange(info: any) {
       const { status } = info.file;
-      if (status !== 'uploading') {
-        message.success(`${info.file.name} ファイルを分析しています。`);
-      }
       if (status === 'error') {
         message.error(`${info.file.name} ファイルのアップロードに失敗しました。`);
       }
@@ -104,9 +109,14 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
         <p className="ant-upload-drag-icon">
           <InboxOutlined />
         </p>
-        <p className="ant-upload-text">クリックまたはドラッグして複数のファイルをアップロード</p>
-        <p className="ant-upload-hint">複数のファイルを選択またはドラッグできます</p>
+        <p className="ant-upload-text">
+          クリックまたはドラッグして複数のファイルをアップロード
+        </p>
+        <p className="ant-upload-hint">
+          複数のファイルを選択またはドラッグできます
+        </p>
       </Dragger>
+
       {fileStatuses.length > 0 && (
         <div style={{ marginTop: '15px' }}>
           <h4>アップロード状況:</h4>

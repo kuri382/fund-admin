@@ -1,3 +1,4 @@
+'''
 import io
 import os
 import uuid
@@ -500,7 +501,7 @@ async def query_ia(
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error querying RAG: {str(e)}")
-'''
+
 class QueryModel(BaseModel):
     query: str
 

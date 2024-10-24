@@ -198,9 +198,8 @@ const AnalysisComponents: React.FC = () => {
         <ProjectManager onProjectChange={handleProjectChange} />
         <FileUpload />
         <Alert
-          message="エラーが発生しました"
-          description={errorTable || errorDocument || fetchError}
-          type="error"
+          message="データがまだありません"
+          type="info"
           style={{ marginTop: '20px' }}
         />
         <Button
@@ -208,7 +207,7 @@ const AnalysisComponents: React.FC = () => {
           type="primary"
           style={{ marginTop: '10px' }}
         >
-          再試行
+          読み込む
         </Button>
       </>
     );

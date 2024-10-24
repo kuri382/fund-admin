@@ -1,71 +1,23 @@
-import csv
-import io
 import os
 import json
+import logging
 import uuid
 from fastapi import APIRouter, Depends, UploadFile, HTTPException, Request
 import openai
-from openpyxl import load_workbook
 import traceback
-from typing import TypedDict
 
+
+import src.core.services.firebase_driver as firebase_driver
 from src.core.services.pdf_processing import extract_text_from_pdf
 from src.core.services.openai_client import generate_pdf_analysis, generate_table_analysis
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services import auth_service
+from src.core.services.upload import table_processor
 from src.dependencies import get_openai_client
-from src.settings import settings
-
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
-class AnalysisResult(TypedDict):
-    abstract: str
-    extractable_info: dict
-    category: str
-
-
-def process_csv(contents: bytes, openai_client):
-    try:
-        file_stream = io.StringIO(contents.decode("utf-8"))
-        reader = csv.reader(file_stream)
-
-        csv_content = []
-        for row in reader:
-            csv_content.append("\t".join(row))
-        text_content = "\n".join(csv_content)
-
-        analysis_result = generate_table_analysis(text_content, openai_client)
-        return json.loads(analysis_result)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"CSV processing error: {str(e)}")
-
-
-def save_analysis_result(
-    user_id: str,
-    file_name: str,
-    file_uuid: uuid.UUID,
-    analysis_result: AnalysisResult,
-    firebase_client: FirebaseClient,
-):
-    firestore_client = firebase_client.get_firestore()
-
-    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
-    selected_project = projects_ref.where('is_selected', '==', True).limit(1).get()
-    if not selected_project:
-        raise ValueError("No project selected for the user")
-    selected_project_id = selected_project[0].id
-    doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection('tables').document(str(file_uuid))
-    #doc_ref = firestore_client.collection('users').document(user_id).collection('files_excel').document(str(file_uuid))
-
-    doc_ref.set({
-        "file_name": file_name,
-        "file_uuid": str(file_uuid),
-        "abstract": analysis_result['abstract'],
-        "feature": analysis_result['feature'],
-        "extractable_info": analysis_result['extractable_info'],
-        "category": analysis_result['category']
-    })
 
 @router.post("/upload")
 async def upload_file(
@@ -98,87 +50,84 @@ async def upload_file(
         detail = f'error uploading file: {str(e)}'
         raise HTTPException(status_code=400, detail=detail)
 
+    firestore_client = firebase_client.get_firestore()
+
     match file_extension:
         case ".xlsx":
             try:
-                def generate_information(contents, openai_client):
-                    file_stream = io.BytesIO(contents)
-                    workbook = load_workbook(file_stream)
-                    sheet = workbook.active
-
-                    sheet_content = []
-                    for row in sheet.iter_rows(values_only=True):
-                        sheet_content.append("\t".join([str(cell) for cell in row if cell is not None]))
-                    text_content = "\n".join(sheet_content)
-                    analysis_result = generate_table_analysis(text_content, openai_client)
-                    return json.loads(analysis_result)
-
-                analysis_result = generate_information(contents, openai_client)
-                save_analysis_result(user_id, file.filename, file_uuid, analysis_result, firebase_client)
+                content_text = table_processor.convert_xlsx_row_to_text(contents)
+                analysis_result = generate_table_analysis(content_text, openai_client)
+                analysis_result_json = json.loads(analysis_result)
 
             except Exception as e:
                 print(f"Error: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"Error uploading Excel file: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Error analyzing Excel file: {str(e)}")
+
+            try:
+                firebase_driver.save_analysis_result(
+                    firestore_client=firestore_client,
+                    user_id=user_id,
+                    file_name=file.filename,
+                    file_uuid=file_uuid,
+                    analysis_result=analysis_result_json,
+                    target_collection='tables',
+                )
+
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error saving csv result: {str(e)}")
 
         case ".csv":
             try:
-                analysis_result = process_csv(contents, openai_client)
-                save_analysis_result(user_id, file.filename, file_uuid, analysis_result, firebase_client)
+                content_text = table_processor.analyze_csv_content(contents)
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error converting csv file: {str(e)}")
+
+            try:
+                analysis_result = generate_table_analysis(content_text, openai_client)
+                analysis_result_json =  json.loads(analysis_result)
 
             except Exception as e:
-                print(f"Error: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"Error uploading Excel file: {str(e)}")
+                if "rate_limit_exceeded" in str(e) or "Too Many Requests" in str(e):
+                    raise HTTPException(status_code=429, detail="Token limit exceeded or too many requests. Please try again later.")
+                raise HTTPException(status_code=500, detail=f"Error analyizing csv file: {str(e)}")
+
+            try:
+                firebase_driver.save_analysis_result(
+                    firestore_client=firestore_client,
+                    user_id=user_id,
+                    file_name=file.filename,
+                    file_uuid=file_uuid,
+                    analysis_result=analysis_result_json,
+                    target_collection='tables',
+                )
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error uploading csv file: {str(e)}")
+
 
         case ".pdf":
             try:
                 pdf_text = extract_text_from_pdf(file)
                 analysis_result = generate_pdf_analysis(pdf_text, openai_client)
 
-                def save_pdf_analysis_result(user_id: str, file_name: str, analysis_result: AnalysisResult):
-                    firestore_client = firebase_client.get_firestore()
+            except Exception as e:
+                if "rate_limit_exceeded" in str(e) or "Too Many Requests" in str(e):
+                    raise HTTPException(status_code=429, detail="Token limit exceeded or too many requests. Please try again later.")
+                raise HTTPException(status_code=500, detail=f"Error analyizing csv file: {str(e)}")
 
-                    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
-                    selected_project = projects_ref.where('is_selected', '==', True).limit(1).get()
-                    if not selected_project:
-                        raise ValueError("No project selected for the user")
-                    selected_project_id = selected_project[0].id
-                    doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection('documents').document(str(file_uuid))
-
-                    doc_ref.set({
-                        "file_name": file_name,
-                        "file_uuid": str(file_uuid),
-                        "abstract": analysis_result['abstract'],
-                        "feature": analysis_result['feature'],
-                        "extractable_info": analysis_result['extractable_info'],
-                        "category": analysis_result['category']
-                    })
-
-                save_pdf_analysis_result(user_id, file.filename, analysis_result)
+            try:
+                firebase_driver.save_analysis_result(
+                    firestore_client=firestore_client,
+                    user_id=user_id,
+                    file_name=file.filename,
+                    file_uuid=file_uuid,
+                    analysis_result=analysis_result,
+                    target_collection='documents',
+                )
 
             except Exception as e:
-                traceback.print_exc()
-                raise HTTPException(status_code=500, detail=f"error")
+                raise HTTPException(status_code=500, detail=f"Error saving csv result: {str(e)}")
 
         case _:
             raise HTTPException(status_code=400, detail="サポートされていないファイル形式です")
 
     return {"filename": file.filename, "status": f"ファイルを解析し保存しました"}
-
-
-@router.get("/upload/description")
-async def list_excel_files(
-    request: Request,
-    firebase_client: FirebaseClient = Depends(get_firebase_client),
-):
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-
-    user_id = auth_service.verify_token(authorization)
-
-    try:
-        firestore_client = firebase_client.get_firestore()
-
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error retrieving or processing files: {str(e)}")

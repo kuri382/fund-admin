@@ -1313,6 +1313,9 @@ pandocfilters==1.5.1 ; python_version >= "3.11" and python_version < "4.0" \
 parso==0.8.4 ; python_version >= "3.11" and python_version < "4.0" \
     --hash=sha256:a418670a20291dacd2dddc80c377c5c3791378ee1e8d12bffc35420643d43f18 \
     --hash=sha256:eb3a7b58240fb99099a345571deecc0f9540ea5f4dd2fe14c2a99d6b281ab92d
+pdf2image==1.17.0 ; python_version >= "3.11" and python_version < "4.0" \
+    --hash=sha256:eaa959bc116b420dd7ec415fcae49b98100dda3dd18cd2fdfa86d09f112f6d57 \
+    --hash=sha256:ecdd58d7afb810dffe21ef2b1bbc057ef434dabbac6c33778a38a3f7744a27e2
 pdfminer-six==20231228 ; python_version >= "3.11" and python_version < "4.0" \
     --hash=sha256:6004da3ad1a7a4d45930cb950393df89b068e73be365a6ff64a838d37bcb08c4 \
     --hash=sha256:e8d3c3310e6fbc1fe414090123ab01351634b4ecb021232206c4c9a8ca3e3b8f
@@ -1565,6 +1568,15 @@ pygments==2.18.0 ; python_version >= "3.11" and python_version < "4.0" \
 pyjwt[crypto]==2.9.0 ; python_version >= "3.11" and python_version < "4.0" \
     --hash=sha256:3b02fb0f44517787776cf48f2ae25d8e14f300e6d7545a4315cee571a415e850 \
     --hash=sha256:7e1e5b56cc735432a7369cbfa0efe50fa113ebecdc04ae6922deba8b84582d0c
+pymupdf==1.24.11 ; python_version >= "3.11" and python_version < "4.0" \
+    --hash=sha256:20c8eb65b855a33411246d6697a3f3166727fe2d8585753cf0db648730104be6 \
+    --hash=sha256:24c35ba9e731027ff24566b90d4986e9aac75e1ce47589b25de51e3c687ddb73 \
+    --hash=sha256:2efb793644df99db0fe2468149048175cf25c5803997828efc9152aca838f5f2 \
+    --hash=sha256:32fd013e3c844f105c0a6a43ee82acc7cd0c900f6ff14f5eed9492840bbcbdd9 \
+    --hash=sha256:6e45e57f14ac902029d4aacf07684958d0e58c769f47d9045b2048d0a3d20155 \
+    --hash=sha256:6fda6c7ed7e6ad74d9cfac5c3837ef42efd58c506440e2513a0a200bc3c4dbc0 \
+    --hash=sha256:745ce77532702d6ddeeecb47306d3669629aa5ff82708318cd652881f493b0ba \
+    --hash=sha256:9b7ac5b8ec3daec17f2e830962ed091610e576a5e531d2fe28c437fbd69b1969
 pyparsing==3.1.4 ; python_version >= "3.11" and python_version < "4.0" \
     --hash=sha256:a6a7ee4235a3f944aa1fa2249307708f893fe5717dc603503c6c7969c070fb7c \
     --hash=sha256:f86ec8d1a83f11977c9a6ea7598e8c27fc5cddfa5b07ea2241edbbde1d7bc032
@@ -2236,9 +2248,6 @@ wcwidth==0.2.13 ; python_version >= "3.11" and python_version < "4.0" \
 weaviate-client==4.8.1 ; python_version >= "3.11" and python_version < "4.0" \
     --hash=sha256:2756996a2205bb991f258c064fc502011fc78a40e8786cb072208b1d3d7c9932 \
     --hash=sha256:c16453ebfd9bd4045675f8e50841d1af21aa9af1332f379d0418c4531c03bd44
-weaviate==0.1.0 ; python_version >= "3.11" and python_version < "4.0" \
-    --hash=sha256:6d619dcb4ed012d9294968457829556817bfd38c9b31e212aa801fda548576f0 \
-    --hash=sha256:be210e8b7c64ced2912afb5edeec52bfeddadc2a9ce84d07415125bc2c8ccee9
 webcolors==24.8.0 ; python_version >= "3.11" and python_version < "4.0" \
     --hash=sha256:08b07af286a01bcd30d583a7acadf629583d1f79bfef27dd2c2c5c263817277d \
     --hash=sha256:fc4c3b59358ada164552084a8ebee637c221e4059267d0f8325b3b560f6c7f0a

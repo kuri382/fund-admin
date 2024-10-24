@@ -1,14 +1,17 @@
 import uuid
 from fastapi import Depends, HTTPException, Request, APIRouter
+import logging
 
 from pydantic import BaseModel
 import traceback
+
 
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services import auth_service
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class ProjectCreate(BaseModel):
@@ -191,6 +194,7 @@ async def archive_project(
         raise HTTPException(status_code=400, detail="Project is already archived")
 
     # Firestoreで該当プロジェクトを更新し、is_archivedフラグをTrueにする
+    logger.info('project archived', project_id)
     doc_ref.update({"is_archived": True})
 
     return {"detail": "Project archived successfully"}

@@ -1,6 +1,11 @@
 from io import BytesIO
+from google.cloud import firestore
 from fastapi import UploadFile
-import asyncio
+from google.cloud.firestore_v1.base_query import FieldFilter
+from fastapi import HTTPException
+
+from typing import TypedDict
+
 from openpyxl import load_workbook
 
 
@@ -21,39 +26,41 @@ async def parse_excel_file(file: UploadFile):
     return data
 
 
-async def process_uploaded_file(file: UploadFile, firestore_client, storage_client, openai_client: OpenAI):
+class AnalysisResult(TypedDict):
+    abstract: str
+    extractable_info: dict
+    category: str
+
+
+def save_analysis_result(
+    firestore_client: firestore.Client,
+    user_id: str,
+    file_name: str,
+    file_uuid: str,
+    analysis_result: AnalysisResult,
+    target_collection: str,
+):
+    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+    is_selected_filter = FieldFilter("is_selected", "==", True)
+    query = projects_ref.where(filter=is_selected_filter).limit(1)
+    selected_project = query.get()
+
+    if not selected_project:
+        raise ValueError("No project selected for the user")
+
+    selected_project_id = selected_project[0].id
+    doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection(target_collection).document(str(file_uuid))
+
     try:
-        filename = f"uploads/{file.filename}"
-        public_url = await upload_to_firebase(file, filename, storage_client)
-        file.seek(0)
-        parsed_data = await parse_excel_file(file)
-
-        print(parsed_data)
-        '''
-        # OpenAIを使用したデータ処理（仮の実装）
-        prompt = f"Analyze this Excel data: {parsed_data[:5]}"  # 最初の5行だけを使用
-        response = await openai_client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        analysis = response.choices[0].message.content
-
-        # Firestoreにメタデータを保存
-        doc_ref = firestore_client.collection('excel_files').document()
         doc_ref.set({
-            'filename': file.filename,
-            'storage_url': public_url,
-            'analysis': analysis
+            "file_name": file_name,
+            "file_uuid": str(file_uuid),
+            "abstract": analysis_result['abstract'],
+            "feature": analysis_result['feature'],
+            "extractable_info": analysis_result['extractable_info'],
+            "category": analysis_result['category']
         })
-
-        return {
-            "filename": file.filename,
-            "status": f"ファイルをFirebase Cloud Storageに保存し、分析しました。",
-            "url": public_url,
-            "analysis": analysis
-        }
-        '''
         return
 
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=e)
