@@ -37,7 +37,7 @@ async def list_excel_files_by_project(
         selected_project = query.get()
 
         if not selected_project:
-            raise HTTPException(status_code=204, detail="No files found for the selected project.")
+            raise HTTPException(status_code=404, detail="No selected project.")
 
         selected_project_id = selected_project[0].id
 

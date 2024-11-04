@@ -9,7 +9,7 @@ from src.settings import settings
 
 def extract_text_from_pdf(file: UploadFile) -> str:
     """
-    PDFファイルからテキストを抽出する関数
+    PDFファイルからテキストを抽出する
     """
     file.file.seek(0) # initialize
     contents = file.file.read()

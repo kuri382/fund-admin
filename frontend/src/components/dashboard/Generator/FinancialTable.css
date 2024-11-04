@@ -1,0 +1,17 @@
+@keyframes gradientFlash {
+    0% {
+        background-color: #f0f8ff;
+    }
+
+    50% {
+        background-color: #b0c4de;
+    }
+
+    100% {
+        background-color: #f0f8ff;
+    }
+}
+
+.highlight-animation {
+    animation: gradientFlash 2s infinite;
+}

@@ -5,6 +5,7 @@ import openai
 from openpyxl import load_workbook
 
 from src.settings import settings
+from src.core.services.firebase_driver import AnalysisResult
 
 
 openai.api_key = settings.openai_api_key
@@ -127,6 +128,7 @@ def generate_strong_point(content: str, client: openai.ChatCompletion) -> Genera
             yield chunk.choices[0].delta.content
 
 
+# unuse
 def generate_table_analysis(content: str, openai_client: openai.ChatCompletion) -> Generator[str, None, None]:
 
     system_prompt = ("次のビジネスに関するテーブルデータを分析してください\
@@ -138,7 +140,7 @@ def generate_table_analysis(content: str, openai_client: openai.ChatCompletion) 
         ")
 
     response = openai_client.chat.completions.create(
-        model="gpt-4o-2024-08-06",
+        model="gpt-4o-mini",
         messages=[
             {'role': 'system', 'content': system_prompt},
             {"role": "user", "content": content}
@@ -168,7 +170,7 @@ def generate_table_analysis(content: str, openai_client: openai.ChatCompletion) 
     return result_raw_abstracts
 
 
-
+# unuse
 def generate_pdf_analysis(content: str, openai_client: openai.ChatCompletion) -> Generator[str, None, None]:
 
     system_prompt = ("次のIRに関わるPDFデータについて分析し日本語でまとめてください。\
@@ -180,7 +182,7 @@ def generate_pdf_analysis(content: str, openai_client: openai.ChatCompletion) ->
         ")
 
     response = openai_client.chat.completions.create(
-        model="gpt-4o-2024-08-06",
+        model="gpt-4o-mini",
         messages=[
             {'role': 'system', 'content': system_prompt},
             {"role": "user", "content": content}
@@ -207,3 +209,72 @@ def generate_pdf_analysis(content: str, openai_client: openai.ChatCompletion) ->
     )
     result_raw_abstracts = response.choices[0].message.content
     return json.loads(result_raw_abstracts)
+
+
+def extract_document_information(
+    content_text: str,
+    openai_client: openai.ChatCompletion,
+) -> AnalysisResult:
+
+    system_prompt = ('次のビジネスに関するデータを分析してください。\
+        全ての情報を整理して引き出せるように日本語でまとめてください。回答はJSON形式でしてください。\
+        abstract: 参照したデータの概要を日本語でまとめてください。一般的な用語説明は不要です。\
+        extractable_info: このデータから抽出可能な情報の一覧。\
+        feature: このデータにおいて特徴的な傾向を詳細にまとめてください。\
+        year_info: このデータが何年何月のデータを示しているか YYYYMM形式で回答せよ\
+        period_type: このデータが四半期データか通期データかなどを記述してください。通期/四半期/半期/月次\
+        period_number: このデータが第x四半期のデータか int\
+        category:財務会計/管理会計(売上)/管理会計(コスト)/その他\
+        category_ir: 財務諸表/有価証券報告書/四半期報告書/決算短信または説明資料/適時開示/株主総会招集通知および議決権行使資料/コーポレート・ガバナンス/その他'
+    )
+
+    response = openai_client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {'role': 'system', 'content': system_prompt},
+            {"role": "user", "content": content_text}
+        ],
+
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "file_analysis",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "abstract": {
+                            "type": "string",
+                            "description": "参照したデータの概要を日本語でまとめてください。一般的な用語説明は不要です。",
+                        },
+                        "feature": {"type": "string"},
+                        "extractable_info": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "year_info": {"type": "string"},
+                        "period_type": {"type": "string"},
+                        "category": {"type": "string"},
+                        "category_ir": {"type": "string"},
+                    },
+                    "required": ["abstract", "feature", "extractable_info", "category", "year_info", "period_type", "category_ir"],
+                    "additionalProperties": False
+                },
+                "strict": True
+            }
+        }
+    )
+    result = response.choices[0].message.content
+    data = json.loads(result)
+
+    analysis_result = AnalysisResult(
+        abstract=data.get('abstract', ''),
+        feature=data.get('feature', ''),
+        extractable_info=data.get('extractable_info', []),
+        year_info=data.get('year_info', ''),
+        period_type=data.get('period_type', ''),
+        category=data.get('category', ''),
+        category_ir=data.get('category_ir', '')
+    )
+    return analysis_result

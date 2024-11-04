@@ -3,8 +3,7 @@ from google.cloud import firestore
 from fastapi import UploadFile
 from google.cloud.firestore_v1.base_query import FieldFilter
 from fastapi import HTTPException
-
-from typing import TypedDict
+from pydantic import BaseModel
 
 from openpyxl import load_workbook
 
@@ -26,10 +25,14 @@ async def parse_excel_file(file: UploadFile):
     return data
 
 
-class AnalysisResult(TypedDict):
+class AnalysisResult(BaseModel):
     abstract: str
-    extractable_info: dict
+    feature: str
+    extractable_info: list[str]
+    year_info: str
+    period_type: str
     category: str
+    category_ir: str
 
 
 def save_analysis_result(
@@ -39,7 +42,7 @@ def save_analysis_result(
     file_uuid: str,
     analysis_result: AnalysisResult,
     target_collection: str,
-):
+) -> None:
     projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
     is_selected_filter = FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
@@ -55,10 +58,13 @@ def save_analysis_result(
         doc_ref.set({
             "file_name": file_name,
             "file_uuid": str(file_uuid),
-            "abstract": analysis_result['abstract'],
-            "feature": analysis_result['feature'],
-            "extractable_info": analysis_result['extractable_info'],
-            "category": analysis_result['category']
+            "abstract": analysis_result.abstract,
+            "feature": analysis_result.feature,
+            "extractable_info": analysis_result.extractable_info,
+            "year_info": analysis_result.year_info,
+            "period_type": analysis_result.period_type,
+            "category": analysis_result.category,
+            "category_ir": analysis_result.category_ir
         })
         return
 

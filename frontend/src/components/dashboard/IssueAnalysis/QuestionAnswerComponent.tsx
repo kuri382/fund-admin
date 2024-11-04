@@ -1,82 +1,135 @@
-import React, { useState } from 'react';
-import { Card, Spin, message, Button, Typography } from 'antd';
+import React, { useState, useCallback } from 'react';
+import {
+    Card,
+    message,
+    Button,
+    List,
+    Space,
+    Tabs,
+    Typography
+} from 'antd';
+import {
+    FileTextOutlined,
+} from '@ant-design/icons';
 import axios from 'axios';
-import { apiUrlQueryQuestionAnswer } from '@/utils/api';
 import { getAuth } from "firebase/auth";
 
-const { Title, Paragraph } = Typography;
+import {
+    apiUrlGetExplorerFinancialStatements,
+} from '@/utils/api';
+
+const { Text } = Typography;
 
 
-const formatText = (text: string | undefined) => {
-    if (!text) return "";
-    return text
-        .replace(/####\s(.*?)(?:\n|$)/g, '<h3>$1</h3>') // ### を h3 タグに変換
-        .replace(/###\s(.*?)(?:\n|$)/g, '<h3>$1</h3>') // ### を h3 タグに変換
-        .replace(/##\s(.*?)(?:\n|$)/g, '<h2>$1</h2>') // ## を h2 タグに変換
-        .replace(/#\s(.*?)(?:\n|$)/g, '<h2>$1</h2>') // # を h2 タグに変換
-        //.replace(/^\d+\.\s(.*)$/gm, '<li>$1</li>') // 番号付きリストに対応
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        //.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // **text** を太字に変換
-        .replace(/\n/g, '<br>'); // 改行に変換
+interface FinancialStatement {
+    uuid: string;
+    name: string;
+    url: string;
+    categoryIr: string;
+    yearInfo: string;
+    periodType: string;
+}
+
+interface ApiResponse {
+    financialStatements: FinancialStatement[];
+}
+
+const formatYearInfo = (yearInfo: string): string => {
+    if (yearInfo && yearInfo.length === 6) {
+        return `${yearInfo.slice(0, 4)}.${yearInfo.slice(4)}`;
+    }
+    return yearInfo;
 };
 
-const QuestionAnswerComponent: React.FC = () => {
-    const [answer, setAnswer] = useState('');
+const FinancialStatementViewer: React.FC = () => {
+    const [documents, setDocuments] = useState<FinancialStatement[]>([]);
     const [loading, setLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState('list');
+
     const auth = getAuth();
 
-    const fetchAnswer = async () => {
+    const fetchDocuments = useCallback(async () => {
         setLoading(true);
-        setAnswer('');
-        const user = auth.currentUser;
+        setDocuments([]);
 
-        if (user) {
-            try {
-                const accessToken = await user.getIdToken(/* forceRefresh */ true);
-                const response = await axios.get(apiUrlQueryQuestionAnswer, {
+        try {
+            const user = auth.currentUser;
+            if (!user) {
+                throw new Error('認証が必要です');
+            }
+
+            const accessToken = await user.getIdToken(true);
+            const response = await axios.get<ApiResponse>(
+                apiUrlGetExplorerFinancialStatements,
+                {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
                     },
-                });
-                setAnswer(response.data.answer);
-            } catch (error) {
-                console.error('Error fetching answer:', error);
-                message.error('Failed to get answer. Please try again later.');
-            } finally {
-                setLoading(false);
-            }
-        } else {
+                }
+            );
+
+            setDocuments(response.data.financialStatements);
+            console.log(response.data);
+
+        } catch (error) {
+            console.error('Error fetching documents:', error);
+            message.error('IR資料の取得に失敗しました');
+        } finally {
             setLoading(false);
-            message.error('User not authenticated. Please log in and try again.');
         }
-    };
+    }, [auth]);
+
+    // タブアイテムの定義
+    const tabItems = [
+        {
+            key: 'list',
+            label: 'IR資料一覧',
+            children: (
+                <List
+                    dataSource={documents}
+                    loading={loading}
+                    locale={{ emptyText: 'IRがありません' }}
+                    renderItem={(item) => (
+                        <List.Item
+                            actions={[
+                            ]}
+                        >
+                            <List.Item.Meta
+                                title={item.name}
+                                description={
+                                    <Space direction="vertical">
+                                        <Text type="secondary">ID: {item.uuid}</Text>
+                                        <Text type="secondary">{formatYearInfo(item.yearInfo)} {item.periodType}</Text>
+                                    </Space>
+                                }
+                            />
+                        </List.Item>
+                    )}
+                />
+            ),
+        }
+    ];
 
     return (
-        <div style={{ padding: '24px', maxWidth: '600px', margin: '0 auto' }}>
-            <Card title="Question and Answers" style={{ width: '100%' }}>
+        <div>
+            <Card title="IR資料ビューワー">
                 <Button
                     type="primary"
-                    onClick={fetchAnswer}
+                    onClick={fetchDocuments}
                     loading={loading}
-                    style={{ marginBottom: '16px' }}
+                    icon={<FileTextOutlined />}
                 >
-                    Questions and Answers
+                    IR資料を取得
                 </Button>
-                {loading ? (
-                    <div style={{ textAlign: 'center' }}>
-                        <Spin size="large" />
-                    </div>
-                ) : (
-                    answer && (
-                        <div>
-                            <Title level={4} style={{ marginBottom: '8px' }}></Title>
-                            <div style={{ textAlign: 'left' }} dangerouslySetInnerHTML={{ __html: formatText(answer) }} />
-                        </div>
-                    )
-                )}
+
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={setActiveTab}
+                    items={tabItems}
+                />
             </Card>
         </div>
     );
 };
 
-export default QuestionAnswerComponent;
+export default FinancialStatementViewer;
