@@ -25,7 +25,6 @@ async def upload_file(
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     openai_client: openai.ChatCompletion = Depends(get_openai_client),
 ):
-    # get authorization information
     authorization = request.headers.get("Authorization")
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
@@ -39,7 +38,6 @@ async def upload_file(
     file_uuid = uuid.uuid4()
     unique_filename = f"{file_uuid}_{file.filename}"
 
-    # save file to firebase cloud storage
     try:
         storage_client = firebase_client.get_storage()
         blob = storage_client.blob(f"{user_id}/{unique_filename}")
@@ -51,7 +49,6 @@ async def upload_file(
 
     firestore_client = firebase_client.get_firestore()
 
-    # get file_extension
     file_extension = os.path.splitext(file.filename)[1].lower()
     match file_extension:
         case ".xlsx":
@@ -60,7 +57,7 @@ async def upload_file(
                 analysis_result = extract_document_information(openai_client=openai_client, content_text=content_text)
 
             except Exception as e:
-                print(f"Error: {str(e)}")
+                logger.error(f"Error: {str(e)}")
                 raise HTTPException(status_code=500, detail=f"Error analyzing Excel file: {str(e)}")
 
             try:
