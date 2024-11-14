@@ -189,22 +189,26 @@ class DataSource(BaseModel):
     source: str
     url: str
 
+
 class Quarter(str, Enum):
     Q1 = "Q1"
     Q2 = "Q2"
     Q3 = "Q3"
     Q4 = "Q4"
 
+
 class QuarterData(BaseModel):
     year: int
     quarter: Quarter
     data: list[DataSource]
+
 
 class FinancialData(BaseModel):
     key: str
     metric: str
     values: list[QuarterData]
     selected: Optional[dict[str, DataSource]] = None
+
 
 class FinancialResponse(BaseModel):
     data: list[FinancialData]
