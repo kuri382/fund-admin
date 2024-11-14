@@ -46,6 +46,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
           message.loading(`${file.name}を分析しています...`);
 
           const accessToken = await user.getIdToken(true);
+          console.log('print==========',accessToken);
           const apiUrl = `${api.baseUrl}/upload`;
           const formData = new FormData();
           formData.append('file', file);

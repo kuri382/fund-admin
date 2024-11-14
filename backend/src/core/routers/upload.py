@@ -1,9 +1,15 @@
-import os
+import asyncio
+import base64
+import io
 import json
+import os
 import logging
 import uuid
-from fastapi import APIRouter, Depends, UploadFile, HTTPException, Request
+
+from fastapi import APIRouter, Depends, UploadFile, HTTPException, Request, BackgroundTasks
 import openai
+from pydantic import BaseModel
+from pydantic_core import ValidationError
 
 
 import src.core.services.firebase_driver as firebase_driver
@@ -11,17 +17,149 @@ from src.core.services.pdf_processing import extract_text_from_pdf
 from src.core.services.openai_client import extract_document_information
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services import auth_service
-from src.core.services.upload import table_processor
+from src.core.services.upload import table_processor, pdf_processor
 from src.dependencies import get_openai_client
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+def encode_binaryio_to_base64(image_binary: io.BytesIO) -> str:
+    """
+    Convert BinaryIO data to a Base64-encoded string.
+    Args:
+        binary_data (BinaryIO): The binary data to encode.
+
+    Returns:
+        str: Base64-encoded string of the binary data.
+    """
+    image_binary.seek(0)
+    binary_content = image_binary.read()
+    if not binary_content:
+        raise ValueError("Binary data is empty or not readable")
+    base64_encoded = base64.b64encode(binary_content).decode('utf-8')
+    return base64_encoded
+
+
+def create_chat_completion_message(system_prompt, prompt, image_base64):
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": f'{prompt}',
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{image_base64}"
+                    }
+                }
+            ]
+        }
+    ]
+    return messages
+
+
+async def upload_image(pdf_document, user_id, page_number, unique_filename, storage_client):
+    """PDFページを画像に変換してFirebaseにアップロードする"""
+    image_bytes = pdf_processor.convert_pdf_page_to_image(pdf_document, page_number)
+    await pdf_processor.upload_image_to_firebase(image_bytes, user_id, page_number, unique_filename, storage_client)
+    return encode_binaryio_to_base64(image_bytes)
+
+
+async def fetch_and_parse_response(openai_client, image_base64, max_retries=3):
+    """OpenAI APIにリクエストを送信し、パースされたレスポンスを取得する。リトライ機能付き"""
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            response = openai_client.beta.chat.completions.parse(
+                model='gpt-4o-2024-08-06',
+                messages=[
+                    {"role": "system", "content": "あなたはバイサイドアナリストです。厳しい目線で経営・事業の状況を解説します。日本語で回答します。"},
+                    {"role": "system", "content": "接頭語に気をつけながら、かならず単位を円で計算しなさい。「百万円」や「億円」をすべて「円」に統一する"},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "次のデータに含まれる情報を、集計期間に気をつけながら段階的に整理します。"},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}}
+                        ]
+                    }
+                ],
+                response_format=CustomResponse,
+            )
+            return response.choices[0].message.parsed
+        except ValidationError as e:
+            retry_count += 1
+            logger.warning(f'Validation error occurred: {e}. Retrying {retry_count}/{max_retries}')
+            if retry_count >= max_retries:
+                logger.error("Max retries reached. Exiting the retry loop.")
+                raise e
+            await asyncio.sleep(2)
+
+
+async def process_pdf_background(
+    contents: bytes,
+    user_id: str,
+    unique_filename: str,
+    storage_client,
+    openai_client,
+    firestore_client,
+    max_pages=15
+):
+    """PDFを処理し、各ページを画像化、アップロード、解析を行うメイン関数"""
+    pdf_document = await pdf_processor.read_pdf_file(contents)
+    max_pages = min(max_pages, len(pdf_document))
+    logger.info('Started processing PDF')
+
+    for page_number in range(max_pages):
+        try:
+            logger.info(f'Processing page {page_number + 1}/{max_pages}')
+            image_base64 = await upload_image(pdf_document, user_id, page_number, unique_filename, storage_client)
+            result = await fetch_and_parse_response(openai_client, image_base64)
+            logger.info('result analysed')
+            page_uuid = uuid.uuid4()
+            firebase_driver.save_page_image_analysis(
+                    firestore_client=firestore_client,
+                    user_id=user_id,
+                    file_name=unique_filename,
+                    page_uuid=page_uuid,
+                    page_number=page_number,
+                    business_summary=result.business_summary,
+                    explanation="".join([step.explanation for step in result.steps]),
+                    output="".join([step.output for step in result.steps]),
+                    answer=result.answer,
+                )
+            logger.info('firebase storage saved')
+
+            if result is None:
+                    logger.warning(f"Skipping page {page_number + 1} due to repeated validation errors.")
+                    continue
+
+        except Exception as e:
+            logger.error(f"An error occurred while processing page {page_number + 1}: {e}")
+            logger.info(f"Skipping page {page_number + 1} due to error.")
+            continue  # エラー発生時にスキップして次のページに進む
+
+
+class Step(BaseModel):
+    explanation: str
+    output: str
+
+
+class CustomResponse(BaseModel):
+    steps: list[Step]
+    answer: str
+    business_summary: firebase_driver.BusinessSummary
+
+
 @router.post("/upload")
 async def upload_file(
     request: Request,
     file: UploadFile,
+    background_tasks: BackgroundTasks,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     openai_client: openai.ChatCompletion = Depends(get_openai_client),
 ):
@@ -121,7 +259,22 @@ async def upload_file(
                 )
 
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Error saving csv result: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Error saving pdf result: {str(e)}")
+
+            try:
+                background_tasks.add_task(
+                    process_pdf_background,
+                    contents,
+                    user_id,
+                    unique_filename,
+                    storage_client,
+                    openai_client,
+                    firestore_client,
+                )
+                logger.info('upload finished')
+
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error saving pdf image to storage: {str(e)}")
 
         case _:
             raise HTTPException(status_code=400, detail="サポートされていないファイル形式です")

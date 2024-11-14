@@ -206,7 +206,6 @@ async def delete_project(
     request: Request,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
 ):
-    # Authorization ヘッダーの取得
     authorization = request.headers.get("Authorization")
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")

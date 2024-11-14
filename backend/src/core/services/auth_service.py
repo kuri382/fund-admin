@@ -31,8 +31,23 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 def verify_token(authorization: str):
     try:
         token = authorization.split(" ")[1]
-        decoded_token = firebase_auth.verify_id_token(token)
+        try:
+            decoded_token = firebase_auth.verify_id_token(token)
+
+        except firebase_auth.InvalidIdTokenError:
+            print("Invalid ID token")
+
+        except firebase_auth.ExpiredIdTokenError:
+            print("Token has expired")
+
+        except firebase_auth.RevokedIdTokenError:
+            print("Token has been revoked")
+
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+
         user_id = decoded_token["uid"]
         return user_id
+
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid token")

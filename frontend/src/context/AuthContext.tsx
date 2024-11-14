@@ -31,9 +31,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [auth]);
 
   const signOut = async () => {
-    await firebaseSignOut(auth);
-    setUser(null);
-    router.push('/signin');
+    try {
+      await firebaseSignOut(auth);
+      setUser(null);
+      router.push('/signin');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   return (

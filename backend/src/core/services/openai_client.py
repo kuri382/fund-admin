@@ -278,3 +278,32 @@ def extract_document_information(
         category_ir=data.get('category_ir', '')
     )
     return analysis_result
+
+
+def generate_page_analysis() -> dict:
+    response_format = {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "page_analysis",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "abstract": {
+                        "type": "string",
+                        "description": "参照したデータの概要を日本語でまとめてください。まず始めに結論を書きその後それを捕捉するように文章を構成すること。一般的な用語説明は不要です。",
+                    },
+                    "extractable_info": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "次の中から抽出可能な情報があれば、選べ。売上高/売上総利益/営業利益/販管費/経常利益/当期純利益/MRR/ARR/社数別単価推移/チャーン/顧客別売上/粗利等",
+                    },
+                },
+                "required": ["abstract", "extractable_info"],
+                "additionalProperties": False
+            },
+            "strict": True
+        }
+    }
+    return response_format
