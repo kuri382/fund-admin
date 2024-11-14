@@ -3,6 +3,8 @@
 import React, { useEffect, useReducer, useState } from 'react';
 import { Table, Tooltip, Button, Image, notification } from 'antd';
 import { apiUrlGetParameterSales } from '@/utils/api';
+import { getAuth } from "firebase/auth";
+
 
 interface DataSource {
     value: number | null;
@@ -26,7 +28,6 @@ interface APIResponse {
     data: FinancialData[];
 }
 
-// カスタムフックでデータ取得
 const useFinancialData = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -37,15 +38,30 @@ const useFinancialData = () => {
     }, []);
 
     const fetchFinancialData = async () => {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) {
+            throw new Error('認証が必要です');
+        }
+        const accessToken = await user.getIdToken(true);
+
         try {
             setLoading(true);
-            const response = await fetch(apiUrlGetParameterSales);
+            const response = await fetch(apiUrlGetParameterSales, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                }
+            });
             const result: APIResponse = await response.json();
-            console.log(result);
+
+            if (!result?.data || !Array.isArray(result.data)) {
+                throw new Error('Invalid data format received');
+            }
 
             dispatch({ type: 'INITIALIZE_DATA', payload: result.data });
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
+            dispatch({ type: 'INITIALIZE_DATA', payload: [] });
         } finally {
             setLoading(false);
         }
@@ -54,17 +70,14 @@ const useFinancialData = () => {
     return { data, loading, error, dispatch };
 };
 
-// Reducerアクションの型
 type Action =
     | { type: 'SELECT_VALUE'; key: string; quarterKey: string; value: DataSource }
     | { type: 'INITIALIZE_DATA'; payload: FinancialData[] };
 
-// `selected` フィールドを管理するための一時的な状態管理
 interface ExtendedFinancialData extends FinancialData {
     selected?: { [quarterKey: string]: DataSource };
 }
 
-// Reducer
 const dataReducer = (state: ExtendedFinancialData[], action: Action): ExtendedFinancialData[] => {
     switch (action.type) {
         case 'SELECT_VALUE':
@@ -74,13 +87,12 @@ const dataReducer = (state: ExtendedFinancialData[], action: Action): ExtendedFi
                     : item
             );
         case 'INITIALIZE_DATA':
-            return action.payload.map((item) => ({ ...item, selected: {} }));
+            return action.payload?.map((item) => ({ ...item, selected: {} })) ?? [];
         default:
             return state;
     }
 };
 
-// 通知表示
 const showNotification = (quarterKey: string, value: number) => {
     notification.info({
         message: '変更履歴',
@@ -88,19 +100,7 @@ const showNotification = (quarterKey: string, value: number) => {
         placement: 'topRight',
     });
 };
-const uniqueValues = (data: DataSource[]) => {
-    const seen = new Set<string>();
-    return data.filter((item) => {
-        const key = `${item.source}-${item.value}`;
-        if (seen.has(key)) {
-            return false;
-        }
-        seen.add(key);
-        return true;
-    });
-};
 
-// テーブルのセルをレンダリング
 const renderCell = (
     record: ExtendedFinancialData,
     year: number,
@@ -150,6 +150,39 @@ const FinancialTable: React.FC = () => {
         return <div>Error: {error}</div>;
     }
 
+    if (!data || data.length === 0) {
+        return <div>データが存在しません。</div>;
+    }
+
+    const fetchFinancialData = async () => {
+        try {
+            //setLoading(true);
+            const response = await fetch(apiUrlGetParameterSales, {
+                headers: {
+                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result: APIResponse = await response.json();
+
+            if (!result?.data || !Array.isArray(result.data)) {
+                throw new Error('Invalid data format received');
+            }
+
+            dispatch({ type: 'INITIALIZE_DATA', payload: result.data });
+        } catch (err) {
+            //setError(err instanceof Error ? err.message : 'An error occurred');
+            dispatch({ type: 'INITIALIZE_DATA', payload: [] });
+        } finally {
+            //setLoading(false);
+        }
+    };
+
     const columns = Array.from(
         new Set(data.flatMap((item) => item.values.map((value) => `${value.year}-${value.quarter}`)))
     ).map((key) => {
@@ -181,13 +214,19 @@ const FinancialTable: React.FC = () => {
     ];
 
     return (
-        <Table
-            columns={tableColumns}
-            dataSource={data}
-            bordered
-            scroll={{ x: 'max-content' }}
-            rowKey="key"
-        />
+        <>
+            {/*<Button onClick={fetchFinancialData} style={{ marginBottom: '16px' }}>
+                再読み込み
+            </Button>*/}
+            <Table
+                columns={tableColumns}
+                dataSource={data}
+                bordered
+                scroll={{ x: 'max-content' }}
+                rowKey="key"
+            />
+        </>
+
     );
 };
 

@@ -12,13 +12,7 @@ import ProjectManager from '@/components/dashboard/ProjectManager';
 import ResultReport from '@/components/dashboard/TableAnalysis/ResultReport';
 import IssueAnalysisComponent from '@/components/dashboard/IssueAnalysis/IssueAnalysisComponent';
 import QuestionAnswerComponent from '@/components/dashboard/IssueAnalysis/QuestionAnswerComponent';
-
-// 型定義
-interface FetchError {
-  message: string;
-  code?: string;
-  details?: unknown;
-}
+import FinancialTable from '@/components/dashboard/Generator/generateBusinessPlan';
 
 const AnalysisComponents: React.FC = () => {
   // 状態管理
@@ -89,11 +83,12 @@ const AnalysisComponents: React.FC = () => {
       key: '3',
       label: (
         <div key="tab-3">
-          <div style={{ width: '150px' }}>出力 QA一覧</div>
+          <div style={{ width: '150px' }}>事業計画書 自動作成</div>
           <Tag color='gray'>β版</Tag>
         </div>
       ),
-      children: <QuestionAnswerComponent />,
+      children: <FinancialTable />,
+      //children: <QuestionAnswerComponent />,
       style: { height: '800px' }
     },
     {

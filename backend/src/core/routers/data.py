@@ -148,6 +148,7 @@ async def list_document_files(
 
             file_data_list.append({
                 "file_name": file_name,
+                "file_uuid": file_uuid,
                 "feature": feature,
                 "abstract": abstract,
                 "extractable_info": extractable_info,

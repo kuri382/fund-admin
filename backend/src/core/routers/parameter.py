@@ -18,55 +18,6 @@ router = APIRouter(prefix='/parameter', tags=['parameter'])
 logger = logging.getLogger(__name__)
 
 
-class ImageURLsResponse(BaseJSONSchema):
-    image_urls: list[str]
-
-
-@router.get(
-    "/list",
-    response_class=ORJSONResponse,
-    responses={status.HTTP_200_OK: {
-        'description': 'parameters retrieved successfully.',
-    }},
-)
-async def get_parameter_list(
-    request: Request,
-    firebase_client: FirebaseClient = Depends(get_firebase_client),
-):
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-    user_id = auth_service.verify_token(authorization)
-
-    try:
-        storage_client = firebase_client.get_storage()
-        blobs = storage_client.list_blobs(prefix=f"{user_id}/image/")
-
-        image_urls: list[str] = []
-        uuid = '36110060-79d9-4161-926b-d41fb0761e55'
-
-        for blob in blobs:
-            if uuid in blob.name:
-                url = blob.generate_signed_url(
-                    expiration=3600,
-                    method='GET',
-                    version='v4'
-                )
-                image_urls.append(url)
-
-        if not image_urls:
-            return ORJSONResponse(content={"message": "No images found."}, status_code=status.HTTP_404_NOT_FOUND)
-
-        return ORJSONResponse(content={"imageUrls": image_urls}, status_code=status.HTTP_200_OK)
-
-    except Exception as e:
-        logger.error(f"Error retrieving images: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving or processing images: {str(e)}"
-        )
-
 @router.get(
     "/analysis",
     response_class=ORJSONResponse,
@@ -424,13 +375,11 @@ async def get_parameter_sales(
     request: Request,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
 ):
-    #authorization = request.headers.get("Authorization")
-    #if not authorization:
-    #    raise HTTPException(status_code=401, detail="Authorization header missing")
-    #user_id = auth_service.verify_token(authorization)
-    user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
+    authorization = request.headers.get("Authorization")
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    user_id = auth_service.verify_token(authorization)
 
-    page_uuid = '005ae7eb-54d1-479b-8cc6-e8d530d888ac'
     firestore_client = firebase_client.get_firestore()
 
     try:

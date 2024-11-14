@@ -10,6 +10,7 @@ from src.core.routers import (
     data,
     explorer,
     financial,
+    image,
     market,
     parameter,
     project,
@@ -43,6 +44,7 @@ app.include_router(auth.router)
 app.include_router(data.router)
 app.include_router(explorer.router)
 app.include_router(financial.router)
+app.include_router(image.router)
 app.include_router(market.router)
 app.include_router(parameter.router)
 app.include_router(project.router)

@@ -2,8 +2,11 @@ import React from 'react';
 import { Tabs, Row, Col, Tag, Alert } from 'antd';
 import type { TabsProps } from 'antd';
 
+import ImageListComponent from '@/components/dashboard/Generator/ImageUUIDViewer';
+
 interface FileDocumentData {
   file_name: string;
+  file_uuid: string;
   abstract: string;
   category: string;
   feature: string;
@@ -38,7 +41,7 @@ const styleTabPane: React.CSSProperties = {
 const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
   const items: TabsProps['items'] = files.map((file, index) => {
     const extension = getFileExtension(file.file_name);
-    console.log(file.file_name);
+    console.log(file.file_uuid);
     const tagColor = getExtensionColor(extension);
 
     return {
@@ -54,6 +57,7 @@ const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
         </div>
       ),
       children: (
+        <>
         <Row justify="center" key={`tab-content-${file.file_name}-${index}`}>
           <Col span={24} style={styleTabPane}>
             <Tag color="blue">{file.category}</Tag>
@@ -66,6 +70,8 @@ const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
             />
           </Col>
         </Row>
+        <ImageListComponent uuid={file.file_uuid} />
+        </>
       ),
       style: { background: '#f0f6fa' }
     };
