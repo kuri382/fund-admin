@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@ant-design/nextjs-registry": "^1.0.1",
-    "antd": "^5.20.1",
+    "@types/react-pdf": "^5.0.7",
+    "antd": "^5.21.6",
     "axios": "^1.7.7",
     "chart.js": "^4.4.4",
     "firebase": "^10.13.2",
@@ -20,7 +21,8 @@
     "react": "^18",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18",
-    "react-markdown": "^9.0.1"
+    "react-markdown": "^9.0.1",
+    "react-pdf": "^9.1.1"
   },
   "devDependencies": {
     "@types/node": "^20.14.15",

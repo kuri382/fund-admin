@@ -11,18 +11,25 @@ from src.core.routers import (
     explorer,
     financial,
     market,
+    parameter,
     project,
     services,
     summary,
     upload,
 )
 from src.core.services import firebase_client
+from src.settings import settings
 
 
 TITLE: Final[str] = 'Granite API'
-VERSION: Final[str] = '0.4.4'
+VERSION: Final[str] = '0.4.5'
 
-app = FastAPI(title=TITLE, version=VERSION)
+app = FastAPI(
+    title=TITLE,
+    version=VERSION,
+    docs_url="/docs" if settings.api_docs.enable_docs else None,
+    redoc_url="/redoc" if settings.api_docs.enable_redoc else None,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,19 +39,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(upload.router)
-app.include_router(summary.router)
-app.include_router(market.router)
-app.include_router(explorer.router)
-app.include_router(financial.router)
-app.include_router(services.router)
 app.include_router(auth.router)
 app.include_router(data.router)
+app.include_router(explorer.router)
+app.include_router(financial.router)
+app.include_router(market.router)
+app.include_router(parameter.router)
 app.include_router(project.router)
+app.include_router(summary.router)
+app.include_router(services.router)
+app.include_router(upload.router)
 
 @app.on_event("startup")
 def startup_event():
     firebase_client.FirebaseClient.initialize_firebase()
+
 
 if __name__ == "__main__":
     import uvicorn

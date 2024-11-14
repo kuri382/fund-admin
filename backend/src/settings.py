@@ -1,5 +1,9 @@
 import os
 
+from pydantic import Field
+from pydantic_settings import BaseSettings
+
+
 class Settings:
     openai_api_key: str = os.environ['OPENAI_API_KEY']
     openai_project_id: str = os.environ['OPENAI_PROJECT_ID']
@@ -18,5 +22,16 @@ class Settings:
             os.makedirs(self.pdf_storage_path)
         if not os.path.exists(self.table_storage_path):
             os.makedirs(self.table_storage_path)
+
+
+    class APIDocs(BaseSettings):
+        """APIDocs settings.
+        """
+
+        enable_docs: bool = Field(True, env='ENABLE_DOCS')
+        enable_redoc: bool = Field(True, env='ENABLE_REDOC')
+
+
+    api_docs = APIDocs()
 
 settings = Settings()
