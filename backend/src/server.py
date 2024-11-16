@@ -20,7 +20,7 @@ from src.settings import settings
 
 
 TITLE: Final[str] = 'Granite API'
-VERSION: Final[str] = '0.4.5'
+VERSION: Final[str] = '0.4.6'
 
 app = FastAPI(
     title=TITLE,
