@@ -41,7 +41,6 @@ const styleTabPane: React.CSSProperties = {
 const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
   const items: TabsProps['items'] = files.map((file, index) => {
     const extension = getFileExtension(file.file_name);
-    console.log(file);
     const tagColor = getExtensionColor(extension);
 
     return {
