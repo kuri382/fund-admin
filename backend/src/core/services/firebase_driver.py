@@ -1,7 +1,7 @@
 from io import BytesIO
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from typing import Literal, Optional, Union
+from typing import Literal, Optional
 
 from fastapi import UploadFile
 from fastapi import HTTPException
@@ -125,13 +125,14 @@ class BusinessSummary(BaseModel):
 def save_page_image_analysis(
     firestore_client: firestore.Client,
     user_id: str,
+    file_uuid: str,
     file_name: str,
     page_uuid: str,
     page_number: int,
     business_summary: BusinessSummary,
     explanation: str,
     output: str,
-    answer: str,
+    opinion: str,
     target_collection: str = 'sales',
 ) -> None:
     projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
@@ -147,6 +148,7 @@ def save_page_image_analysis(
 
     try:
         doc_ref.set({
+            "file_uuid": str(file_uuid),
             "file_name": file_name,
             "page_number": page_number,
             "year": business_summary.period.year,
@@ -161,6 +163,7 @@ def save_page_image_analysis(
             "gross_profit_margin_actual": str(business_summary.gross_profit_margin_actual),
             "explanation": str(explanation),
             "output": str(output),
+            'opinion': str(opinion),
         })
         return
 
@@ -214,7 +217,7 @@ def fetch_page_parameter_analysis(
     user_id: str,
     page_uuid: Optional[str] = None,
     target_collection: str = 'sales',
-) -> Union[Optional[BusinessSummary], list[BusinessSummary]]:
+) -> list[BusinessSummary]:
     selected_project_id = get_selected_project_id(firestore_client, user_id)
     collection_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection(target_collection)
 
@@ -223,6 +226,41 @@ def fetch_page_parameter_analysis(
         return [parse_business_summary(doc)] if doc.exists else []
     else:
         return [parse_business_summary(doc) for doc in collection_ref.stream()]
+
+
+class ParameterSummary(BaseModel):
+    page_number: int
+    output: str
+    explanation: str
+    opinion: str
+
+
+def fetch_page_summary(
+    firestore_client: firestore.Client,
+    user_id: str,
+    file_uuid: str,
+    target_collection: str = 'sales',
+    limit: int = 30,
+) -> list[ParameterSummary]:
+    selected_project_id = get_selected_project_id(firestore_client, user_id)
+    collection_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection(target_collection)
+
+    query = collection_ref.where("file_uuid", "==", file_uuid).limit(limit)
+    file_docs = query.get()
+
+    # page_numberで昇順ソート
+    sorted_docs = sorted(file_docs, key=lambda doc: doc.to_dict().get('page_number', 0))
+
+    parameter_summaries = []
+    for doc in sorted_docs:
+        parameter_summary = ParameterSummary(
+            page_number=doc.to_dict()['page_number'],
+            output=doc.to_dict()['output'],
+            explanation=doc.to_dict()['explanation'],
+            opinion=doc.to_dict()['opinion'],
+        )
+        parameter_summaries.append(parameter_summary)
+    return parameter_summaries
 
 
 def retrieve_and_convert_to_json(

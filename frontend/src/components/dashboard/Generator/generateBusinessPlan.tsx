@@ -113,14 +113,14 @@ const renderCell = (
     const values = quarterData.data;
     const quarterKey = `${year}${quarter}`;
     const selectedValue = record.selected?.[quarterKey];
-    const backgroundColor = values.length > 1 ? '#ffebcc' : 'transparent';
+    const backgroundColor = selectedValue ? '#ffebcc' : 'transparent';
 
     return (
         <Tooltip
             title={
                 <div>
                     {values.map((item, index) => (
-                        <div key={`${item.source}-${item.value}-${index}`}>
+                        <div key={`${record.key}-${quarterKey}-${item.source}-${index}`}> {/* 一意のキー */}
                             <p>{item.source}: {item.value?.toLocaleString()}</p>
                             <Image width={200} src={item.url} alt="example" />
                             <Button type="link" onClick={() => handleValueSelection(record.key, quarterKey, item)}>
@@ -185,10 +185,12 @@ const FinancialTable: React.FC = () => {
 
     const columns = Array.from(
         new Set(data.flatMap((item) => item.values.map((value) => `${value.year}-${value.quarter}`)))
-    ).map((key) => {
-        const [year, quarter] = key.split("-");
-        return { year: parseInt(year), quarter };
-    });
+    )
+        .map((key) => {
+            const [year, quarter] = key.split("-");
+            return { year: parseInt(year), quarter };
+        })
+        .sort((a, b) => a.year - b.year || a.quarter.localeCompare(b.quarter)); // 年度と四半期で昇順ソート
 
     const handleValueSelection = (key: string, quarterKey: string, value: DataSource) => {
         dispatch({ type: 'SELECT_VALUE', key, quarterKey, value });
@@ -207,7 +209,7 @@ const FinancialTable: React.FC = () => {
             return {
                 title: `${year} ${quarter}`,
                 dataIndex: quarterKey,
-                key: quarterKey,
+                key: `column-${quarterKey}`, // Ensure unique key for each column
                 render: (_: unknown, record: ExtendedFinancialData) => renderCell(record, year, quarter, handleValueSelection),
             };
         }),

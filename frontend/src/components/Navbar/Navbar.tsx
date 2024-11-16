@@ -30,11 +30,11 @@ const Navbar: React.FC = () => {
       key: 'home',
       label: <a href="/">ホーム</a>,
     },
+    /* 必要に応じて表示する
     {
       key: 'business plan',
       label: <a href="/plan">事業計画書</a>,
     },
-    /* 必要に応じて復活させる
     {
       key: 'about',
       label: <a href="/about">About</a>,

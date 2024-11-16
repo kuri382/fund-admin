@@ -31,4 +31,6 @@ export const apiUrlGetExplorerFinancialStatementsUUID = `${api.baseUrl}/explorer
 export const apiUrlGetExplorerFinancialStatementsUUIDPages = `${api.baseUrl}/explorer/financial_statements`;
 
 export const apiUrlGetImageList = `${api.baseUrl}/image/list`;
+
+export const apiUrlGetParameterSummary = `${api.baseUrl}/parameter/summary`;
 export const apiUrlGetParameterSales = `${api.baseUrl}/parameter/sales`;

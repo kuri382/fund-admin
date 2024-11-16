@@ -2,7 +2,7 @@ import React from 'react';
 import { Tabs, Row, Col, Tag, Alert } from 'antd';
 import type { TabsProps } from 'antd';
 
-import ImageListComponent from '@/components/dashboard/Generator/ImageUUIDViewer';
+import ImageSummaryList from '@/components/dashboard/Generator/ImageSummaryList';
 
 interface FileDocumentData {
   file_name: string;
@@ -70,7 +70,7 @@ const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
             />
           </Col>
         </Row>
-        <ImageListComponent uuid={file.file_uuid} />
+        <ImageSummaryList uuid={file.file_uuid} />
         </>
       ),
       style: { background: '#f0f6fa' }

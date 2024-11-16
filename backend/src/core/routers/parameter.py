@@ -3,6 +3,7 @@ from decimal import Decimal
 from enum import Enum
 import logging
 from fastapi import APIRouter, Request, HTTPException, Depends, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
 from pydantic import Field, validator, BaseModel
 from typing import Literal, Optional, Any
@@ -386,7 +387,6 @@ async def get_parameter_sales(
         data = firebase_driver.fetch_page_parameter_analysis(
             firestore_client,
             user_id,
-            #page_uuid,
         )
         result = convert_business_summary_to_financial_response(data)
 
@@ -394,5 +394,65 @@ async def get_parameter_sales(
             data=result
         )
     except Exception as e:
-        print(f'error: {e}')
+        logger.error(f'error: {e}')
 
+
+class ParameterSummaries(BaseJSONSchema):
+    page_number: int
+    output: str
+    explanation: str
+    opinion:str
+
+
+class ResGetParameterSummary(BaseJSONSchema):
+    """GET `/parameter/summary` request schema.
+    """
+
+    data: list[ParameterSummaries] = Field(None, description='ページごとの分析結果')
+
+
+def convert_to_res_get_parameter_summary(items: list[firebase_driver.ParameterSummary]) -> ResGetParameterSummary:
+    summaries = [
+        ParameterSummaries(
+            page_number=item.page_number,
+            output=item.output,
+            explanation=item.explanation,
+            opinion=item.opinion,
+        )
+        for item in items
+    ]
+    return ResGetParameterSummary(data=summaries)
+
+
+@router.get(
+    '/summary',
+    response_class=ORJSONResponse,
+    responses={status.HTTP_200_OK: {
+        'description': 'Images retrieved successfully.',
+    }},
+)
+async def get_parameter_summary(
+    request: Request,
+    uuid: str,
+    firebase_client: FirebaseClient = Depends(get_firebase_client),
+):
+    authorization = request.headers.get("Authorization")
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    user_id = auth_service.verify_token(authorization)
+    #user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
+    #file_uuid = '63961f2f-a852-4206-a5eb-2c6d6ed696cb'
+
+    firestore_client = firebase_client.get_firestore()
+
+    try:
+        data = firebase_driver.fetch_page_summary(
+            firestore_client,
+            user_id,
+            uuid,
+        )
+        result = convert_to_res_get_parameter_summary(data)
+        return ORJSONResponse(content=jsonable_encoder(result))
+
+    except Exception as e:
+        print(f'error: {e}')

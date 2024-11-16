@@ -134,7 +134,7 @@ async def list_document_files(
             file_name = doc_data.get('file_name', 'Unknown File')  # Firestoreに保存されているファイル名
 
             # ストレージからファイルを取得
-            blob_path = f"{user_id}/{file_uuid}_{file_name}"
+            blob_path = f"{user_id}/documents/{file_uuid}_{file_name}"
             blob = storage_client.blob(blob_path)
 
             if not blob.exists():

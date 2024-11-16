@@ -8,7 +8,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, UploadFile, HTTPException, Request, BackgroundTasks
 import openai
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_core import ValidationError
 
 
@@ -91,6 +91,7 @@ async def fetch_and_parse_response(openai_client, image_base64, max_retries=3):
                 response_format=CustomResponse,
             )
             return response.choices[0].message.parsed
+
         except ValidationError as e:
             retry_count += 1
             logger.warning(f'Validation error occurred: {e}. Retrying {retry_count}/{max_retries}')
@@ -103,6 +104,7 @@ async def fetch_and_parse_response(openai_client, image_base64, max_retries=3):
 async def process_pdf_background(
     contents: bytes,
     user_id: str,
+    file_uuid: str,
     unique_filename: str,
     storage_client,
     openai_client,
@@ -124,13 +126,14 @@ async def process_pdf_background(
             firebase_driver.save_page_image_analysis(
                     firestore_client=firestore_client,
                     user_id=user_id,
+                    file_uuid=file_uuid,
                     file_name=unique_filename,
                     page_uuid=page_uuid,
                     page_number=page_number,
                     business_summary=result.business_summary,
                     explanation="".join([step.explanation for step in result.steps]),
                     output="".join([step.output for step in result.steps]),
-                    answer=result.answer,
+                    opinion=result.opinion,
                 )
             logger.info('firebase storage saved')
 
@@ -151,7 +154,7 @@ class Step(BaseModel):
 
 class CustomResponse(BaseModel):
     steps: list[Step]
-    answer: str
+    opinion: str = Field(..., description='アナリスト視点での分析。リスク要素や異常値の確認を相対的・トレンド分析を交えながら行う')
     business_summary: firebase_driver.BusinessSummary
 
 
@@ -178,7 +181,7 @@ async def upload_file(
 
     try:
         storage_client = firebase_client.get_storage()
-        blob = storage_client.blob(f"{user_id}/{unique_filename}")
+        blob = storage_client.blob(f"{user_id}/documents/{unique_filename}")
         blob.upload_from_string(contents, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
     except Exception as e:
@@ -266,6 +269,7 @@ async def upload_file(
                     process_pdf_background,
                     contents,
                     user_id,
+                    file_uuid,
                     unique_filename,
                     storage_client,
                     openai_client,

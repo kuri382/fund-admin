@@ -1,12 +1,12 @@
 import React from 'react';
 import FinancialTable from '@/components/dashboard/Generator/generateBusinessPlan';
-import ImageListComponent from '@/components/dashboard/Generator/ImageListComponent';
+import ImageListComponent from '@/components/dashboard/Generator/ImageUUIDViewer';
 
 const GenerateBusinessPlanPage: React.FC = () => {
     return (
         <div style={{ textAlign: 'center', padding: '50px' }}>
             <FinancialTable />
-            <ImageListComponent />
+            {/*<ImageListComponent />*/}
         </div>
     );
 };

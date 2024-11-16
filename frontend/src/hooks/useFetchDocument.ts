@@ -6,6 +6,7 @@ import { message } from 'antd';
 
 interface FileData {
   file_name: string;
+  file_uuid: string;
   abstract: string;
   category: string;
   feature: string;
