@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { Button, message, Row, Col, Spin, Alert, Tabs, Tag } from 'antd';
+import { Alert, Button, Row, Col, notification, Spin, Tabs, Tag } from 'antd';
 import type { TabsProps } from 'antd';
-import FileUpload from '@/components/dashboard/TableAnalysis/FileUpload';
+import { ReloadOutlined } from '@ant-design/icons';
 
+import FileUpload from '@/components/dashboard/TableAnalysis/FileUpload';
 import fetchTable from '@/hooks/useFetchTable';
 import fetchDocument from '@/hooks/useFetchDocument';
 
@@ -43,6 +44,17 @@ const AnalysisComponents: React.FC = () => {
       key: '1',
       label: (
         <div key="tab-1">
+          <div style={{ width: '150px' }}>入力 ドキュメントデータ</div>
+          <Tag color='red'>pdf, wordなど</Tag>
+        </div>
+      ),
+      children: <PdfsFileTabs files={filesDocument} />,
+      style: { height: '800px' }
+    },
+    {
+      key: '2',
+      label: (
+        <div key="tab-2">
           <div>入力 テーブルデータ</div>
           <Tag color='green'>xlsx, csvなど</Tag>
         </div>
@@ -50,17 +62,6 @@ const AnalysisComponents: React.FC = () => {
       children: <TableFileTabs
         files={filesTable}
       />,
-      style: { height: '800px' }
-    },
-    {
-      key: '2',
-      label: (
-        <div key="tab-2">
-          <div style={{ width: '150px' }}>入力 ドキュメントデータ</div>
-          <Tag color='red'>pdf, wordなど</Tag>
-        </div>
-      ),
-      children: <PdfsFileTabs files={filesDocument} />,
       style: { height: '800px' }
     },
     {
@@ -86,6 +87,7 @@ const AnalysisComponents: React.FC = () => {
       children: <IssueAnalysisComponent />,
       style: { height: '800px' }
     },
+    /*
     {
       key: '5',
       label: (
@@ -97,6 +99,7 @@ const AnalysisComponents: React.FC = () => {
       children: <ResultReport />,
       style: { height: '800px' }
     }
+    */
   ];
 
   // プロジェクト変更ハンドラー
@@ -140,6 +143,12 @@ const AnalysisComponents: React.FC = () => {
         fetchFilesTable(),
         fetchFilesDocument()
       ]);
+
+      notification.success({
+        message: 'データ読み込み完了',
+        description: 'データの読み込みが正常に完了しました。',
+      });
+
     } catch (error) {
       setFetchError('データの更新中にエラーが発生しました。もう一度お試しください。');
       console.error('Fetch error:', error);
@@ -205,22 +214,23 @@ const AnalysisComponents: React.FC = () => {
     );
   }
 
-  // メインのレンダリング
+
   return (
     <>
       <ProjectManager onProjectChange={handleProjectChange} />
       <FileUpload />
+
       <div style={{ minHeight: '200px' }}>
         <Button
           onClick={handleAnalysisButtonClick}
           type="primary"
-          style={{ marginBottom: '20px', margin: '10px' }}
-          loading={isLoading}
+          style={{ margin: '10px 0px 0px 20px' }}
+          icon={<ReloadOutlined />}
         >
           ファイル情報を更新する
         </Button>
 
-        <Row justify="center" style={{ marginTop: '20px'}}>
+        <Row justify="center" style={{ marginTop: '20px' }}>
           <Col span={18}>
             <Tabs
               defaultActiveKey="1"

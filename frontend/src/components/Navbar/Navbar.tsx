@@ -43,7 +43,7 @@ const Navbar: React.FC = () => {
     {
       key: 'logout',
       label: (
-        <Button type="primary" onClick={handleLogout}>
+        <Button onClick={handleLogout}>
           ログアウト
         </Button>
       ),

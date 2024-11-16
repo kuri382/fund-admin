@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Form, Input, Card, Modal, Select, Space, Typography, message } from 'antd';
+import { Button, Form, Input, Card, Modal, Select, Space, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { auth } from '@/services/firebase';
@@ -12,7 +12,6 @@ import {
 } from '@/utils/api';
 
 const { Option } = Select;
-const { Title } = Typography;
 
 interface ProjectManagerProps {
   onProjectChange: () => void;
@@ -191,38 +190,38 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
 
   if (isInitializing) {
     return (
-      <Card
-        title="プロジェクト管理"
-        style={{ margin: '20px 0px' }}
-      >
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          初期化中...
-        </div>
-      </Card>
+      <div style={{ margin: '20px' }}>
+        <Card
+          title="Project"
+        >
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            読み込み中
+          </div>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <>
+    <div style={{ margin: '20px' }}>
       <Card
-        title="プロジェクト管理"
-        style={{ margin: '20px 0px' }}
+        title="Project"
         styles={{
           body: {
             padding: '0px 20px',
-            backgroundColor: '#f0f0f0',
+            backgroundColor: '#fafafa',
             border: '1px solid #d9d9d9',
           },
         }}
       >
-        <p>データを紐づけるプロジェクトを作成または選択してください</p>
+        <p>データを紐づけるプロジェクトを作成または選択してください。プロジェクトごとに文書・数値データが統合されます。</p>
 
-        <Space style={{ marginBottom: 20 }}>
+        <Space>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={openModal}
-            style={{ marginBottom: 20 }}
+            style={{ marginBottom: '20px' }}
           >
             プロジェクトを新規作成
           </Button>
@@ -248,7 +247,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
       </Card>
 
       <Modal
-        title="プロジェクトを新規作成"
+        title="新規作成する"
         open={isModalVisible}
         onOk={handleAddProject}
         onCancel={() => setIsModalVisible(false)}
@@ -265,7 +264,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
           </Form.Item>
         </Form>
       </Modal>
-    </>
+    </div>
   );
 };
 

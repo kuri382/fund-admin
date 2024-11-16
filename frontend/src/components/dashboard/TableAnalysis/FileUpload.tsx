@@ -97,7 +97,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   };
 
   return (
-    <Card title="資料をアップロードしてください">
+    <Card bordered={false}>
       <Dragger {...props}>
         <p className="ant-upload-drag-icon">
           <InboxOutlined />
