@@ -14,15 +14,6 @@ class Settings:
     algorithm: str = str(os.getenv("ALGORITHM", "HS256"))
     firebase_credentials: str = str(os.getenv("FIREBASE_CREDENTIALS", "env.bak/granite-dev-2024-firebase-adminsdk-77135-c8b037965d.json"))
 
-    pdf_storage_path: str = "data/pdf"
-    table_storage_path: str = "data/table"
-
-    def __init__(self):
-        if not os.path.exists(self.pdf_storage_path):
-            os.makedirs(self.pdf_storage_path)
-        if not os.path.exists(self.table_storage_path):
-            os.makedirs(self.table_storage_path)
-
 
     class APIDocs(BaseSettings):
         """APIDocs settings.

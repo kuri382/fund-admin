@@ -1,7 +1,9 @@
 from functools import lru_cache
-from firebase_admin import credentials, initialize_app, get_app, firestore, storage, _apps
+from firebase_admin import auth, credentials, firestore, get_app, initialize_app, storage, _apps
 
 from src.settings import settings
+
+
 class FirebaseClient:
     _firestore = None
     _storage = None
@@ -36,6 +38,22 @@ class FirebaseClient:
             raise RuntimeError("Firebase is not initialized. Call initialize_firebase() first.")
         return cls._storage
 
+    @classmethod
+    def verify_token(cls, token: str) -> str:
+        """
+        Firebase Auth トークンを検証して user_id を返す。
+        """
+        try:
+            decoded_token = auth.verify_id_token(token, app=cls._app)
+            return decoded_token["uid"]
+        except auth.InvalidIdTokenError:
+            raise ValueError("Invalid token")
+        except auth.ExpiredIdTokenError:
+            raise ValueError("Token expired")
+        except Exception as e:
+            raise ValueError(f"Token verification failed: {str(e)}")
+
+
 @lru_cache()
 def get_firebase_client():
     """FirebaseClient のインスタンスをキャッシュして返します。"""
@@ -49,3 +67,10 @@ def get_firestore():
 def get_storage():
     """Storage クライアントを返すための依存関係。"""
     return FirebaseClient.get_storage()
+
+def verify_user_token(token: str):
+    """
+    トークンを検証し、user_id を返す依存関係。
+    """
+    firebase_client = get_firebase_client()
+    return firebase_client.verify_token(token)

@@ -7,10 +7,10 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
 from pydantic import Field, validator, BaseModel
 from typing import Literal, Optional, Any
-import traceback
 
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services import auth_service
+from src.dependencies.auth import get_user_id
 import src.core.services.firebase_driver as firebase_driver
 from ._base import BaseJSONSchema
 
@@ -373,14 +373,9 @@ def convert_business_summary_to_financial_response(summaries: list[firebase_driv
     }},
 )
 async def get_parameter_sales(
-    request: Request,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
+    user_id: str = Depends(get_user_id),
 ):
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-    user_id = auth_service.verify_token(authorization)
-
     firestore_client = firebase_client.get_firestore()
 
     try:
@@ -432,14 +427,10 @@ def convert_to_res_get_parameter_summary(items: list[firebase_driver.ParameterSu
     }},
 )
 async def get_parameter_summary(
-    request: Request,
     uuid: str,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
+    user_id: str = Depends(get_user_id),
 ):
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-    user_id = auth_service.verify_token(authorization)
     #user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
     #file_uuid = '63961f2f-a852-4206-a5eb-2c6d6ed696cb'
 

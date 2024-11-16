@@ -1,13 +1,11 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import HTTPException
 from pydantic import BaseModel
 from firebase_admin import auth as firebase_auth
 from datetime import datetime, timedelta
-from jose import JWTError, jwt
+from jose import jwt
 
 from src.settings import settings
 
-
-app = FastAPI()
 
 class LoginRequest(BaseModel):
     email: str

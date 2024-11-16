@@ -9,12 +9,9 @@ from src.core.routers import (
     auth,
     data,
     explorer,
-    financial,
     image,
-    market,
     parameter,
     project,
-    services,
     summary,
     upload,
 )
@@ -43,14 +40,12 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(data.router)
 app.include_router(explorer.router)
-app.include_router(financial.router)
 app.include_router(image.router)
-app.include_router(market.router)
 app.include_router(parameter.router)
 app.include_router(project.router)
 app.include_router(summary.router)
-app.include_router(services.router)
 app.include_router(upload.router)
+
 
 @app.on_event("startup")
 def startup_event():
