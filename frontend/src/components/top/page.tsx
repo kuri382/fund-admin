@@ -1,90 +1,14 @@
-"use client";
+"use client"
 
-import React from 'react';
-import { Image, Col, Row, Button, Space, Layout } from 'antd';
+import { Layout, Button, Typography, Row, Col } from 'antd';
+import Head from 'next/head';
 import { useRouter } from 'next/navigation';
+import styles from './Top.module.css'; // CSS Module for custom styles
 
-const { Content } = Layout;
+const { Header, Content, Footer } = Layout;
+const { Title, Paragraph } = Typography;
 
-const rowStyle: React.CSSProperties = {
-    textAlign: 'center',
-    padding: '50px 50px',
-    width: '100vw',
-    margin: "0 auto",
-    display: "flex",
-    /*maxWidth: "1200px",*/
-};
-
-const textColStyle: React.CSSProperties = {
-    verticalAlign: 'middle',
-    textAlign: 'left',
-    /*padding: '20px 0px',*/
-};
-
-const imgColStyle: React.CSSProperties = {
-    verticalAlign: 'middle',
-};
-
-const mainTitleStyle: React.CSSProperties = {
-    fontSize: '28px',
-    lineHeight: '34px',
-    color: '#146C94',
-    margin:'0'
-};
-
-const subTitleStyle: React.CSSProperties = {
-    fontSize: '22px',
-    lineHeight: '30px',
-    color: '#425164'
-};
-
-const backgroundGradationStyle: React.CSSProperties = {
-    backgroundImage: 'linear-gradient(175deg, #F5F5F5 75%, rgba(20, 20, 21, 0.8) 11.8%, \
-    rgba(176, 60, 196, 0.6) 23.6%, rgba(92, 55, 173, 0.4) 35.4%, rgba(217, 46, 116, 0) 59%), \
-    radial-gradient(100% 100% at 10% 100%, #fdd575 0%, #fcc06a 8.29%, #fbaa63 28.57%, \
-        #f99262 42.86%, #f77868 57.14%, #f55973 71.43%, #636bb7 88%, #146C94 100%)'
-};
-
-
-const discriptionStyle: React.CSSProperties = {
-    fontSize: '16px',
-    lineHeight: '20px',
-    color: '#9D9D9D'
-};
-
-const buttonArea: React.CSSProperties = {
-    textAlign: 'center'
-};
-
-const mainButton: React.CSSProperties = {
-    height: '50px',
-    minWidth: '250px',
-    lineHeight: '25px',
-    borderRadius: '50px',
-    padding: '10px 50px',
-    fontSize: '20px',
-    fontWeight: 'bold',
-    backgroundColor: '#F3950D',
-    color: 'white',
-    boxShadow: 'none',
-};
-
-
-const inquiryButton: React.CSSProperties = {
-    height: '50px',
-    minWidth: '250px',
-    lineHeight: '25px',
-    borderRadius: '50px',
-    padding: '10px 50px',
-    fontSize: '20px',
-    fontWeight: 'bold',
-    backgroundColor: '#D8D8D8',
-    color: '#27374D',
-    boxShadow: 'none',
-};
-
-
-const Top: React.FC = () => {
+const Home = () => {
     const router = useRouter();
 
     const moveToSignUp = () => {
@@ -96,51 +20,90 @@ const Top: React.FC = () => {
     };
 
     return (
-        <>
-            <Content style={backgroundGradationStyle}>
+        <Layout style={{
+            margin: 0,
+            padding: 0, // 内側の余白を削除
+            width: '100%', // フル幅を指定
+        }}>
+            <Head>
+                <title>Granite - Business Due Diligence</title>
+                <meta name="description" content="Granite: Streamline your business due diligence process." />
+            </Head>
 
-                <Row style={rowStyle} justify="center" align="middle">
+            <Header
+                style={{
+                    position: 'fixed', // フローティング
+                    top: 0,
+                    left: 0,
+                    zIndex: 1000, // 他の要素より前面に配置
+                    width: '100%', // フル幅
+                    background: 'rgba(0, 0, 0, 0.5)', // 半透明背景
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0 20px',
+                }}
+            >
+                <Title level={3} style={{ color: 'white', margin: 0 }}>
+                    Granite
+                </Title>
+                {/*
+                <div>
+                    <Button type="default" className={`${styles.ctaButton} ${styles.secondaryButton}`} style={{ marginRight: '10px' }}>Log In</Button>
+                    <Button type="primary" className={`${styles.ctaButton} ${styles.secondaryButton}`}>Sign Up</Button>
+                </div>
+                 */}
+            </Header>
 
-                    <Col
-                        xs={{ span: 24 }}
-                        sm={{ span: 24 }}
-                        md={{ span: 12 }}
-                        style={textColStyle}
-                    >
-                        <h1 style={mainTitleStyle}>
-                            Granite
-                        </h1>
-                            <h2 style={subTitleStyle}>Business Due Diligence</h2>
-                        <div style={discriptionStyle}>
-                            <p>β版</p>
-                        </div>
-                        <br />
+            <Content className={styles.heroSection} >
+                {/* Hero Section */}
+                <Row justify="center" align="middle" style={{ minHeight: '70vh', textAlign: 'center' }}>
+                    <Col span={24}>
+                        <Title className={styles.heroTitle} style={{ color: 'white', fontSize: '3rem' }}>
+                            Streamline Your Business Due Diligence
+                        </Title>
+                        <Paragraph className={styles.heroSub} style={{ fontSize: '1.3rem', color: 'white', marginBottom: '40px' }}>
+                            Discover an efficient way to structure data, validate insights,
+                            <br />and project business outcomes with Granite.
+                        </Paragraph>
 
-                        <Space wrap style={buttonArea}>
-                            <Button style={mainButton} type="primary" onClick={moveToSignUp}>新規登録</Button>
-                            <Button style={inquiryButton} type="primary" onClick={moveToSignIn}>ログイン</Button>
-                        </Space>
+                        <Button type="primary" size="large" className={styles.ctaButton} onClick={moveToSignUp}>
+                            新規登録
+                        </Button>
+                        <Button size="large" className={`${styles.ctaButton} ${styles.secondaryButton}`} onClick={moveToSignIn}>
+                            ログイン
+                        </Button>
 
-                    </Col>
-                    <Col
-                        xs={{ span: 24 }}
-                        sm={{ span: 20 }}
-                        md={{ span: 12 }}
-                        style={imgColStyle}
-                    >
-                        <Space style={{ verticalAlign: 'middle', padding: '20px 0' }}>
-                            <Image
-                                src="./top/hero.png"
-                                width={"30%"}
-                                alt=""
-                                preview={false}
-                            />
-                        </Space>
                     </Col>
                 </Row>
             </Content>
-        </>
+
+            {/* Service Description Section */}
+            <Footer style={{ textAlign: 'center', backgroundColor: '#001529', color: 'white' }}>
+                <Row gutter={[16, 16]}>
+                    <Col span={8}>
+                        <Title level={4} style={{ color: 'white' }}>Data Structuring</Title>
+                        <Paragraph style={{ color: 'white' }}>
+                            ファイルをアップロードするだけで、データを自動で整理。
+                        </Paragraph>
+                    </Col>
+                    <Col span={8}>
+                        <Title level={4} style={{ color: 'white' }}>Business Modeling</Title>
+                        <Paragraph style={{ color: 'white' }}>
+                            ファイル情報から瞬時に事業計画・モデリングを作成。
+                        </Paragraph>
+                    </Col>
+                    <Col span={8}>
+                        <Title level={4} style={{ color: 'white' }}>Advanced Analytics</Title>
+                        <Paragraph style={{ color: 'white' }}>
+                            他社とのKPI比較や最新ニュースの取得など、追加の情報調査も可能。
+                        </Paragraph>
+                    </Col>
+                </Row>
+                <Paragraph style={{ marginTop: '50px', color: 'white' }}>© 2024 Granite. All Rights Reserved.</Paragraph>
+            </Footer>
+        </Layout>
     );
 };
 
-export default Top;
+export default Home;
