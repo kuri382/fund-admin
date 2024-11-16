@@ -110,7 +110,7 @@ const Top: React.FC = () => {
                         <h1 style={mainTitleStyle}>
                             Granite
                         </h1>
-                            <h2 style={subTitleStyle}>BDDの「困った」をすぐに解決。</h2>
+                            <h2 style={subTitleStyle}>Business Due Diligence</h2>
                         <div style={discriptionStyle}>
                             <p>β版</p>
                         </div>
@@ -130,17 +130,15 @@ const Top: React.FC = () => {
                     >
                         <Space style={{ verticalAlign: 'middle', padding: '20px 0' }}>
                             <Image
-                                src="./img/top/design.png"
-                                width={"85%"}
+                                src="./top/hero.png"
+                                width={"30%"}
                                 alt=""
                                 preview={false}
                             />
                         </Space>
                     </Col>
                 </Row>
-
             </Content>
-
         </>
     );
 };

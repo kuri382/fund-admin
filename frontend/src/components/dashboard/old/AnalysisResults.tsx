@@ -5,7 +5,6 @@ import { Button, message, Tag, Tabs, Card } from 'antd';
 import { CloudSyncOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 
-import KeyPersons from './KeyPersons';
 
 interface StepStatus {
     text: string;
@@ -149,11 +148,6 @@ export default function AnalysisResults() {
                 </>
             )
         },
-        {
-            key: 'keyPersons',
-            label: '業界のキーパーソン',
-            children: <KeyPersons />
-        }
     ];
 
     return (

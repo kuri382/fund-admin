@@ -12,26 +12,27 @@ interface SignInFormValues {
 }
 
 const SignInForm: React.FC = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
 
   const onFinish = async ({ email, password }: SignInFormValues) => {
-    setLoading(true);
+    setIsLoading(true);
     setError('');
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      const user = auth.currentUser;
-      if (user) {
-        const token = await user.getIdToken(); // Firebaseのアクセストークンを取得
-        localStorage.setItem('accessToken', token);
-        router.push('/dashboard');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      if (userCredential) {
+        // サーバーにトークンを送信してセッションを開始
+        // const token = await user.getIdToken();
+        // await axios.post('/api/auth/set-token', { token });
+
+        // ダッシュボードにリダイレクト
+        await router.push('/dashboard');  // 画面遷移が完了するまで待機
       }
+
     } catch (error: any) {
       setError('ログインに失敗しました: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
+    };
   };
 
   return (
@@ -50,8 +51,8 @@ const SignInForm: React.FC = () => {
       </Form.Item>
       {error && <p>{error}</p>}
       <Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading}>
-          ログイン
+        <Button type="primary" htmlType="submit" loading={loading} disabled={loading}>
+          {loading ? '読み込み中' : 'ログイン'}
         </Button>
       </Form.Item>
     </Form>

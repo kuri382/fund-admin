@@ -9,17 +9,17 @@ from src.settings import settings
 
 def extract_text_from_pdf(file: UploadFile) -> str:
     """
-    PDFファイルからテキストを抽出する関数
+    PDFファイルからテキストを抽出する
     """
-    # ファイルをメモリに読み込む
+    file.file.seek(0) # initialize
     contents = file.file.read()
 
-    # メモリ上のバイトストリームをPyPDF2で処理するためにバッファに格納
     pdf_reader = PyPDF2.PdfReader(io.BytesIO(contents))
     text = ""
     for page in pdf_reader.pages:
-        text += page.extract_text()
-
+        page_text = page.extract_text()
+        if page_text:
+            text += page_text
     return text
 
 

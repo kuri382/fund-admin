@@ -1,226 +1,286 @@
+import asyncio
+import base64
 import io
-import os
 import json
+import os
+import logging
 import uuid
-import shutil
-from fastapi import APIRouter, Depends, UploadFile, HTTPException, Request
-from fastapi.responses import JSONResponse
+
+from fastapi import APIRouter, Depends, UploadFile, HTTPException, Request, BackgroundTasks
 import openai
-from openpyxl import load_workbook
-import pandas as pd
-import traceback
-from typing import TypedDict
+from pydantic import BaseModel, Field
+from pydantic_core import ValidationError
 
 
+import src.core.services.firebase_driver as firebase_driver
 from src.core.services.pdf_processing import extract_text_from_pdf
-from src.core.services.openai_client import send_xlsx_content_to_openai, generate_file_analysis
+from src.core.services.openai_client import extract_document_information
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services import auth_service
+from src.core.services.upload import table_processor, pdf_processor
 from src.dependencies import get_openai_client
-from src.settings import settings
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
-@router.post("/upload/pdf")
-async def upload_file(
-    file: UploadFile,
-    client: openai.ChatCompletion = Depends(get_openai_client)
+
+def encode_binaryio_to_base64(image_binary: io.BytesIO) -> str:
+    """
+    Convert BinaryIO data to a Base64-encoded string.
+    Args:
+        binary_data (BinaryIO): The binary data to encode.
+
+    Returns:
+        str: Base64-encoded string of the binary data.
+    """
+    image_binary.seek(0)
+    binary_content = image_binary.read()
+    if not binary_content:
+        raise ValueError("Binary data is empty or not readable")
+    base64_encoded = base64.b64encode(binary_content).decode('utf-8')
+    return base64_encoded
+
+
+def create_chat_completion_message(system_prompt, prompt, image_base64):
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": f'{prompt}',
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{image_base64}"
+                    }
+                }
+            ]
+        }
+    ]
+    return messages
+
+
+async def upload_image(pdf_document, user_id, page_number, unique_filename, storage_client):
+    """PDFページを画像に変換してFirebaseにアップロードする"""
+    image_bytes = pdf_processor.convert_pdf_page_to_image(pdf_document, page_number)
+    await pdf_processor.upload_image_to_firebase(image_bytes, user_id, page_number, unique_filename, storage_client)
+    return encode_binaryio_to_base64(image_bytes)
+
+
+async def fetch_and_parse_response(openai_client, image_base64, max_retries=3):
+    """OpenAI APIにリクエストを送信し、パースされたレスポンスを取得する。リトライ機能付き"""
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            response = openai_client.beta.chat.completions.parse(
+                model='gpt-4o-2024-08-06',
+                messages=[
+                    {"role": "system", "content": "あなたはバイサイドアナリストです。厳しい目線で経営・事業の状況を解説します。日本語で回答します。"},
+                    {"role": "system", "content": "接頭語に気をつけながら、かならず単位を円で計算しなさい。「百万円」や「億円」をすべて「円」に統一する"},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "次のデータに含まれる情報を、集計期間に気をつけながら段階的に整理します。"},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}}
+                        ]
+                    }
+                ],
+                response_format=CustomResponse,
+            )
+            return response.choices[0].message.parsed
+
+        except ValidationError as e:
+            retry_count += 1
+            logger.warning(f'Validation error occurred: {e}. Retrying {retry_count}/{max_retries}')
+            if retry_count >= max_retries:
+                logger.error("Max retries reached. Exiting the retry loop.")
+                raise e
+            await asyncio.sleep(2)
+
+
+async def process_pdf_background(
+    contents: bytes,
+    user_id: str,
+    file_uuid: str,
+    unique_filename: str,
+    storage_client,
+    openai_client,
+    firestore_client,
+    max_pages=15
 ):
-    file_extension = os.path.splitext(file.filename)[1].lower()
+    """PDFを処理し、各ページを画像化、アップロード、解析を行うメイン関数"""
+    pdf_document = await pdf_processor.read_pdf_file(contents)
+    max_pages = min(max_pages, len(pdf_document))
+    logger.info('Started processing PDF')
 
-    match file_extension:
+    for page_number in range(max_pages):
+        try:
+            logger.info(f'Processing page {page_number + 1}/{max_pages}')
+            image_base64 = await upload_image(pdf_document, user_id, page_number, unique_filename, storage_client)
+            result = await fetch_and_parse_response(openai_client, image_base64)
+            logger.info('result analysed')
+            page_uuid = uuid.uuid4()
+            firebase_driver.save_page_image_analysis(
+                    firestore_client=firestore_client,
+                    user_id=user_id,
+                    file_uuid=file_uuid,
+                    file_name=unique_filename,
+                    page_uuid=page_uuid,
+                    page_number=page_number,
+                    business_summary=result.business_summary,
+                    explanation="".join([step.explanation for step in result.steps]),
+                    output="".join([step.output for step in result.steps]),
+                    opinion=result.opinion,
+                )
+            logger.info('firebase storage saved')
 
-        case ".xlsx":
-            file_name = os.path.join(settings.table_storage_path, file.filename)
-            title, sentence = send_xlsx_content_to_openai(file_name, client)
-            new_file_name = os.path.join(settings.table_storage_path, title)
-            with open(new_file_name, "wb") as f:
-                shutil.copyfileobj(file.file, f)
-            return {"filename": file.filename, "status": f"ファイルの分析を完了しました"}
+            if result is None:
+                    logger.warning(f"Skipping page {page_number + 1} due to repeated validation errors.")
+                    continue
 
-        case ".pdf":
-            pdf_text = extract_text_from_pdf(file)
-            file_name = os.path.join(settings.pdf_storage_path, f"{file.filename}.txt")
-            with open(file_name, 'w') as f:
-                f.write(pdf_text)
-            return {"filename": file.filename, "status": "PDFからテキスト抽出保存完了"}
-
-        case _:
-            raise HTTPException(status_code=400, detail="サポートされていないファイル形式です")
+        except Exception as e:
+            logger.error(f"An error occurred while processing page {page_number + 1}: {e}")
+            logger.info(f"Skipping page {page_number + 1} due to error.")
+            continue  # エラー発生時にスキップして次のページに進む
 
 
-class AnalysisResult(TypedDict):
-    abstract: str
-    extractable_info: dict
-    category: str
+class Step(BaseModel):
+    explanation: str
+    output: str
+
+
+class CustomResponse(BaseModel):
+    steps: list[Step]
+    opinion: str = Field(..., description='アナリスト視点での分析。リスク要素や異常値の確認を相対的・トレンド分析を交えながら行う')
+    business_summary: firebase_driver.BusinessSummary
 
 
 @router.post("/upload")
 async def upload_file(
     request: Request,
     file: UploadFile,
+    background_tasks: BackgroundTasks,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     openai_client: openai.ChatCompletion = Depends(get_openai_client),
 ):
     authorization = request.headers.get("Authorization")
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
-
     user_id = auth_service.verify_token(authorization)
-    file_extension = os.path.splitext(file.filename)[1].lower()
 
     try:
         contents = await file.read()
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"File read error: {str(e)}")
 
-    unique_filename = f"{uuid.uuid4()}_{file.filename}"
+    file_uuid = uuid.uuid4()
+    unique_filename = f"{file_uuid}_{file.filename}"
 
+    try:
+        storage_client = firebase_client.get_storage()
+        blob = storage_client.blob(f"{user_id}/documents/{unique_filename}")
+        blob.upload_from_string(contents, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+    except Exception as e:
+        detail = f'error uploading file: {str(e)}'
+        raise HTTPException(status_code=400, detail=detail)
+
+    firestore_client = firebase_client.get_firestore()
+
+    file_extension = os.path.splitext(file.filename)[1].lower()
     match file_extension:
-
         case ".xlsx":
             try:
-                storage_client = firebase_client.get_storage()
-                blob = storage_client.blob(f"{user_id}/{unique_filename}")
-                blob.upload_from_string(contents, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
-                def generate_information(contents, openai_client):
-                    file_stream = io.BytesIO(contents)
-                    workbook = load_workbook(file_stream)
-                    sheet = workbook.active
-
-                    sheet_content = []
-                    for row in sheet.iter_rows(values_only=True):
-                        sheet_content.append("\t".join([str(cell) for cell in row if cell is not None]))
-                    text_content = "\n".join(sheet_content)
-                    analysis_result = generate_file_analysis(text_content, openai_client)
-                    return json.loads(analysis_result)
-
-                def save_analysis_result(user_id: str, file_name: str, analysis_result: AnalysisResult):
-                    firestore_client = firebase_client.get_firestore()
-                    doc_ref = firestore_client.collection('analysis_results').document(f"{user_id}_{file_name}")
-
-                    doc_ref.set({
-                        "file_name": file_name,
-                        "abstract": analysis_result['abstract'],
-                        "feature": analysis_result['feature'],
-                        "extractable_info": analysis_result['extractable_info'],
-                        "category": analysis_result['category']
-                    })
-
-                analysis_result = generate_information(contents, openai_client)
-                save_analysis_result(user_id, file.filename, analysis_result)
+                content_text = table_processor.convert_xlsx_row_to_text(contents)
+                analysis_result = extract_document_information(openai_client=openai_client, content_text=content_text)
 
             except Exception as e:
-                print(f"Error: {str(e)}")  # エラーメッセージ
-                traceback.print_exc()  # 詳細なトレースバックを表示
-                raise HTTPException(status_code=500, detail=f"Error uploading Excel file: {str(e)}")
+                logger.error(f"Error: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Error analyzing Excel file: {str(e)}")
+
+            try:
+                firebase_driver.save_analysis_result(
+                    firestore_client=firestore_client,
+                    user_id=user_id,
+                    file_name=file.filename,
+                    file_uuid=file_uuid,
+                    analysis_result=analysis_result,
+                    target_collection='tables',
+                )
+
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error saving csv result: {str(e)}")
+
+        case ".csv":
+            try:
+                content_text = table_processor.analyze_csv_content(contents)
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error converting csv file: {str(e)}")
+
+            try:
+                analysis_result = extract_document_information(openai_client=openai_client, content_text=content_text)
+
+            except Exception as e:
+                if "rate_limit_exceeded" in str(e) or "Too Many Requests" in str(e):
+                    raise HTTPException(status_code=429, detail="Token limit exceeded or too many requests. Please try again later.")
+                raise HTTPException(status_code=500, detail=f"Error analyizing csv file: {str(e)}")
+
+            try:
+                firebase_driver.save_analysis_result(
+                    firestore_client=firestore_client,
+                    user_id=user_id,
+                    file_name=file.filename,
+                    file_uuid=file_uuid,
+                    analysis_result=analysis_result,
+                    target_collection='tables',
+                )
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error uploading csv file: {str(e)}")
+
+
+        case ".pdf":
+            try:
+                pdf_text = extract_text_from_pdf(file)
+                analysis_result = extract_document_information(openai_client=openai_client, content_text=pdf_text)
+
+            except Exception as e:
+                if "rate_limit_exceeded" in str(e) or "Too Many Requests" in str(e):
+                    raise HTTPException(status_code=429, detail="Token limit exceeded or too many requests. Please try again later.")
+                raise HTTPException(status_code=500, detail=f"Error analyizing csv file: {str(e)}")
+
+            try:
+                firebase_driver.save_analysis_result(
+                    firestore_client=firestore_client,
+                    user_id=user_id,
+                    file_name=file.filename,
+                    file_uuid=file_uuid,
+                    analysis_result=analysis_result,
+                    target_collection='documents',
+                )
+
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error saving pdf result: {str(e)}")
+
+            try:
+                background_tasks.add_task(
+                    process_pdf_background,
+                    contents,
+                    user_id,
+                    file_uuid,
+                    unique_filename,
+                    storage_client,
+                    openai_client,
+                    firestore_client,
+                )
+                logger.info('upload finished')
+
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error saving pdf image to storage: {str(e)}")
 
         case _:
             raise HTTPException(status_code=400, detail="サポートされていないファイル形式です")
 
-    return {"filename": file.filename, "status": f"概要：.xlsxとしてリネームし整形・保存しました"}
-
-
-@router.get("/upload/files")
-async def list_excel_files(
-    request: Request,
-    firebase_client: FirebaseClient = Depends(get_firebase_client),
-):
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-
-    user_id = auth_service.verify_token(authorization)
-
-    try:
-        storage_client = firebase_client.get_storage()
-        firestore_client = firebase_client.get_firestore()
-
-        blobs = storage_client.list_blobs(prefix=f"{user_id}/")
-        file_data_list = []
-
-        for blob in blobs:
-            if blob.name.endswith(".xlsx"):
-                full_filename = os.path.basename(blob.name)
-                filename = full_filename.split("_", 1)[1]
-
-                excel_bytes = blob.download_as_bytes()
-                excel_io = io.BytesIO(excel_bytes)
-
-                df = pd.read_excel(excel_io, engine="openpyxl")
-                df = df.replace('^Unnamed.*', '', regex=True)
-                df = df.fillna('')
-                output = df.head(100) # fix later
-
-                output = output.astype(str)
-                json_data = output.to_dict(orient="records")
-
-                doc_ref = firestore_client.collection('analysis_results').document(f"{user_id}_{filename}")
-                doc = doc_ref.get()
-
-                if doc.exists:
-                    analysis_data = doc.to_dict()
-                    abstract = analysis_data.get("abstract", "")
-                    extractable_info = analysis_data.get("extractable_info", {})
-                    category = analysis_data.get("category", "")
-                    feature = analysis_data.get("feature", "")
-                else:
-                    abstract = ""
-                    extractable_info = {}
-                    category = ""
-                    feature = ""
-
-                file_data_list.append({
-                    "file_name": filename,
-                    "data": json_data,
-                    "feature": feature,
-                    "abstract": abstract,
-                    "extractable_info": extractable_info,
-                    "category": category
-                })
-
-        if not file_data_list:
-            raise HTTPException(status_code=404, detail="No Excel files with numeric data found for the given user.")
-
-        return JSONResponse(content={"files": file_data_list})
-
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error retrieving or processing files: {str(e)}")
-
-
-
-@router.get("/upload/description")
-async def list_excel_files(
-    request: Request,
-    firebase_client: FirebaseClient = Depends(get_firebase_client),
-):
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-
-    user_id = auth_service.verify_token(authorization)
-
-    try:
-        firestore_client = firebase_client.get_firestore()
-
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error retrieving or processing files: {str(e)}")
-
-
-@router.get("/uploaded-files")
-async def get_uploaded_files():
-    # ディレクトリ内のファイル名を取得
-    files = os.listdir(settings.pdf_storage_path)
-    # 拡張子を削除してファイル名を返す
-    file_names = [os.path.splitext(file)[0] for file in files if file.endswith('.txt')]
-    return {"files": file_names}
-
-
-@router.get("/uploaded-table-data")
-async def get_uploaded_table_data():
-    files = os.listdir(settings.table_storage_path)
-    file_names = [os.path.splitext(file)[0] for file in files if file.endswith('.txt')]
-    return {"files": file_names}
+    return {"filename": file.filename, "status": f"ファイルを解析し保存しました"}

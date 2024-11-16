@@ -15,10 +15,10 @@ import {
 import { Tabs } from 'antd';  // Ant Design の Tabs コンポーネントをインポート
 import type { TabsProps } from 'antd';
 
-import FileUpload from '@/components/FileUpload'
+import FileUpload from '@/components/dashboard/old/FileUpload'
 
 import styles from './SalesData.module.css';
-import Navbar from "../Navbar/Navbar";
+import Navbar from "../../navbar/Navbar";
 import { api } from '@/utils/api'
 import { auth } from '@/services/firebase';
 
@@ -74,11 +74,9 @@ const ExcelAnalysis: React.FC = () => {
 
       if (user) {
         try {
-          // アクセストークンを取得
           const accessToken = await user.getIdToken(/* forceRefresh */ true);
           const apiUrl = `${api.baseUrl}/companies/company_456/sources`;
 
-          // APIリクエストを送信
           console.log('apiurl', apiUrl)
           const response = await axios.get<{ sources: SourceData[] }>(apiUrl, {
             headers: {

@@ -21,6 +21,17 @@ pandas = "^2.2.2"
 firebase-admin = "^6.5.0"
 python-jose = "^3.3.0"
 pydantic = {extras = ["email"], version = "^2.9.2"}
+faiss-cpu = "^1.8.0.post1"
+scikit-learn = "^1.5.2"
+langchain = "^0.3.1"
+langchain-community = "^0.3.1"
+tiktoken = "^0.7.0"
+weaviate-client = "^4.8.1"
+pdf2image = "^1.17.0"
+pymupdf = "^1.24.11"
+inflection = "^0.5.1"
+beautifulsoup4 = "^4.12.3"
+pydantic-settings = "^2.6.0"
 
 
 [build-system]

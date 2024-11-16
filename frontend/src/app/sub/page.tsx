@@ -1,6 +1,6 @@
 import React from 'react';
 
-import PdfAnalyzer from '@/components/dashboard/PdfAnalyzer';
+import PdfAnalyzer from '@/components/dashboard/old/PdfAnalyzer';
 
 
 const SignUpPage: React.FC = () => {

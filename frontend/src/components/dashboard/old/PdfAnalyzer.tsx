@@ -1,11 +1,11 @@
 import React from 'react';
 import { Row, Col } from 'antd';
 
-import FileUpload from '@/components/FileUpload';
-import FileDropdown from '@/components/FileDropdown';
-import AnalysisResults from '@/components/AnalysisResults';
-import FileList from '@/components/FileList';
-import MoveButton from '@/components/MoveButton';
+import FileUpload from '@/components/dashboard/old/FileUpload';
+import FileDropdown from '@/components/dashboard/old/FileDropdown';
+import AnalysisResults from '@/components/dashboard/old/AnalysisResults';
+import FileList from '@/components/dashboard/old/FileList';
+import MoveButton from '@/components/dashboard/old/MoveButton';
 
 
 const Top: React.FC = () => {
