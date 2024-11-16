@@ -85,8 +85,8 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ uuid }) => {
 
   return (
     <div>
-      <Button type="primary" onClick={fetchImages}>
-        画像とサマリーを表示
+      <Button type="primary" onClick={fetchImages} style={{marginBottom:'10px'}}>
+        資料詳細を表示する
       </Button>
 
       {loading && <Spin />}

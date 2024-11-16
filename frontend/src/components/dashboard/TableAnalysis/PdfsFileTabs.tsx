@@ -32,16 +32,16 @@ const getFileExtension = (fileName: string) => {
 };
 
 const styleTabPane: React.CSSProperties = {
-  minHeight: '400px',
-  maxHeight: '600px',
+  minHeight: '200px',
+  maxHeight: '800px',
   overflow: 'auto',
-  padding: '5px'
+  padding: '10px'
 };
 
 const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
   const items: TabsProps['items'] = files.map((file, index) => {
     const extension = getFileExtension(file.file_name);
-    console.log(file.file_uuid);
+    console.log(file);
     const tagColor = getExtensionColor(extension);
 
     return {
@@ -61,16 +61,11 @@ const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
         <Row justify="center" key={`tab-content-${file.file_name}-${index}`}>
           <Col span={24} style={styleTabPane}>
             <Tag color="blue">{file.category}</Tag>
+            <p>ファイル概要</p>
             <p style={{ marginBottom: '20px' }}>{file.abstract}</p>
-            <Alert
-              message={`分析: ${file.feature}`}
-              type="info"
-              showIcon
-              style={{ marginBottom: '20px' }}
-            />
+            <ImageSummaryList uuid={file.file_uuid} />
           </Col>
         </Row>
-        <ImageSummaryList uuid={file.file_uuid} />
         </>
       ),
       style: { background: '#f0f6fa' }

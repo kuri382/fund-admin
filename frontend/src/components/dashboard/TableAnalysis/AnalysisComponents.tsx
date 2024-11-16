@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Button, message, Row, Col, Spin, Alert, Tabs, Tag } from 'antd';
 import type { TabsProps } from 'antd';
-import FileUpload from '@/components/dashboard/old/FileUpload';
+import FileUpload from '@/components/dashboard/TableAnalysis/FileUpload';
 
 import fetchTable from '@/hooks/useFetchTable';
 import fetchDocument from '@/hooks/useFetchDocument';
@@ -36,24 +36,6 @@ const AnalysisComponents: React.FC = () => {
     fetchFilesDocument
   } = fetchDocument() || {};
 
-  const handleUploadComplete = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setFetchError(null);
-
-      await Promise.all([
-        fetchFilesTable(),
-        fetchFilesDocument()
-      ]);
-
-      message.success('ファイルリストを更新しました');
-    } catch (error) {
-      setFetchError('データの更新中にエラーが発生しました。');
-      console.error('Fetch error after upload:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchFilesTable, fetchFilesDocument]);
 
   // タブ項目の定義
   const tabItems: TabsProps['items'] = [
@@ -65,7 +47,9 @@ const AnalysisComponents: React.FC = () => {
           <Tag color='green'>xlsx, csvなど</Tag>
         </div>
       ),
-      children: <TableFileTabs files={filesTable} />,
+      children: <TableFileTabs
+        files={filesTable}
+      />,
       style: { height: '800px' }
     },
     {
@@ -173,18 +157,31 @@ const AnalysisComponents: React.FC = () => {
   const isLoadingAny = isLoading || loadingTable || loadingDocument;
 
   // ローディング表示
-  if (isLoadingAny) {
-    return (
-      <>
-        <ProjectManager onProjectChange={handleProjectChange} />
-        <FileUpload onUploadComplete={handleUploadComplete} />
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <Spin size="large" />
-          <p>データを読み込んでいます...</p>
-        </div>
-      </>
-    );
+  {
+    isLoadingAny && (
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        zIndex: 9999,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <Spin size="large" />
+      </div>
+    )
   }
+  <Tabs
+    defaultActiveKey="1"
+    activeKey={activeTab}
+    items={tabItems}
+    onChange={handleTabChange}
+    centered
+  />
 
   // エラー表示
   if (errorTable || errorDocument || fetchError) {
@@ -213,25 +210,28 @@ const AnalysisComponents: React.FC = () => {
     <>
       <ProjectManager onProjectChange={handleProjectChange} />
       <FileUpload />
-      <Button
-        onClick={handleAnalysisButtonClick}
-        type="primary"
-        style={{ marginBottom: '20px', margin: '10px' }}
-      >
-        読み込んだファイル情報を更新
-      </Button>
+      <div style={{ minHeight: '200px' }}>
+        <Button
+          onClick={handleAnalysisButtonClick}
+          type="primary"
+          style={{ marginBottom: '20px', margin: '10px' }}
+          loading={isLoading}
+        >
+          ファイル情報を更新する
+        </Button>
 
-      <Row justify="center" style={{ marginTop: '20px' }}>
-        <Col span={18}>
-          <Tabs
-            defaultActiveKey="1"
-            activeKey={activeTab}
-            items={tabItems}
-            onChange={handleTabChange}
-            centered
-          />
-        </Col>
-      </Row>
+        <Row justify="center" style={{ marginTop: '20px'}}>
+          <Col span={18}>
+            <Tabs
+              defaultActiveKey="1"
+              activeKey={activeTab}
+              items={tabItems}
+              onChange={handleTabChange}
+              centered
+            />
+          </Col>
+        </Row>
+      </div>
 
       <style jsx global>{`
         .compact-table .ant-table-cell {
