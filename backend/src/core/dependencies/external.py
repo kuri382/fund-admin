@@ -2,7 +2,7 @@ from functools import lru_cache
 from firebase_admin import credentials, initialize_app, firestore, storage, get_app, _apps
 from openai import OpenAI
 
-from ..settings import settings
+from src.settings import settings
 
 def get_openai_client():
     openai_client = OpenAI(

@@ -17,7 +17,7 @@ from src.core.services.openai_client import extract_document_information
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services import auth_service
 from src.core.services.upload import table_processor, pdf_processor
-from src.dependencies.external import get_openai_client
+from src.core.dependencies.external import get_openai_client
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

@@ -10,46 +10,13 @@ from typing import Literal, Optional, Any
 
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services import auth_service
-from src.dependencies.auth import get_user_id
+from src.core.dependencies.auth import get_user_id
 import src.core.services.firebase_driver as firebase_driver
 from ._base import BaseJSONSchema
 
 
 router = APIRouter(prefix='/parameter', tags=['parameter'])
 logger = logging.getLogger(__name__)
-
-
-@router.get(
-    "/analysis",
-    response_class=ORJSONResponse,
-    responses={status.HTTP_200_OK: {
-        'description': 'parameters retrieved successfully.',
-    }},
-)
-async def get_parameter_analysis(
-    request: Request,
-    firebase_client: FirebaseClient = Depends(get_firebase_client),
-):
-    #authorization = request.headers.get("Authorization")
-    #if not authorization:
-    #    raise HTTPException(status_code=401, detail="Authorization header missing")
-    #user_id = auth_service.verify_token(authorization)
-    user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
-
-    file_uuid = '3be2af34-4c2f-4512-98e7-3ccbe605da58'
-    firestore_client = firebase_client.get_firestore()
-
-    try:
-        print('start')
-        data = firebase_driver.retrieve_and_convert_to_json(
-            firestore_client,
-            user_id,
-            file_uuid,
-        )
-        print(data)
-        return data
-    except Exception as e:
-        print(f'hi{e}')
 
 
 class Period(BaseJSONSchema):
@@ -92,48 +59,6 @@ class ResGetParameterAnalysis(BaseJSONSchema):
     # 売上総利益率
     gross_profit_margin_forecast: Decimal | None = Field(..., description='売上総利益率 予測。単位は円')
     gross_profit_margin_actual: Decimal | None = Field(..., description='売上総利益率 実績。単位は円')
-
-
-def transform_to_frontend_format(business_summaries: list[firebase_driver.BusinessSummary]) -> list[dict[str, Any]]:
-    # 各メトリックに対応するデータを格納する辞書
-    transformed_data = {
-        "revenue_actual": {
-            "key": "1",
-            "metric": "revenue_actual",
-        },
-        "revenue_forecast": {
-            "key": "2",
-            "metric": "revenue_forecast",
-        },
-        # 必要なら他のメトリックも追加可能
-    }
-
-    # BusinessSummaryデータの整理
-    for summary in business_summaries:
-        # 年度と四半期情報をまとめてキーにする
-        year_quarter = f"{summary.period.year}Q{summary.period.quarter}"
-        #source = summary.source  # sourceがsummaryに含まれていると仮定
-
-        # revenue_actualのデータ
-        if summary.revenue_actual is not None:
-            if year_quarter not in transformed_data["revenue_actual"]:
-                transformed_data["revenue_actual"][year_quarter] = []
-            transformed_data["revenue_actual"][year_quarter].append({
-                "value": summary.revenue_actual,
-                "source": 'test'
-            })
-
-        # revenue_forecastのデータ
-        if summary.revenue_forecast is not None:
-            if year_quarter not in transformed_data["revenue_forecast"]:
-                transformed_data["revenue_forecast"][year_quarter] = []
-            transformed_data["revenue_forecast"][year_quarter].append({
-                "value": summary.revenue_forecast,
-                "source": 'test'
-            })
-
-    # 辞書をリスト形式に変換して返す
-    return list(transformed_data.values())
 
 
 class DataSource(BaseModel):

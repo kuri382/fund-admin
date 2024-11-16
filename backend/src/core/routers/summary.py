@@ -5,7 +5,7 @@ from fastapi.responses import StreamingResponse
 from firebase_admin import firestore
 from pydantic import BaseModel
 
-from src.dependencies.external import get_openai_client
+from src.core.dependencies.external import get_openai_client
 from src.core.services.openai_client import generate_summary, generate_strong_point
 from src.core.services.pdf_processing import read_pdf_content
 from src.core.services.firebase_client import get_firestore
