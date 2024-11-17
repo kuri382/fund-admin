@@ -24,9 +24,7 @@ def create_openai_payload_with_system(system_prompt, prompt, base64_image):
 
 def generate_answer(base64_image, system_prompt, prompt, headers):
     payload = create_openai_payload_with_system(system_prompt, prompt, base64_image)
-    response = requests.post(
-        "https://api.openai.com/v1/chat/completions", headers=headers, json=payload
-    )
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
     answer = response.json()['choices'][0]['message']['content']
     print('response generated')
     return answer

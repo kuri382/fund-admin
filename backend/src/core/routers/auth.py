@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
-from firebase_admin import auth as firebase_auth
-from jose import JWTError, jwt
+from fastapi import APIRouter  # , Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 
-from src.core.services.auth_service import create_access_token
-from src.settings import settings
+# from fastapi import APIRouter  # , Depends, HTTPException
+# from firebase_admin import auth as firebase_auth
+# from jose import JWTError, jwt
+# from src.core.services.auth_service import create_access_token
+# from src.settings import settings
 
 router = APIRouter()
 

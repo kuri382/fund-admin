@@ -99,7 +99,8 @@ def generate_summary(
 
 
 def generate_market_status(
-    content: str, client: openai.ChatCompletion
+    content: str,
+    client: openai.ChatCompletion,
 ) -> Generator[str, None, None]:
     prompt = f"以下の内容を基に、市場の状況に関する分析を行ってください。# 市場に対する社内の動向、# 市場に対する社外の動向という二つのセクションから続く形でお願いします。日本語でお願いします。：\n\n{content}"
     stream = client.chat.completions.create(
@@ -131,7 +132,9 @@ def generate_financial_status(
 def generate_services_status(
     content: str, client: openai.ChatCompletion
 ) -> Generator[str, None, None]:
-    prompt = f"以下の内容を基に、会社の主なサービスや事業に関するレポートを作成してください。会社概要は不要です。日本語でお願いします。：\n\n{content}"
+    prompt = (
+        f"以下の内容を基に、会社の主なサービスや事業に関するレポートを作成してください。会社概要は不要です。日本語でお願いします。：\n\n{content}"
+    )
     stream = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
@@ -162,7 +165,6 @@ def generate_strong_point(
 def generate_table_analysis(
     content: str, openai_client: openai.ChatCompletion
 ) -> Generator[str, None, None]:
-
     system_prompt = "次のビジネスに関するテーブルデータを分析してください\
         全ての情報を整理して引き出せるように日本語でまとめてください。回答はJSON形式でしてください。\
         abstract: 参照したデータの概要を日本語でまとめてください。一般的な用語説明は不要です\
@@ -204,7 +206,6 @@ def generate_table_analysis(
 def generate_pdf_analysis(
     content: str, openai_client: openai.ChatCompletion
 ) -> Generator[str, None, None]:
-
     system_prompt = "次のIRに関わるPDFデータについて分析し日本語でまとめてください。\
         回答はJSON形式でしてください。\
         abstract: 参照したデータの概要を日本語でまとめてください。一般的な用語説明は不要です\
@@ -246,7 +247,6 @@ def extract_document_information(
     content_text: str,
     openai_client: openai.ChatCompletion,
 ) -> AnalysisResult:
-
     system_prompt = '次のビジネスに関するデータを分析してください。\
         全ての情報を整理して引き出せるように日本語でまとめてください。回答はJSON形式でしてください。\
         abstract: 参照したデータの概要を日本語でまとめてください。一般的な用語説明は不要です。\

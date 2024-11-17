@@ -1,7 +1,6 @@
 import base64
 import json
 import logging
-import time
 import traceback
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -10,7 +9,6 @@ from typing import Optional
 
 import fitz
 import openai
-import requests
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
@@ -370,9 +368,7 @@ class FinancialStatementPageDetail(BaseJSONSchema):
 class ResGetFinancialStatementPages(BaseJSONSchema):
     """GET `/explorer/financial_statements/{uuid}/pages` response schema"""
 
-    pages: list[FinancialStatementPageDetail] = Field(
-        ..., description='ページごとの情報'
-    )
+    pages: list[FinancialStatementPageDetail] = Field(..., description='ページごとの情報')
 
 
 @router.get(

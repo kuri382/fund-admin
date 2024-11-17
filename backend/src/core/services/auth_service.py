@@ -54,4 +54,4 @@ def verify_token(authorization: str):
         return user_id
 
     except Exception as e:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")

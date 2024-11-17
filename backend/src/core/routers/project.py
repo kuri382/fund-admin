@@ -29,7 +29,6 @@ async def create_project(
     project_data: ProjectCreate,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
 ):
-
     authorization = request.headers.get("Authorization")
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")

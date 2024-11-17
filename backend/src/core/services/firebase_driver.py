@@ -123,12 +123,8 @@ class BusinessSummary(BaseModel):
     revenue_actual: Decimal | None = Field(..., description='売上高 実績。単位は円')
 
     # 売上総利益 Gross Profit
-    gross_profit_forecast: Decimal | None = Field(
-        ..., description='売上総利益 予測。単位は円'
-    )
-    gross_profit_actual: Decimal | None = Field(
-        ..., description='売上総利益 実績。単位は円'
-    )
+    gross_profit_forecast: Decimal | None = Field(..., description='売上総利益 予測。単位は円')
+    gross_profit_actual: Decimal | None = Field(..., description='売上総利益 実績。単位は円')
 
     # 売上総利益率
     gross_profit_margin_forecast: Decimal | None = Field(

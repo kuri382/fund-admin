@@ -1,13 +1,3 @@
-from functools import lru_cache
-
-from firebase_admin import (
-    _apps,
-    credentials,
-    firestore,
-    get_app,
-    initialize_app,
-    storage,
-)
 from openai import OpenAI
 
 from src.settings import settings

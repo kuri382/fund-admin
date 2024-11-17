@@ -332,8 +332,6 @@ async def upload_file(
                 )
 
         case _:
-            raise HTTPException(
-                status_code=400, detail="サポートされていないファイル形式です"
-            )
+            raise HTTPException(status_code=400, detail="サポートされていないファイル形式です")
 
-    return {"filename": file.filename, "status": f"ファイルを解析し保存しました"}
+    return {"filename": file.filename, "status": "ファイルを解析し保存しました"}

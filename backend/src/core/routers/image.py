@@ -11,7 +11,6 @@ from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, Field, validator
 from pydantic_core import ValidationError
 
-import src.core.services.firebase_driver as firebase_driver
 from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
@@ -87,9 +86,7 @@ async def get_parameter_list(
 class Period(BaseModel):
     year: int = Field(..., description="年度を表す。例: 2024")
     month: int = Field(..., description="月を表す。例: 8")
-    quarter: int | None = Field(
-        ..., description="四半期を表す。例: 第2四半期なら2、該当なしはNone"
-    )
+    quarter: int | None = Field(..., description="四半期を表す。例: 第2四半期なら2、該当なしはNone")
     period_type: Literal["年度", "月次", "四半期"] = Field(
         None, description="期間の種類を表す。'期' または '四半期' など"
     )
@@ -123,12 +120,8 @@ class BusinessSummary(BaseModel):
     revenue_actual: Decimal | None = Field(..., description='売上高 実績。単位は円')
 
     # 売上総利益 Gross Profit
-    gross_profit_forecast: Decimal | None = Field(
-        ..., description='売上総利益 予測。単位は円'
-    )
-    gross_profit_actual: Decimal | None = Field(
-        ..., description='売上総利益 実績。単位は円'
-    )
+    gross_profit_forecast: Decimal | None = Field(..., description='売上総利益 予測。単位は円')
+    gross_profit_actual: Decimal | None = Field(..., description='売上総利益 実績。単位は円')
 
     # 売上総利益率
     gross_profit_margin_forecast: Decimal | None = Field(
@@ -153,9 +146,7 @@ class Step(BaseModel):
 class CustomResponse(BaseModel):
     steps: list[Step]
     # opinion: str = Field(..., description='アナリスト視点での分析。リスク要素や異常値の確認を相対的・トレンド分析を交えながら行う')
-    business_summaries: list[BusinessSummary] = Field(
-        ..., description='期間ごとに整理したデータ'
-    )
+    business_summaries: list[BusinessSummary] = Field(..., description='期間ごとに整理したデータ')
 
 
 async def send_to_analysis_api(openai_client, image_url, max_retries=3):
@@ -221,9 +212,13 @@ async def get_parameter_analyze(
         storage_client = firebase_client.get_storage()
 
         # 7 cpa や顧客ARPUなど
-        file_title = '0c504cb0-5c8f-4440-9237-1ddcb7e9d4c0_2024年8月度月次業績報告資料 copy.pdf+page_7'
+        file_title = (
+            '0c504cb0-5c8f-4440-9237-1ddcb7e9d4c0_2024年8月度月次業績報告資料 copy.pdf+page_7'
+        )
         # 5 セグメント売上抽出
-        file_title = '0c504cb0-5c8f-4440-9237-1ddcb7e9d4c0_2024年8月度月次業績報告資料 copy.pdf+page_5'
+        file_title = (
+            '0c504cb0-5c8f-4440-9237-1ddcb7e9d4c0_2024年8月度月次業績報告資料 copy.pdf+page_5'
+        )
         blobs = storage_client.list_blobs(prefix=f"{user_id}/image/")
 
         url = None

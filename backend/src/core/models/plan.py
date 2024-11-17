@@ -8,9 +8,7 @@ from pydantic import BaseModel, Field, validator
 class Period(BaseModel):
     year: int = Field(..., description="年度を表す。例: 2024")
     month: int = Field(..., description="月を表す。例: 8")
-    quarter: int | None = Field(
-        ..., description="四半期を表す。例: 第2四半期なら2、該当なしはNone"
-    )
+    quarter: int | None = Field(..., description="四半期を表す。例: 第2四半期なら2、該当なしはNone")
     period_type: Literal["年度", "月次", "四半期"] = Field(
         None, description="期間の種類を表す。'期' または '四半期' など"
     )
@@ -66,9 +64,7 @@ class ManagerialAccounting(BaseModel):
         ..., description="部門別の実績。キーは部門名、値は実績額（円）"
     )
     cost_structure_analysis: str = Field(..., description="コスト構造の分析結果")
-    cash_flow_forecast: Decimal = Field(
-        ..., description="将来のキャッシュフロー予測額（円）"
-    )
+    cash_flow_forecast: Decimal = Field(..., description="将来のキャッシュフロー予測額（円）")
 
 
 # PL（損益計算書の指標）
@@ -78,12 +74,8 @@ class ProfitAndLoss(BaseModel):
     gross_profit_margin: Decimal | None = Field(
         None, description="売上総利益率（%）。(売上総利益 / 売上高) * 100"
     )
-    monthly_sg_and_a: Decimal | None = Field(
-        None, description="月次の販売費および一般管理費（円）"
-    )
-    monthly_operating_income: Decimal | None = Field(
-        None, description="月次の営業利益（円）"
-    )
+    monthly_sg_and_a: Decimal | None = Field(None, description="月次の販売費および一般管理費（円）")
+    monthly_operating_income: Decimal | None = Field(None, description="月次の営業利益（円）")
     operating_income_margin: Decimal | None = Field(
         None, description="営業利益率（%）。(営業利益 / 売上高) * 100"
     )
@@ -93,27 +85,15 @@ class ProfitAndLoss(BaseModel):
     monthly_non_operating_expenses: Decimal | None = Field(
         None, description="月次の営業外費用（円）"
     )
-    monthly_ordinary_income: Decimal | None = Field(
-        None, description="月次の経常利益（円）"
-    )
-    monthly_extraordinary_income: Decimal | None = Field(
-        None, description="月次の特別利益（円）"
-    )
-    monthly_extraordinary_losses: Decimal | None = Field(
-        None, description="月次の特別損失（円）"
-    )
+    monthly_ordinary_income: Decimal | None = Field(None, description="月次の経常利益（円）")
+    monthly_extraordinary_income: Decimal | None = Field(None, description="月次の特別利益（円）")
+    monthly_extraordinary_losses: Decimal | None = Field(None, description="月次の特別損失（円）")
     monthly_profit_before_tax: Decimal | None = Field(
         None, description="月次の税引前当期純利益（円）"
     )
-    monthly_corporate_taxes: Decimal | None = Field(
-        None, description="月次の法人税等（円）"
-    )
-    monthly_net_income: Decimal | None = Field(
-        None, description="月次の当期純利益（円）"
-    )
-    ebitda: Decimal | None = Field(
-        None, description="EBITDA（税引前利益 + 減価償却費）"
-    )
+    monthly_corporate_taxes: Decimal | None = Field(None, description="月次の法人税等（円）")
+    monthly_net_income: Decimal | None = Field(None, description="月次の当期純利益（円）")
+    ebitda: Decimal | None = Field(None, description="EBITDA（税引前利益 + 減価償却費）")
     psr: Decimal | None = Field(None, description="Price/Sales Ratio（株価収益率）")
     ev_to_ebitda: Decimal | None = Field(None, description="EV/EBITDA（企業価値倍率）")
 
@@ -127,15 +107,9 @@ class BalanceSheet(BaseModel):
 
 # キャッシュフロー
 class CashFlow(BaseModel):
-    operating: Decimal | None = Field(
-        None, description="営業活動によるキャッシュフロー（円）"
-    )
-    investing: Decimal | None = Field(
-        None, description="投資活動によるキャッシュフロー（円）"
-    )
-    financing: Decimal | None = Field(
-        None, description="財務活動によるキャッシュフロー（円）"
-    )
+    operating: Decimal | None = Field(None, description="営業活動によるキャッシュフロー（円）")
+    investing: Decimal | None = Field(None, description="投資活動によるキャッシュフロー（円）")
+    financing: Decimal | None = Field(None, description="財務活動によるキャッシュフロー（円）")
 
 
 # 財務比率
@@ -146,9 +120,7 @@ class FinancialRatios(BaseModel):
     current_ratio: Decimal | None = Field(
         None, description="流動比率（%）。(流動資産 / 流動負債) * 100"
     )
-    quick_ratio: Decimal | None = Field(
-        None, description="当座比率（%）。(当座資産 / 流動負債) * 100"
-    )
+    quick_ratio: Decimal | None = Field(None, description="当座比率（%）。(当座資産 / 流動負債) * 100")
     operating_profit_margin: Decimal | None = Field(
         None, description="売上高営業利益率（%）。(営業利益 / 売上高) * 100"
     )
