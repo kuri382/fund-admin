@@ -12,7 +12,8 @@ poetry run uvicorn src.server:app --reload --log-level debug
 ```sh
 poetry run black .
 poetry run isort .
-poetry run flake8 .
+poetry run ruff check
+poetry run ruff format
 ```
 
 # Deployment
