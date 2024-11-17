@@ -1,5 +1,14 @@
 from functools import lru_cache
-from firebase_admin import auth, credentials, firestore, get_app, initialize_app, storage, _apps
+
+from firebase_admin import (
+    _apps,
+    auth,
+    credentials,
+    firestore,
+    get_app,
+    initialize_app,
+    storage,
+)
 
 from src.settings import settings
 
@@ -13,7 +22,9 @@ class FirebaseClient:
     def initialize_firebase(cls):
         if not _apps:
             cred = credentials.Certificate(settings.firebase_credentials)
-            cls._app = initialize_app(cred, {'storageBucket': f"{cred.project_id}.appspot.com"})
+            cls._app = initialize_app(
+                cred, {'storageBucket': f"{cred.project_id}.appspot.com"}
+            )
         else:
             cls._app = get_app()
 
@@ -29,13 +40,17 @@ class FirebaseClient:
     @classmethod
     def get_firestore(cls):
         if cls._firestore is None:
-            raise RuntimeError("Firebase is not initialized. Call initialize_firebase() first.")
+            raise RuntimeError(
+                "Firebase is not initialized. Call initialize_firebase() first."
+            )
         return cls._firestore
 
     @classmethod
     def get_storage(cls):
         if cls._storage is None:
-            raise RuntimeError("Firebase is not initialized. Call initialize_firebase() first.")
+            raise RuntimeError(
+                "Firebase is not initialized. Call initialize_firebase() first."
+            )
         return cls._storage
 
     @classmethod
@@ -59,14 +74,17 @@ def get_firebase_client():
     """FirebaseClient のインスタンスをキャッシュして返します。"""
     return FirebaseClient.get_instance()
 
+
 # FastAPI dependencies
 def get_firestore():
     """Firestore クライアントを返すための依存関係。"""
     return FirebaseClient.get_firestore()
 
+
 def get_storage():
     """Storage クライアントを返すための依存関係。"""
     return FirebaseClient.get_storage()
+
 
 def verify_user_token(token: str):
     """

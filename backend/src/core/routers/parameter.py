@@ -1,19 +1,19 @@
+import logging
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-import logging
-from fastapi import APIRouter, Request, HTTPException, Depends, status
+from typing import Literal, Optional
+
+from fastapi import APIRouter, Depends, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
-from pydantic import Field, validator, BaseModel
-from typing import Literal, Optional, Any
+from pydantic import BaseModel, Field, validator
 
-from src.core.services.firebase_client import FirebaseClient, get_firebase_client
-from src.core.services import auth_service
-from src.core.dependencies.auth import get_user_id
 import src.core.services.firebase_driver as firebase_driver
-from ._base import BaseJSONSchema
+from src.core.dependencies.auth import get_user_id
+from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 
+from ._base import BaseJSONSchema
 
 router = APIRouter(prefix='/parameter', tags=['parameter'])
 logger = logging.getLogger(__name__)
@@ -23,7 +23,9 @@ class Period(BaseJSONSchema):
     year: int = Field(..., description="年度を表す。例: 2024")
     month: int = Field(..., description="月を表す。例: 8")
     quarter: Optional[int] = Field(..., description="四半期を表す。例: 第2四半期なら2")
-    period_type: Literal["年度", "月次", "四半期"] = Field(None, description="期間の種類を表す。'期' または '四半期' など")
+    period_type: Literal["年度", "月次", "四半期"] = Field(
+        None, description="期間の種類を表す。'期' または '四半期' など"
+    )
 
     @validator('year')
     def year_must_be_four_digits(cls, v):
@@ -46,6 +48,7 @@ class Period(BaseJSONSchema):
 
 class ResGetParameterAnalysis(BaseJSONSchema):
     """GET `/explorer/pdf_pages/{uuid}` response schema"""
+
     period: Period
 
     # 売上高 Revenue
@@ -53,12 +56,20 @@ class ResGetParameterAnalysis(BaseJSONSchema):
     revenue_actual: Decimal | None = Field(..., description='売上高 実績。単位は円')
 
     # 売上総利益 Gross Profit
-    gross_profit_forecast: Decimal | None = Field(..., description='売上総利益 予測。単位は円')
-    gross_profit_actual: Decimal | None = Field(..., description='売上総利益 実績。単位は円')
+    gross_profit_forecast: Decimal | None = Field(
+        ..., description='売上総利益 予測。単位は円'
+    )
+    gross_profit_actual: Decimal | None = Field(
+        ..., description='売上総利益 実績。単位は円'
+    )
 
     # 売上総利益率
-    gross_profit_margin_forecast: Decimal | None = Field(..., description='売上総利益率 予測。単位は円')
-    gross_profit_margin_actual: Decimal | None = Field(..., description='売上総利益率 実績。単位は円')
+    gross_profit_margin_forecast: Decimal | None = Field(
+        ..., description='売上総利益率 予測。単位は円'
+    )
+    gross_profit_margin_actual: Decimal | None = Field(
+        ..., description='売上総利益率 実績。単位は円'
+    )
 
 
 class DataSource(BaseModel):
@@ -103,14 +114,14 @@ SAMPLE_DATA = [
                     DataSource(
                         value=9000000,
                         source="2023年決算説明資料",
-                        url="https://placehold.jp/300x200.png"
+                        url="https://placehold.jp/300x200.png",
                     ),
                     DataSource(
                         value=7000000,
                         source="2024年決算説明資料",
-                        url="https://placehold.jp/300x200.png"
-                    )
-                ]
+                        url="https://placehold.jp/300x200.png",
+                    ),
+                ],
             ),
             QuarterData(
                 year=2024,
@@ -119,16 +130,16 @@ SAMPLE_DATA = [
                     DataSource(
                         value=8500000,
                         source="2024年計画資料",
-                        url="https://placehold.jp/300x200.png"
+                        url="https://placehold.jp/300x200.png",
                     ),
                     DataSource(
                         value=8532000,
                         source="2024年Q3説明資料",
-                        url="https://placehold.jp/300x200.png"
-                    )
-                ]
-            )
-        ]
+                        url="https://placehold.jp/300x200.png",
+                    ),
+                ],
+            ),
+        ],
     ),
     FinancialData(
         key="2",
@@ -141,9 +152,9 @@ SAMPLE_DATA = [
                     DataSource(
                         value=9030000,
                         source="2023年決算説明資料",
-                        url="https://placehold.jp/300x200.png"
+                        url="https://placehold.jp/300x200.png",
                     )
-                ]
+                ],
             ),
             QuarterData(
                 year=2024,
@@ -152,16 +163,16 @@ SAMPLE_DATA = [
                     DataSource(
                         value=8300000,
                         source="2024年計画資料",
-                        url="https://placehold.jp/300x200.png"
+                        url="https://placehold.jp/300x200.png",
                     ),
                     DataSource(
                         value=8532000,
                         source="2024年Q3説明資料",
-                        url="https://placehold.jp/300x200.png"
-                    )
-                ]
-            )
-        ]
+                        url="https://placehold.jp/300x200.png",
+                    ),
+                ],
+            ),
+        ],
     ),
     FinancialData(
         key="3",
@@ -174,14 +185,14 @@ SAMPLE_DATA = [
                     DataSource(
                         value=9000000,
                         source="2023年決算説明資料",
-                        url="https://placehold.jp/300x200.png"
+                        url="https://placehold.jp/300x200.png",
                     ),
                     DataSource(
                         value=7000000,
                         source="2024年決算説明資料",
-                        url="https://placehold.jp/300x200.png"
-                    )
-                ]
+                        url="https://placehold.jp/300x200.png",
+                    ),
+                ],
             ),
             QuarterData(
                 year=2024,
@@ -190,20 +201,23 @@ SAMPLE_DATA = [
                     DataSource(
                         value=8500000,
                         source="2024年計画資料",
-                        url="https://placehold.jp/300x200.png"
+                        url="https://placehold.jp/300x200.png",
                     ),
                     DataSource(
                         value=8532000,
                         source="2024年Q3説明資料",
-                        url="https://placehold.jp/300x200.png"
-                    )
-                ]
-            )
-        ]
-    )
+                        url="https://placehold.jp/300x200.png",
+                    ),
+                ],
+            ),
+        ],
+    ),
 ]
 
-def convert_business_summary_to_financial_response(summaries: list[firebase_driver.BusinessSummary]) -> dict:
+
+def convert_business_summary_to_financial_response(
+    summaries: list[firebase_driver.BusinessSummary],
+) -> dict:
     """
     BusinessSummaryのリストをFinancialResponseの形式に変換する
 
@@ -219,7 +233,6 @@ def convert_business_summary_to_financial_response(summaries: list[firebase_driv
             return f"Q{quarter}"
         return None
 
-
     def create_data_source(value: Decimal | None, is_forecast: bool) -> dict:
         if value is None:
             return None
@@ -231,8 +244,9 @@ def convert_business_summary_to_financial_response(summaries: list[firebase_driv
             url="https://placehold.jp/300x200.png",
         )
 
-
-    def create_quarter_data(summary: firebase_driver.BusinessSummary, metric_key: str) -> QuarterData:
+    def create_quarter_data(
+        summary: firebase_driver.BusinessSummary, metric_key: str
+    ) -> QuarterData:
         forecast_value = getattr(summary, f"{metric_key}_forecast")
         actual_value = getattr(summary, f"{metric_key}_actual")
 
@@ -259,12 +273,11 @@ def convert_business_summary_to_financial_response(summaries: list[firebase_driv
         )
         return quarter_data
 
-
     # メトリクスの定義
     metrics = [
         {"key": "revenue", "name": "売上高"},
         {"key": "gross_profit", "name": "売上総利益"},
-        {"key": "gross_profit_margin", "name": "売上総利益率"}
+        {"key": "gross_profit_margin", "name": "売上総利益率"},
     ]
 
     financial_data = []
@@ -274,7 +287,9 @@ def convert_business_summary_to_financial_response(summaries: list[firebase_driv
     for metric in metrics:
         values = []
         for summary in summaries:
-            if summary.has_non_none_fields() and summary.period.quarter: # summryの中に有効データがある場合
+            if (
+                summary.has_non_none_fields() and summary.period.quarter
+            ):  # summryの中に有効データがある場合
                 quarter_data = create_quarter_data(summary, metric["key"])
                 if quarter_data is not None:
                     values.append(quarter_data)
@@ -282,9 +297,7 @@ def convert_business_summary_to_financial_response(summaries: list[firebase_driv
         if values:  # 値が存在する場合のみFinancialDataを作成
             financial_data.append(
                 FinancialData(
-                    key=metric['key'],
-                    metric=f"{metric['name']}",
-                    values=values
+                    key=metric['key'], metric=f"{metric['name']}", values=values
                 )
             )
     return financial_data
@@ -293,9 +306,11 @@ def convert_business_summary_to_financial_response(summaries: list[firebase_driv
 @router.get(
     "/sales",
     response_class=ORJSONResponse,
-    responses={status.HTTP_200_OK: {
-        'description': 'Images retrieved successfully.',
-    }},
+    responses={
+        status.HTTP_200_OK: {
+            'description': 'Images retrieved successfully.',
+        }
+    },
 )
 async def get_parameter_sales(
     firebase_client: FirebaseClient = Depends(get_firebase_client),
@@ -310,9 +325,7 @@ async def get_parameter_sales(
         )
         result = convert_business_summary_to_financial_response(data)
 
-        return FinancialResponse(
-            data=result
-        )
+        return FinancialResponse(data=result)
     except Exception as e:
         logger.error(f'error: {e}')
 
@@ -321,17 +334,18 @@ class ParameterSummaries(BaseJSONSchema):
     page_number: int
     output: str
     explanation: str
-    opinion:str
+    opinion: str
 
 
 class ResGetParameterSummary(BaseJSONSchema):
-    """GET `/parameter/summary` request schema.
-    """
+    """GET `/parameter/summary` request schema."""
 
     data: list[ParameterSummaries] = Field(None, description='ページごとの分析結果')
 
 
-def convert_to_res_get_parameter_summary(items: list[firebase_driver.ParameterSummary]) -> ResGetParameterSummary:
+def convert_to_res_get_parameter_summary(
+    items: list[firebase_driver.ParameterSummary],
+) -> ResGetParameterSummary:
     summaries = [
         ParameterSummaries(
             page_number=item.page_number,
@@ -347,17 +361,19 @@ def convert_to_res_get_parameter_summary(items: list[firebase_driver.ParameterSu
 @router.get(
     '/summary',
     response_class=ORJSONResponse,
-    responses={status.HTTP_200_OK: {
-        'description': 'Images retrieved successfully.',
-    }},
+    responses={
+        status.HTTP_200_OK: {
+            'description': 'Images retrieved successfully.',
+        }
+    },
 )
 async def get_parameter_summary(
     uuid: str,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     user_id: str = Depends(get_user_id),
 ):
-    #user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
-    #file_uuid = '63961f2f-a852-4206-a5eb-2c6d6ed696cb'
+    # user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
+    # file_uuid = '63961f2f-a852-4206-a5eb-2c6d6ed696cb'
 
     firestore_client = firebase_client.get_firestore()
 

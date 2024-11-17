@@ -1,41 +1,39 @@
+import base64
 import json
-from io import BytesIO
-from decimal import Decimal
-from datetime import timedelta, datetime, timezone
 import logging
 import time
 import traceback
-import requests
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from io import BytesIO
 from typing import Optional
 
-import base64
 import fitz
 import openai
+import requests
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
-from fastapi.responses import ORJSONResponse
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import ORJSONResponse
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 from pydantic import Field
 
+import src.core.services.firebase_driver as firebase_driver
 from src.core.dependencies.external import get_openai_client
 from src.core.models.financial import CategoryIR
-from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services import auth_service
-import src.core.services.firebase_driver as firebase_driver
-from src.core.services.firebase_driver import PageDetail
 from src.core.services.exploler import formatter
+from src.core.services.firebase_client import FirebaseClient, get_firebase_client
+from src.core.services.firebase_driver import PageDetail
 
 from ._base import BaseJSONSchema
-
 
 router = APIRouter(prefix='/explorer', tags=['explorer'])
 logger = logging.getLogger(__name__)
 
 
 class FinancialStatement(BaseJSONSchema):
-    """rows of `/explorer/financial_statements` request schema.
-    """
+    """rows of `/explorer/financial_statements` request schema."""
 
     uuid: str = Field(...)
     name: str = Field(...)
@@ -47,10 +45,11 @@ class FinancialStatement(BaseJSONSchema):
 
 
 class ResGetFinancialStatements(BaseJSONSchema):
-    """GET `/explorer/financial_statements` request schema.
-    """
+    """GET `/explorer/financial_statements` request schema."""
 
-    financial_statements: list[FinancialStatement] = Field(..., description='IRファイル情報一覧')
+    financial_statements: list[FinancialStatement] = Field(
+        ..., description='IRファイル情報一覧'
+    )
 
 
 def verify_auth(request: Request) -> str:
@@ -63,10 +62,12 @@ def verify_auth(request: Request) -> str:
 
 def get_selected_project_id(firestore_client, user_id: str) -> str:
     """選択中のプロジェクトIDを取得"""
-    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
-    selected_project = projects_ref.where(
-        filter=FieldFilter("is_selected", "==", True)
-    ).limit(1).get()
+    projects_ref = (
+        firestore_client.collection('users').document(user_id).collection('projects')
+    )
+    selected_project = (
+        projects_ref.where(filter=FieldFilter("is_selected", "==", True)).limit(1).get()
+    )
 
     if not selected_project:
         raise HTTPException(status_code=404, detail="No selected project.")
@@ -75,14 +76,16 @@ def get_selected_project_id(firestore_client, user_id: str) -> str:
 
 def get_financial_documents(firestore_client, user_id: str, project_id: str):
     """財務諸表ドキュメントの一覧を取得"""
-    tables_ref = firestore_client.collection('users').document(user_id)\
-        .collection('projects').document(project_id)\
+    tables_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(project_id)
         .collection('documents')
+    )
 
     category_ir_filter = FieldFilter(
-        "category_ir",
-        "==",
-        CategoryIR.EARNINGS_REPORT.value
+        "category_ir", "==", CategoryIR.EARNINGS_REPORT.value
     )
     return tables_ref.where(filter=category_ir_filter).stream()
 
@@ -102,7 +105,9 @@ def pdf_page_to_base64(pdf_bytes: bytes, page_number: int) -> str:
         raise
 
 
-def generate_file_url(storage_client, user_id: str, file_uuid: str, file_name: str) -> Optional[str]:
+def generate_file_url(
+    storage_client, user_id: str, file_uuid: str, file_name: str
+) -> Optional[str]:
     """ファイルの署名付きURLを生成"""
     blob_path = f"{user_id}/{file_uuid}_{file_name}"
     blob = storage_client.blob(blob_path)
@@ -119,9 +124,7 @@ def generate_file_url(storage_client, user_id: str, file_uuid: str, file_name: s
 
 
 def create_financial_statement(
-    doc_id: str,
-    doc_dict: dict,
-    url: str
+    doc_id: str, doc_dict: dict, url: str
 ) -> FinancialStatement:
     """財務諸表情報オブジェクトを作成"""
     return FinancialStatement(
@@ -138,9 +141,10 @@ def create_financial_statement(
 @router.get(
     "/financial_statements",
     response_class=ORJSONResponse,
-    responses={status.HTTP_200_OK: {
-        'model': ResGetFinancialStatements,
-        'description': 'Dates retrieved successfully.',
+    responses={
+        status.HTTP_200_OK: {
+            'model': ResGetFinancialStatements,
+            'description': 'Dates retrieved successfully.',
         },
     },
 )
@@ -160,21 +164,14 @@ async def get_financial_statements(
             file_uuid = doc.id
             file_name = file_info.get('file_name', 'Unnamed')
 
-            url = generate_file_url(
-                storage_client,
-                user_id,
-                file_uuid,
-                file_name
-            )
+            url = generate_file_url(storage_client, user_id, file_uuid, file_name)
             if not url:
                 continue
 
             statement = create_financial_statement(file_uuid, file_info, url)
             financial_statements.append(statement)
 
-        result = ResGetFinancialStatements(
-            financial_statements=financial_statements
-        )
+        result = ResGetFinancialStatements(financial_statements=financial_statements)
         return ORJSONResponse(content=jsonable_encoder(result))
 
     except HTTPException:
@@ -184,19 +181,20 @@ async def get_financial_statements(
         logger.error(f"Error retrieving financial statements: {str(e)}")
         traceback.print_exc()
         raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving or processing files: {str(e)}"
+            status_code=500, detail=f"Error retrieving or processing files: {str(e)}"
         )
 
 
 class PDFPageContent(BaseJSONSchema):
     """PDF content response schema"""
+
     page_number: int = Field(..., description='ページ番号')
     content: str = Field(..., description='Base64エンコードされたPDFページの画像')
 
 
 class ResGetPDFPages(BaseJSONSchema):
     """GET `/explorer/pdf_pages/{uuid}` response schema"""
+
     uuid: str = Field(..., description='ファイルUUID')
     name: str = Field(..., description='ファイル名')
     total_pages: int = Field(..., description='PDFの総ページ数')
@@ -204,15 +202,17 @@ class ResGetPDFPages(BaseJSONSchema):
 
 
 def get_document_info(
-    firestore_client,
-    user_id: str,
-    project_id: str,
-    file_uuid: str
+    firestore_client, user_id: str, project_id: str, file_uuid: str
 ) -> tuple[str, dict]:
     """ドキュメント情報を取得"""
-    doc_ref = (firestore_client.collection('users').document(user_id)
-               .collection('projects').document(project_id)
-               .collection('documents').document(file_uuid))
+    doc_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(project_id)
+        .collection('documents')
+        .document(file_uuid)
+    )
     doc = doc_ref.get()
 
     if not doc.exists:
@@ -223,7 +223,9 @@ def get_document_info(
     return file_name, file_info
 
 
-def get_pdf_bytes(storage_client, user_id: str, file_uuid: str, file_name: str) -> bytes:
+def get_pdf_bytes(
+    storage_client, user_id: str, file_uuid: str, file_name: str
+) -> bytes:
     """PDFのバイトデータを取得"""
     blob_path = f"{user_id}/{file_uuid}_{file_name}"
     blob = storage_client.blob(blob_path)
@@ -248,10 +250,7 @@ def process_pdf_pages(pdf_bytes: bytes, max_pages: int = 10) -> tuple[int, list]
             pix = page.get_pixmap()
             img_buffer = BytesIO(pix.tobytes())
             img_base64 = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
-            encoded_pages.append({
-                "page_number": page_num + 1,
-                "content": img_base64
-            })
+            encoded_pages.append({"page_number": page_num + 1, "content": img_base64})
     finally:
         doc.close()
 
@@ -270,12 +269,10 @@ def create_chat_completion_message(system_prompt, prompt, image_file):
                 },
                 {
                     "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{image_file}"
-                    }
-                }
-            ]
-        }
+                    "image_url": {"url": f"data:image/jpeg;base64,{image_file}"},
+                },
+            ],
+        },
     ]
     return messages
 
@@ -285,7 +282,7 @@ def process_pages_in_background(
     user_id: str,
     uuid: str,
     encoded_pages: list,
-    openai_client: openai.ChatCompletion
+    openai_client: openai.ChatCompletion,
 ):
     """PDFページの処理をバックグラウンドで実行"""
     pages: list[PageDetail] = []
@@ -293,17 +290,16 @@ def process_pages_in_background(
     for idx, page_data in enumerate(encoded_pages):
         system_prompt = 'まず始めに結論を書いてください。その後それを捕捉するように文章を構成すること。 「### スライド概要、### 結論」'
         prompt = '画像はIR資料です。このスライドから読み取れる内容を詳細かつ丁寧に文章でまとめてください。'
-        messages = create_chat_completion_message(system_prompt, prompt, page_data['content'])
+        messages = create_chat_completion_message(
+            system_prompt, prompt, page_data['content']
+        )
         response = openai_client.chat.completions.create(
-            model='gpt-4o-mini',
-            messages = messages
+            model='gpt-4o-mini', messages=messages
         )
         summary = response.choices[0].message.content
 
         row = PageDetail(
-            index=idx,
-            summary=summary,
-            updated_at=datetime.now(tz=timezone.utc)
+            index=idx, summary=summary, updated_at=datetime.now(tz=timezone.utc)
         )
         pages.append(row)
 
@@ -342,24 +338,28 @@ async def get_financial_statements_by_uuid(
 
         # プロジェクトとドキュメント情報の取得
         project_id = get_selected_project_id(firestore_client, user_id)
-        file_name, file_info = get_document_info(firestore_client, user_id, project_id, uuid)
+        file_name, file_info = get_document_info(
+            firestore_client, user_id, project_id, uuid
+        )
         # PDFデータの取得と処理
         pdf_bytes = get_pdf_bytes(storage_client, user_id, uuid, file_name)
         total_pages, encoded_pages = process_pdf_pages(pdf_bytes)
 
         background_tasks.add_task(
             process_pages_in_background,
-            firestore_client, user_id, uuid, encoded_pages, openai_client
+            firestore_client,
+            user_id,
+            uuid,
+            encoded_pages,
+            openai_client,
         )
         return {"message": "PDF processing started in background"}
 
     except Exception as e:
         logger.error(f"Error processing PDF: {str(e)}")
         traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing PDF: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")
+
 
 class FinancialStatementPageDetail(BaseJSONSchema):
     index: int
@@ -369,7 +369,10 @@ class FinancialStatementPageDetail(BaseJSONSchema):
 
 class ResGetFinancialStatementPages(BaseJSONSchema):
     """GET `/explorer/financial_statements/{uuid}/pages` response schema"""
-    pages: list[FinancialStatementPageDetail] = Field(..., description='ページごとの情報')
+
+    pages: list[FinancialStatementPageDetail] = Field(
+        ..., description='ページごとの情報'
+    )
 
 
 @router.get(
@@ -382,7 +385,7 @@ class ResGetFinancialStatementPages(BaseJSONSchema):
         },
         status.HTTP_404_NOT_FOUND: {
             'description': 'No pages found for the specified UUID.',
-        }
+        },
     },
 )
 async def get_financial_statement_pages(
@@ -391,7 +394,7 @@ async def get_financial_statement_pages(
     firebase_client: FirebaseClient = Depends(get_firebase_client),
 ):
     """指定されたUUIDに紐づく最新のページデータを取得する"""
-    #user_id = verify_auth(request)
+    # user_id = verify_auth(request)
     user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
     if not user_id:  # user_idが無効な場合
         detail = 'Permission denied'
@@ -405,7 +408,7 @@ async def get_financial_statement_pages(
             firestore_client=firestore_client,
             user_id=user_id,
             file_uuid=uuid,
-            target_collection='documents'
+            target_collection='documents',
         )
         rows = []
 
@@ -422,10 +425,7 @@ async def get_financial_statement_pages(
 
     except Exception as e:
         logger.error(f"Error retrieving pages: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving pages: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error retrieving pages: {str(e)}")
 
 
 class BusinessPlanData(BaseJSONSchema):
@@ -492,7 +492,7 @@ class FinancialStatementAnalyze(BaseJSONSchema):
         },
         status.HTTP_404_NOT_FOUND: {
             'description': 'No pages found for the specified UUID.',
-        }
+        },
     },
 )
 async def get_financial_statement_pages_analyze(
@@ -502,7 +502,7 @@ async def get_financial_statement_pages_analyze(
     openai_client: openai.ChatCompletion = Depends(get_openai_client),
 ):
     """指定されたUUIDに紐づく最新のページデータを取得する"""
-    #user_id = verify_auth(request)
+    # user_id = verify_auth(request)
     user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
     if not user_id:  # user_idが無効な場合
         detail = 'Permission denied'
@@ -516,7 +516,7 @@ async def get_financial_statement_pages_analyze(
             firestore_client=firestore_client,
             user_id=user_id,
             file_uuid=uuid,
-            target_collection='documents'
+            target_collection='documents',
         )
 
         summaries = "\n".join(page.summary for page in pages)
@@ -531,7 +531,7 @@ async def get_financial_statement_pages_analyze(
         response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
-            response_format=response_format
+            response_format=response_format,
         )
         result = response.choices[0].message.content
         print('summary', summaries)
@@ -543,14 +543,11 @@ async def get_financial_statement_pages_analyze(
             print(i['revenue_forecast'])
             print(i['revenue_actual'])
             print(i['irregular_memo'])
-            
+
         # どこから参照したデータかもあると良い
 
         return ORJSONResponse(content=result)
 
     except Exception as e:
         logger.error(f"Error retrieving pages: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving pages: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error retrieving pages: {str(e)}")

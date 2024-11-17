@@ -1,5 +1,6 @@
 # Development
 
+## Run
 ```bash
 poetry run uvicorn src.server:app --workers 4 --reload
 poetry run uvicorn src.server:app --workers 4
@@ -7,7 +8,15 @@ poetry run uvicorn src.server:app --workers 4
 poetry run uvicorn src.server:app --reload --log-level debug
 ```
 
+## Lint
+```sh
+poetry run black .
+poetry run isort .
+poetry run flake8 .
+```
+
 # Deployment
+
 ## Settings
 ```
 gcloud auth login

@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class CategoryIR(Enum):
     FINANCIAL_STATEMENTS = "財務諸表"
     SECURITIES_REPORT = "有価証券報告書"

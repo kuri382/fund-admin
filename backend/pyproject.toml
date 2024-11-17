@@ -34,6 +34,25 @@ beautifulsoup4 = "^4.12.3"
 pydantic-settings = "^2.6.0"
 
 
+[tool.poetry.group.dev.dependencies]
+black = "^24.10.0"
+isort = "^5.13.2"
+flake8 = "^7.1.1"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_third_party = [
+]
+
+[tool.flake8]
+max-line-length = 88
+exclude = ["build/", "dist/", ".venv/"]  # 除外パス

@@ -1,20 +1,22 @@
-from io import BytesIO
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from io import BytesIO
 from typing import Literal, Optional
 
-from fastapi import UploadFile
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
-from pydantic import BaseModel, Field, validator
 from openpyxl import load_workbook
+from pydantic import BaseModel, Field, validator
 
 
 async def upload_to_firebase(file: UploadFile, filename: str, storage_client):
     blob = storage_client.blob(filename)
     file_content = await file.read()
-    blob.upload_from_string(file_content, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    blob.upload_from_string(
+        file_content,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
     blob.make_public()
     return blob.public_url
 
@@ -46,7 +48,9 @@ def save_analysis_result(
     analysis_result: AnalysisResult,
     target_collection: str,
 ) -> None:
-    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+    projects_ref = (
+        firestore_client.collection('users').document(user_id).collection('projects')
+    )
     is_selected_filter = FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
     selected_project = query.get()
@@ -55,32 +59,42 @@ def save_analysis_result(
         raise ValueError("No project selected for the user")
 
     selected_project_id = selected_project[0].id
-    doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection(target_collection).document(str(file_uuid))
+    doc_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(selected_project_id)
+        .collection(target_collection)
+        .document(str(file_uuid))
+    )
 
     try:
-        doc_ref.set({
-            "file_name": file_name,
-            "file_uuid": str(file_uuid),
-            "abstract": analysis_result.abstract,
-            "feature": analysis_result.feature,
-            "extractable_info": analysis_result.extractable_info,
-            "year_info": analysis_result.year_info,
-            "period_type": analysis_result.period_type,
-            "category": analysis_result.category,
-            "category_ir": analysis_result.category_ir
-        })
+        doc_ref.set(
+            {
+                "file_name": file_name,
+                "file_uuid": str(file_uuid),
+                "abstract": analysis_result.abstract,
+                "feature": analysis_result.feature,
+                "extractable_info": analysis_result.extractable_info,
+                "year_info": analysis_result.year_info,
+                "period_type": analysis_result.period_type,
+                "category": analysis_result.category,
+                "category_ir": analysis_result.category_ir,
+            }
+        )
         return
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
 
-
 class Period(BaseModel):
     year: int = Field(..., description="年度を表す。例: 2024")
     month: int = Field(..., description="月を表す。例: 8")
     quarter: Optional[int] = Field(..., description="四半期を表す。例: 第2四半期なら2")
-    period_type: Literal["年度", "月次", "四半期"] = Field(None, description="期間の種類を表す。'期' または '四半期' など")
+    period_type: Literal["年度", "月次", "四半期"] = Field(
+        None, description="期間の種類を表す。'期' または '四半期' など"
+    )
 
     @validator('year')
     def year_must_be_four_digits(cls, v):
@@ -109,17 +123,26 @@ class BusinessSummary(BaseModel):
     revenue_actual: Decimal | None = Field(..., description='売上高 実績。単位は円')
 
     # 売上総利益 Gross Profit
-    gross_profit_forecast: Decimal | None = Field(..., description='売上総利益 予測。単位は円')
-    gross_profit_actual: Decimal | None = Field(..., description='売上総利益 実績。単位は円')
+    gross_profit_forecast: Decimal | None = Field(
+        ..., description='売上総利益 予測。単位は円'
+    )
+    gross_profit_actual: Decimal | None = Field(
+        ..., description='売上総利益 実績。単位は円'
+    )
 
     # 売上総利益率
-    gross_profit_margin_forecast: Decimal | None = Field(..., description='売上総利益率 予測。単位は円')
-    gross_profit_margin_actual: Decimal | None = Field(..., description='売上総利益率 実績。単位は円')
-
+    gross_profit_margin_forecast: Decimal | None = Field(
+        ..., description='売上総利益率 予測。単位は円'
+    )
+    gross_profit_margin_actual: Decimal | None = Field(
+        ..., description='売上総利益率 実績。単位は円'
+    )
 
     def has_non_none_fields(self) -> bool:
-        """ period以外のフィールドが全てNoneならFalse、少なくとも1つでもNoneでないフィールドがあればTrueを返す """
-        return any(value is not None for field, value in self.dict(exclude={'period'}).items())
+        """period以外のフィールドが全てNoneならFalse、少なくとも1つでもNoneでないフィールドがあればTrueを返す"""
+        return any(
+            value is not None for field, value in self.dict(exclude={'period'}).items()
+        )
 
 
 def save_page_image_analysis(
@@ -135,7 +158,9 @@ def save_page_image_analysis(
     opinion: str,
     target_collection: str = 'sales',
 ) -> None:
-    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+    projects_ref = (
+        firestore_client.collection('users').document(user_id).collection('projects')
+    )
     is_selected_filter = FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
     selected_project = query.get()
@@ -144,27 +169,40 @@ def save_page_image_analysis(
         raise ValueError("No project selected for the user")
 
     selected_project_id = selected_project[0].id
-    doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection(target_collection).document(str(page_uuid))
+    doc_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(selected_project_id)
+        .collection(target_collection)
+        .document(str(page_uuid))
+    )
 
     try:
-        doc_ref.set({
-            "file_uuid": str(file_uuid),
-            "file_name": file_name,
-            "page_number": page_number,
-            "year": business_summary.period.year,
-            "month": business_summary.period.month,
-            "quarter": business_summary.period.quarter,
-            "period_type": business_summary.period.period_type,
-            "revenue_forecast": str(business_summary.revenue_forecast),
-            "revenue_actual": str(business_summary.revenue_actual),
-            "gross_profit_forecast": str(business_summary.gross_profit_forecast),
-            "gross_profit_actual": str(business_summary.gross_profit_actual),
-            "gross_profit_margin_forecast": str(business_summary.gross_profit_margin_forecast),
-            "gross_profit_margin_actual": str(business_summary.gross_profit_margin_actual),
-            "explanation": str(explanation),
-            "output": str(output),
-            'opinion': str(opinion),
-        })
+        doc_ref.set(
+            {
+                "file_uuid": str(file_uuid),
+                "file_name": file_name,
+                "page_number": page_number,
+                "year": business_summary.period.year,
+                "month": business_summary.period.month,
+                "quarter": business_summary.period.quarter,
+                "period_type": business_summary.period.period_type,
+                "revenue_forecast": str(business_summary.revenue_forecast),
+                "revenue_actual": str(business_summary.revenue_actual),
+                "gross_profit_forecast": str(business_summary.gross_profit_forecast),
+                "gross_profit_actual": str(business_summary.gross_profit_actual),
+                "gross_profit_margin_forecast": str(
+                    business_summary.gross_profit_margin_forecast
+                ),
+                "gross_profit_margin_actual": str(
+                    business_summary.gross_profit_margin_actual
+                ),
+                "explanation": str(explanation),
+                "output": str(output),
+                'opinion': str(opinion),
+            }
+        )
         return
 
     except Exception as e:
@@ -182,7 +220,9 @@ def safe_decimal(value: Optional[str]) -> Optional[Decimal]:
 
 
 def get_selected_project_id(firestore_client: firestore.Client, user_id: str) -> str:
-    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+    projects_ref = (
+        firestore_client.collection('users').document(user_id).collection('projects')
+    )
     is_selected_filter = FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
     selected_project = query.get()
@@ -207,7 +247,9 @@ def parse_business_summary(doc) -> BusinessSummary:
         revenue_actual=safe_decimal(data.get("revenue_actual")),
         gross_profit_forecast=safe_decimal(data.get("gross_profit_forecast")),
         gross_profit_actual=safe_decimal(data.get("gross_profit_actual")),
-        gross_profit_margin_forecast=safe_decimal(data.get("gross_profit_margin_forecast")),
+        gross_profit_margin_forecast=safe_decimal(
+            data.get("gross_profit_margin_forecast")
+        ),
         gross_profit_margin_actual=safe_decimal(data.get("gross_profit_margin_actual")),
     )
 
@@ -219,7 +261,13 @@ def fetch_page_parameter_analysis(
     target_collection: str = 'sales',
 ) -> list[BusinessSummary]:
     selected_project_id = get_selected_project_id(firestore_client, user_id)
-    collection_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection(target_collection)
+    collection_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(selected_project_id)
+        .collection(target_collection)
+    )
 
     if page_uuid:
         doc = collection_ref.document(page_uuid).get()
@@ -243,7 +291,13 @@ def fetch_page_summary(
     limit: int = 30,
 ) -> list[ParameterSummary]:
     selected_project_id = get_selected_project_id(firestore_client, user_id)
-    collection_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection(target_collection)
+    collection_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(selected_project_id)
+        .collection(target_collection)
+    )
 
     query = collection_ref.where("file_uuid", "==", file_uuid).limit(limit)
     file_docs = query.get()
@@ -264,12 +318,11 @@ def fetch_page_summary(
 
 
 def retrieve_and_convert_to_json(
-    firestore_client,
-    user_id: str,
-    file_uuid: str,
-    target_collection: str = 'plans'
+    firestore_client, user_id: str, file_uuid: str, target_collection: str = 'plans'
 ) -> str:
-    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+    projects_ref = (
+        firestore_client.collection('users').document(user_id).collection('projects')
+    )
     is_selected_filter = FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
     selected_project = query.get()
@@ -277,7 +330,14 @@ def retrieve_and_convert_to_json(
     if not selected_project:
         raise ValueError("No project selected for the user")
     selected_project_id = selected_project[0].id
-    doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection(target_collection).document(str(file_uuid))
+    doc_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(selected_project_id)
+        .collection(target_collection)
+        .document(str(file_uuid))
+    )
 
     try:
         doc = doc_ref.get()
@@ -285,7 +345,7 @@ def retrieve_and_convert_to_json(
             raise ValueError("Document does not exist")
 
         data = doc.to_dict()
-        #json_data = json.dumps(data, default=str)  # Decimal型を文字列として出力
+        # json_data = json.dumps(data, default=str)  # Decimal型を文字列として出力
         return data
 
     except Exception as e:
@@ -305,7 +365,9 @@ def save_pages_to_analysis_result(
     target_collection: str,
     pages: list[PageDetail],
 ) -> None:
-    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+    projects_ref = (
+        firestore_client.collection('users').document(user_id).collection('projects')
+    )
     is_selected_filter = FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
     selected_project = query.get()
@@ -314,14 +376,21 @@ def save_pages_to_analysis_result(
         raise ValueError("No project selected for the user")
 
     selected_project_id = selected_project[0].id
-    doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection(target_collection).document(str(file_uuid))
+    doc_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(selected_project_id)
+        .collection(target_collection)
+        .document(str(file_uuid))
+    )
 
     try:
         pages_dicts = [
             {
                 "index": page.index,
                 "summary": page.summary,
-                "updated_at": page.updated_at
+                "updated_at": page.updated_at,
             }
             for page in pages
         ]
@@ -340,7 +409,9 @@ async def get_pages_from_analysis_result(
     target_collection: str,
 ) -> list[PageDetail]:
     """指定されたUUIDに紐づくデータを取得し、重複するindexがあれば最新のものを返す"""
-    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+    projects_ref = (
+        firestore_client.collection('users').document(user_id).collection('projects')
+    )
     is_selected_filter = firestore.FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
     selected_project = query.get()
@@ -349,12 +420,21 @@ async def get_pages_from_analysis_result(
         raise ValueError("No project selected for the user")
 
     selected_project_id = selected_project[0].id
-    doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection(target_collection).document(str(file_uuid))
+    doc_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(selected_project_id)
+        .collection(target_collection)
+        .document(str(file_uuid))
+    )
 
     # Firestoreからデータを取得
     doc_snapshot = doc_ref.get()
     if not doc_snapshot.exists:
-        raise HTTPException(status_code=404, detail="No pages found for the specified UUID")
+        raise HTTPException(
+            status_code=404, detail="No pages found for the specified UUID"
+        )
 
     # Firestoreから取得した`pages`フィールドのリストを取得
     pages_data = doc_snapshot.to_dict().get("pages", [])
@@ -368,9 +448,7 @@ async def get_pages_from_analysis_result(
         # `index` が存在しない、もしくは `updated_at` がより新しい場合に更新
         if index not in latest_pages or updated_at > latest_pages[index].updated_at:
             latest_pages[index] = PageDetail(
-                index=index,
-                summary=page["summary"],
-                updated_at=updated_at
+                index=index, summary=page["summary"], updated_at=updated_at
             )
 
     return list(latest_pages.values())

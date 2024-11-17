@@ -1,8 +1,9 @@
-from fastapi import HTTPException
-from pydantic import BaseModel
-from firebase_admin import auth as firebase_auth
 from datetime import datetime, timedelta
+
+from fastapi import HTTPException
+from firebase_admin import auth as firebase_auth
 from jose import jwt
+from pydantic import BaseModel
 
 from src.settings import settings
 
@@ -10,6 +11,7 @@ from src.settings import settings
 class LoginRequest(BaseModel):
     email: str
     password: str
+
 
 class TokenData(BaseModel):
     uid: str
@@ -20,9 +22,13 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.utcnow() + timedelta(
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
 
 
