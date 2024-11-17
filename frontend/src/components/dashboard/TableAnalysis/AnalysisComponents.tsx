@@ -226,6 +226,7 @@ const AnalysisComponents: React.FC = () => {
           type="primary"
           style={{ margin: '10px 0px 0px 20px' }}
           icon={<ReloadOutlined />}
+          loading={isLoading}
         >
           ファイル情報を更新する
         </Button>
