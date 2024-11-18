@@ -3,7 +3,7 @@ import logging
 import uuid
 
 import openai
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
 from google.cloud import firestore
@@ -29,7 +29,7 @@ class TempCustomResponse(BaseModel):
     business_summaries: list[SummaryProfitAndLoss] = Field(..., description='期間ごとに整理したデータ')
 
 
-async def send_to_analysis_api(openai_client, image_url, max_retries=3):
+def send_to_analysis_api(openai_client, image_url, max_retries=3):
     """OpenAI APIにリクエストを送信し、パースされたレスポンスを取得する。リトライ機能付き"""
     retry_count = 0
     while retry_count < max_retries:
@@ -44,7 +44,7 @@ async def send_to_analysis_api(openai_client, image_url, max_retries=3):
                     },
                     {
                         "role": "system",
-                        "content": "接頭語に気をつけながら、かならず単位を円で計算しなさい。「百万円」や「億円」をすべて「円」に統一する",
+                        "content": "接頭語に気をつけながら、かならず単位を円で計算しなさい。「百万円」や「億円」をすべて「円」に統一する - 範囲の値がある場合には最大値を採用せよ",
                     },
                     {
                         "role": "user",
@@ -68,7 +68,6 @@ async def send_to_analysis_api(openai_client, image_url, max_retries=3):
             if retry_count >= max_retries:
                 logger.error("Max retries reached. Exiting the retry loop.")
                 raise e
-            await asyncio.sleep(2)
 
 
 def save_parameters(
@@ -87,6 +86,8 @@ def save_parameters(
         raise ValueError("No project selected for the user")
 
     selected_project_id = selected_project[0].id
+    logger.info(f'selected_project_id: {summary.period.year}')
+
     doc_ref = (
         firestore_client.collection('users')
         .document(user_id)
@@ -134,26 +135,18 @@ def save_parameters(
                 },
             }
         )
+        logger.info('data saved ===========')
         return
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
 
-@router.post(
-    "/metrics",
-    response_class=ORJSONResponse,
-    responses={
-        status.HTTP_200_OK: {
-            'description': 'profit and loss data retrieved successfully.',
-        }
-    },
-)
-async def post_projection_profit_and_loss_metrics(
+def process_profit_and_loss_metrics(
     file_uuid: str,
-    firebase_client: FirebaseClient = Depends(get_firebase_client),
-    openai_client: openai.ChatCompletion = Depends(get_openai_client),
-    user_id: str = Depends(get_user_id),
+    firebase_client: FirebaseClient,
+    openai_client: openai.ChatCompletion,
+    user_id: str,
 ):
     try:
         storage_client = firebase_client.get_storage()
@@ -163,34 +156,67 @@ async def post_projection_profit_and_loss_metrics(
         pages_to_parse = range(1, max_pages_to_parse + 1)
 
         for page_number in pages_to_parse:
+            logger.info(f'page_number: {page_number}')
             blobs = storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}/{page_number}")
 
             url = None
             for blob in blobs:
                 url = blob.generate_signed_url(expiration=3600, method='GET', version='v4')
-
             if url:
-                data = await send_to_analysis_api(openai_client, url)
+                data = send_to_analysis_api(openai_client, url)
+                if data.business_summaries:
+                    for summary in data.business_summaries:
+                        if summary is None or summary.profit_and_loss is None:
+                            logger.warning("Summary または Profit and Loss が None のためスキップ")
+                            continue
 
-                for summary in data.business_summaries:
-                    if not all(
-                        [
-                            all_fields_are_none(summary.profit_and_loss),
-                        ]
-                    ):
+                        if all_fields_are_none(summary.profit_and_loss):
+                            logger.warning("Profit and Loss の全フィールドが None のためスキップ")
+                            continue
+
                         save_parameters(firestore_client, user_id, file_uuid, page_number, summary=summary)
-                    else:
-                        logger.info("すべてのデータがNoneです。処理をスキップします。")
+
             else:
                 logger.info(f"No blobs found for page {page_number}")
 
-        return {"message": "Processing completed."}
+    except Exception as e:
+        logger.error(f"Error during background analysis: {str(e)}")
+
+
+@router.post(
+    "/metrics",
+    response_class=ORJSONResponse,
+    responses={
+        status.HTTP_200_OK: {
+            'description': 'Profit and loss data retrieval request accepted.',
+        }
+    },
+)
+async def post_projection_profit_and_loss_metrics(
+    file_uuid: str,
+    background_tasks: BackgroundTasks,
+    firebase_client: FirebaseClient = Depends(get_firebase_client),
+    openai_client: openai.ChatCompletion = Depends(get_openai_client),
+    user_id: str = Depends(get_user_id),
+):
+    try:
+        # バックグラウンドタスクを登録
+        background_tasks.add_task(
+            process_profit_and_loss_metrics,
+            file_uuid,
+            firebase_client,
+            openai_client,
+            user_id,
+        )
+
+        # 即時レスポンス
+        return {"message": "Request accepted. Processing will continue in the background."}
 
     except Exception as e:
-        logger.error(f"Error retrieving or analyzing images: {str(e)}")
+        logger.error(f"Error initiating background task: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail="An error occurred while retrieving or analyzing images.",
+            detail="An error occurred while initiating the background task.",
         )
 
 
@@ -278,7 +304,9 @@ def add_or_update_monthly_data(
     ]
 
     for key, title in keys_and_titles:
-        value = summary.get(data_key, {}).get(key)  # 動的に指定されたキーを使用
+        value=None
+        if isinstance(summary, dict) and isinstance(summary.get(data_key), dict):
+            value = summary.get(data_key, {}).get(key)
 
         if value is not None:
             # 既存データの確認

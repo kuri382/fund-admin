@@ -3,7 +3,7 @@ import logging
 import uuid
 
 import openai
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.responses import ORJSONResponse
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
@@ -25,7 +25,7 @@ class TempCustomResponse(BaseModel):
     business_summaries: list[TempSaaSMetrics] = Field(..., description='期間ごとに整理したデータ')
 
 
-async def send_to_analysis_api(openai_client, image_url, max_retries=3):
+def send_to_analysis_api(openai_client, image_url, max_retries=3):
     """OpenAI APIにリクエストを送信し、パースされたレスポンスを取得する。リトライ機能付き"""
     retry_count = 0
     while retry_count < max_retries:
@@ -40,7 +40,7 @@ async def send_to_analysis_api(openai_client, image_url, max_retries=3):
                     },
                     {
                         "role": "system",
-                        "content": "- かならず単位を円で計算しなさい。「百万円」や「億円」をすべて「円」に統一する。 - 複数候補がある場合は単一の値のみを採用せよ",
+                        "content": "- かならず単位を円で計算しなさい。「百万円」や「億円」をすべて「円」に統一する。 - 範囲の値がある場合には最大値を採用せよ",
                     },
                     {
                         "role": "user",
@@ -64,7 +64,6 @@ async def send_to_analysis_api(openai_client, image_url, max_retries=3):
             if retry_count >= max_retries:
                 logger.error("Max retries reached. Exiting the retry loop.")
                 raise e
-            await asyncio.sleep(2)
 
 
 def save_parameters(
@@ -110,22 +109,21 @@ def save_parameters(
                     'product_name': summary.business_scope.product_name,
                 },
                 'saas_revenue_metrics': {
-                    'revenue': str(summary.saas_revenue_metrics.revenue),
-                    'mrr': str(summary.saas_revenue_metrics.mrr),
-                    'arr': str(summary.saas_revenue_metrics.arr),
-                    'arpu': str(summary.saas_revenue_metrics.arpu),
-                    'arpu': str(summary.saas_revenue_metrics.arpu),
-                    'expansion_revenue': str(summary.saas_revenue_metrics.expansion_revenue),
-                    'new_customer_revenue': str(summary.saas_revenue_metrics.new_customer_revenue),
-                },
+                    'revenue': str(summary.saas_revenue_metrics.revenue) if summary.saas_revenue_metrics else None,
+                    'mrr': str(summary.saas_revenue_metrics.mrr) if summary.saas_revenue_metrics else None,
+                    'arr': str(summary.saas_revenue_metrics.arr) if summary.saas_revenue_metrics else None,
+                    'arpu': str(summary.saas_revenue_metrics.arpu) if summary.saas_revenue_metrics else None,
+                    'expansion_revenue': str(summary.saas_revenue_metrics.expansion_revenue) if summary.saas_revenue_metrics else None,
+                    'new_customer_revenue': str(summary.saas_revenue_metrics.new_customer_revenue) if summary.saas_revenue_metrics else None,
+                } if summary.saas_revenue_metrics else None,
                 'saas_customer_metrics': {
-                    'churn_rate': str(summary.saas_customer_metrics.churn_rate),
-                    'retention_rate': str(summary.saas_customer_metrics.retention_rate),
-                    'active_users': str(summary.saas_customer_metrics.active_users),
-                    'trial_conversion_rate': str(summary.saas_customer_metrics.trial_conversion_rate),
-                    'average_contract_value': str(summary.saas_customer_metrics.average_contract_value),
-                    'nrr': str(summary.saas_customer_metrics.nrr),
-                },
+                    'churn_rate': str(summary.saas_customer_metrics.churn_rate) if summary.saas_customer_metrics else None,
+                    'retention_rate': str(summary.saas_customer_metrics.retention_rate) if summary.saas_customer_metrics else None,
+                    'active_users': str(summary.saas_customer_metrics.active_users) if summary.saas_customer_metrics else None,
+                    'trial_conversion_rate': str(summary.saas_customer_metrics.trial_conversion_rate) if summary.saas_customer_metrics else None,
+                    'average_contract_value': str(summary.saas_customer_metrics.average_contract_value) if summary.saas_customer_metrics else None,
+                    'nrr': str(summary.saas_customer_metrics.nrr) if summary.saas_customer_metrics else None,
+                } if summary.saas_customer_metrics else None,
             }
         )
         return
@@ -134,20 +132,11 @@ def save_parameters(
         raise HTTPException(status_code=500, detail=e)
 
 
-@router.post(
-    "/customer_revenue",
-    response_class=ORJSONResponse,
-    responses={
-        status.HTTP_200_OK: {
-            'description': 'Image analysis completed successfully.',
-        }
-    },
-)
-async def post_projection_customer_revenue(
+def process_customer_revenue_analysis(
     file_uuid: str,
-    firebase_client: FirebaseClient = Depends(get_firebase_client),
-    openai_client: openai.ChatCompletion = Depends(get_openai_client),
-    user_id: str = Depends(get_user_id),
+    firebase_client: FirebaseClient,
+    openai_client: openai.ChatCompletion,
+    user_id: str,
 ):
     try:
         storage_client = firebase_client.get_storage()
@@ -157,32 +146,83 @@ async def post_projection_customer_revenue(
         pages_to_parse = range(1, max_pages_to_parse + 1)
 
         for page_number in pages_to_parse:
-            blobs = storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}/{page_number}")
+            logger.info(f'page_number: {page_number}')
 
-            url = None
+            blobs = list(storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}/{page_number}"))
+            if not blobs:
+                logger.info(f"No blobs found for page {page_number}")
+                continue
+
             for blob in blobs:
                 url = blob.generate_signed_url(expiration=3600, method='GET', version='v4')
+                if not url:
+                    logger.warning("URL の生成に失敗しました。スキップします。")
+                    continue
 
-            data = await send_to_analysis_api(openai_client, url)
-            # data = TempCustomResponse(steps = [Step(explanation='', output='')], business_summaries = [sample_temp_saas_metrics, sample_temp_saas_metrics])
-            if not data.business_summaries:
+                data = send_to_analysis_api(openai_client, url)
+                logger.info(f'target data: {data.business_summaries}')
+
+                if not data.business_summaries:
+                    logger.info(f"No business summaries found in page {page_number}")
+                    continue
+
                 for summary in data.business_summaries:
-                    if not all(
-                        [
-                            all_fields_are_none(summary.business_scope),
-                            all_fields_are_none(summary.saas_customer_metrics),
-                            all_fields_are_none(summary.saas_revenue_metrics),
-                        ]
-                    ):
-                        # 少なくとも1つ以上の有効データが存在する場合
-                        save_parameters(firestore_client, user_id, file_uuid, page_number, summary=summary)
-                    else:
-                        logger.info("すべてのデータがNoneです。処理をスキップします。")
-        return
+                    if summary is None:
+                        logger.warning("Summary が None のためスキップします。")
+                        continue
+
+                    # 各フィールドの None チェック
+                    if summary.saas_revenue_metrics is None and summary.saas_customer_metrics is None:
+                        logger.warning("Revenue metrics と Customer metrics がどちらも None のためスキップします。")
+                        continue
+
+                    try:
+                        save_parameters(
+                            firestore_client,
+                            user_id,
+                            file_uuid,
+                            page_number,
+                            summary=summary,
+                        )
+                    except AttributeError as e:
+                        logger.error(f"Error accessing dict for metrics: {e}. Skipping this summary.")
+                        continue
 
     except Exception as e:
-        logger.error(f"Error retrieving or analyzing images: {str(e)}")
+        logger.error(f"Error during background analysis: {str(e)}")
+
+
+@router.post(
+    "/customer_revenue",
+    response_class=ORJSONResponse,
+    responses={
+        status.HTTP_200_OK: {
+            'description': 'Request accepted. Image analysis will be processed in the background.',
+        }
+    },
+)
+async def post_projection_customer_revenue(
+    file_uuid: str,
+    background_tasks: BackgroundTasks,
+    firebase_client: FirebaseClient = Depends(get_firebase_client),
+    openai_client: openai.ChatCompletion = Depends(get_openai_client),
+    user_id: str = Depends(get_user_id),
+):
+    try:
+        # バックグラウンドで実行する関数を登録
+        background_tasks.add_task(
+            process_customer_revenue_analysis,
+            file_uuid,
+            firebase_client,
+            openai_client,
+            user_id,
+        )
+
+        return {"message": "Request accepted. Processing will continue in the background."}
+
+    except Exception as e:
+        logger.error(f"Error initiating background task: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail="An error occurred while retrieving or analyzing images.",
+            detail="An error occurred while initiating background task.",
         )
