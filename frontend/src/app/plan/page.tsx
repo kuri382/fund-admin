@@ -1,6 +1,5 @@
 import React from 'react';
 import FinancialTable from '@/components/dashboard/Generator/generateBusinessPlan';
-import ImageListComponent from '@/components/dashboard/Generator/ImageUUIDViewer';
 
 const GenerateBusinessPlanPage: React.FC = () => {
     return (

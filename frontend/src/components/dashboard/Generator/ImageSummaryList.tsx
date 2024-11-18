@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Button, List, Image, Spin, Alert, Card, Typography, Row, Col } from 'antd';
+import { Button, List, Image, Spin, Alert, Card, Typography, Row, Col, Space } from 'antd';
 import axios from 'axios';
 import { getAuth } from "firebase/auth";
 
 import { apiUrlGetImageList, apiUrlGetParameterSummary } from '@/utils/api';
+import ButtonAnalyzePL from '@/components/dashboard/TableAnalysis/Button/ButtonAnalyzePL'
+import ButtonAnalyzeSaaS from '@/components/dashboard/TableAnalysis/Button/ButtonAnalyzeSaaS'
 
 const { Paragraph } = Typography;
 
@@ -82,9 +84,15 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
 
   return (
     <div>
-      <Button type="primary" onClick={fetchImages} style={{marginBottom:'10px'}}>
+      <Button type="primary" onClick={fetchImages} style={{ marginBottom: '10px' }}>
         資料詳細を表示する
       </Button>
+      <br></br>
+      <Space>
+        <ButtonAnalyzePL file_uuid={file_uuid} />
+        <ButtonAnalyzeSaaS file_uuid={file_uuid} />
+      </Space>
+      <div style={{ padding: '20px' }}></div>
 
       {loading && <Spin />}
       {error && <Alert message={error} type="error" showIcon />}

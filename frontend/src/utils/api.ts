@@ -37,3 +37,5 @@ export const apiUrlGetParameterSales = `${api.baseUrl}/parameter/sales`;
 
 // projection 事業計画書
 export const apiUrlGetProjectionProfitAndLoss = `${api.baseUrl}/projection/profit_and_loss/metrics`;
+export const apiUrlPostProjectionProfitAndLoss = `${api.baseUrl}/projection/profit_and_loss/metrics`;
+export const apiUrlPostProjectionSaaSCustomerRevenue = `${api.baseUrl}/projection/saas/customer_revenue`;

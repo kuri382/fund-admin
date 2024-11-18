@@ -68,6 +68,18 @@ const AnalysisComponents: React.FC = () => {
     {
       key: '3',
       label: (
+        <div key="tab-4">
+          <div style={{ width: '150px' }}>事業計画書自動作成</div>
+          <Tag color='gray'>数値はバックグラウンドで収集されます</Tag>
+        </div>
+      ),
+      children: <MainTable projectChanged={projectChanged} />,
+      style: { height: '800px' }
+    },
+    /*
+    {
+      key: '3',
+      label: (
         <div key="tab-3">
           <div style={{ width: '150px' }}>事業計画書 自動作成</div>
           <Tag color='gray'>β版</Tag>
@@ -77,18 +89,6 @@ const AnalysisComponents: React.FC = () => {
       //children: <QuestionAnswerComponent />,
       style: { height: '800px' }
     },
-    {
-      key: '4',
-      label: (
-        <div key="tab-4">
-          <div style={{ width: '150px' }}>出力 Issue Analysis</div>
-          <Tag color='gray'>β版</Tag>
-        </div>
-      ),
-      children: <MainTable />,
-      style: { height: '800px' }
-    },
-    /*
     {
       key: '5',
       label: (
