@@ -31,7 +31,7 @@ const ButtonAnalyzePL: React.FC<ButtonAnalyzePLProps> = ({ file_uuid }) => {
                         },
                     }
                 );
-                message.success('データの取得に成功しました。');
+                message.success('データの解析はバックグラウンドで行われます');
                 console.log(response.data);
             } catch (error) {
                 message.error('データの取得に失敗しました。');

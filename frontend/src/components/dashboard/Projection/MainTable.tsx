@@ -47,8 +47,6 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
     try {
       setLoading(true);
       const accessToken = await fetchAccessToken();
-      console.log('正しい', accessToken)
-
       const response = await axios.get<PLMetricsResponse>(
         apiUrlGetProjectionProfitAndLoss,
         {
