@@ -49,12 +49,7 @@ async def create_project(
     try:
         # Firestoreにデータを保存（users/{user_id}/projects/{project_id}）
         firestore_client = firebase_client.get_firestore()
-        doc_ref = (
-            firestore_client.collection('users')
-            .document(user_id)
-            .collection('projects')
-            .document(project_id)
-        )
+        doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(project_id)
         doc_ref.set(project_data)
 
     except Exception as e:
@@ -85,11 +80,7 @@ async def select_project(
 
     try:
         firestore_client = firebase_client.get_firestore()
-        projects_ref = (
-            firestore_client.collection('users')
-            .document(user_id)
-            .collection('projects')
-        )
+        projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
         projects = projects_ref.stream()
 
         # すべてのプロジェクトの is_selected フラグを False にリセット
@@ -123,11 +114,7 @@ async def get_projects(
 
     try:
         firestore_client = firebase_client.get_firestore()
-        projects_ref = (
-            firestore_client.collection('users')
-            .document(user_id)
-            .collection('projects')
-        )
+        projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
         docs = projects_ref.where('is_archived', '==', False).stream()
 
         projects = []
@@ -150,9 +137,7 @@ async def get_projects(
 
 
 @router.get("/projects/selected")
-async def get_selected_project(
-    request: Request, firebase_client: FirebaseClient = Depends(get_firebase_client)
-):
+async def get_selected_project(request: Request, firebase_client: FirebaseClient = Depends(get_firebase_client)):
     authorization = request.headers.get("Authorization")
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
@@ -164,14 +149,8 @@ async def get_selected_project(
     try:
         # Firestore から選択されたプロジェクトを取得 (is_selected が True のもの)
         firestore_client = firebase_client.get_firestore()
-        projects_ref = (
-            firestore_client.collection('users')
-            .document(user_id)
-            .collection('projects')
-        )
-        selected_project = (
-            projects_ref.where('is_selected', '==', True).limit(1).stream()
-        )
+        projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+        selected_project = projects_ref.where('is_selected', '==', True).limit(1).stream()
 
         selected_project_data = None
         for project in selected_project:
@@ -203,12 +182,7 @@ async def archive_project(
         raise HTTPException(status_code=401, detail="Invalid token")
 
     firestore_client = firebase_client.get_firestore()
-    doc_ref = (
-        firestore_client.collection('users')
-        .document(user_id)
-        .collection('projects')
-        .document(project_id)
-    )
+    doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(project_id)
 
     doc = doc_ref.get()
     if doc.exists and doc.to_dict().get('is_archived', False):
@@ -238,12 +212,7 @@ async def delete_project(
 
     # Firestoreからプロジェクトを削除
     firestore_client = firebase_client.get_firestore()
-    doc_ref = (
-        firestore_client.collection('users')
-        .document(user_id)
-        .collection('projects')
-        .document(project_id)
-    )
+    doc_ref = firestore_client.collection('users').document(user_id).collection('projects').document(project_id)
     doc_ref.delete()
 
     return {"detail": "Project deleted successfully"}

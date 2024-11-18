@@ -97,11 +97,7 @@ async def get_sources(
         # Firestoreから該当するcompany_idのデータを取得
         user_id = 'user_123'
         sources_ref = (
-            db.collection('users')
-            .document(user_id)
-            .collection('companies')
-            .document(company_id)
-            .collection('sources')
+            db.collection('users').document(user_id).collection('companies').document(company_id).collection('sources')
         )
         sources = sources_ref.stream()
 
@@ -110,9 +106,7 @@ async def get_sources(
             result.append(source.to_dict())
 
         if not result:
-            raise HTTPException(
-                status_code=404, detail="No data found for the given user and company."
-            )
+            raise HTTPException(status_code=404, detail="No data found for the given user and company.")
 
         return SourceResponse(sources=result)
 

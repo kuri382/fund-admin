@@ -6,16 +6,7 @@ from typing import Final
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.core.routers import (
-    auth,
-    data,
-    explorer,
-    image,
-    parameter,
-    project,
-    summary,
-    upload,
-)
+from src.core.routers import auth, data, explorer, image, parameter, project, summary, upload
 from src.core.services import firebase_client
 from src.settings import settings
 

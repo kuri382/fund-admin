@@ -32,11 +32,7 @@ async def list_excel_files_by_project(
         firestore_client = firebase_client.get_firestore()
 
         # Firestoreから選択中のプロジェクトを取得
-        projects_ref = (
-            firestore_client.collection('users')
-            .document(user_id)
-            .collection('projects')
-        )
+        projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
         is_selected_filter = FieldFilter("is_selected", "==", True)
         query = projects_ref.where(filter=is_selected_filter).limit(1)
         selected_project = query.get()
@@ -46,7 +42,6 @@ async def list_excel_files_by_project(
 
         selected_project_id = selected_project[0].id
 
-        # 選択されたプロジェクト配下の 'tables' コレクションからファイル情報を取得
         tables_ref = (
             firestore_client.collection('users')
             .document(user_id)
@@ -61,12 +56,10 @@ async def list_excel_files_by_project(
         for doc in tables_docs:
             file_info = doc.to_dict()
             file_uuid = doc.id  # FirestoreのドキュメントIDを使用（ファイルUUID）
-            file_name = file_info.get(
-                'file_name', 'Unknown File'
-            )  # Firestoreに保存されているファイル名
+            file_name = file_info.get('file_name', 'Unknown File')  # Firestoreに保存されているファイル名
             file_extension = file_name.split('.')[-1].lower()
             # ストレージからファイルを取得 (file_uuidをキーとして使用)
-            blob_path = f"{user_id}/{file_uuid}_{file_name}"
+            blob_path = f"{user_id}/documents/{file_uuid}_{file_name}"
             blob = storage_client.blob(blob_path)
             if not blob.exists():
                 continue  # ファイルがストレージに存在しない場合はスキップ
@@ -107,9 +100,7 @@ async def list_excel_files_by_project(
 
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(
-            status_code=500, detail=f"Error retrieving or processing files: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error retrieving or processing files: {str(e)}")
 
 
 @router.get("/data/document")
@@ -128,19 +119,13 @@ async def list_document_files(
         firestore_client = firebase_client.get_firestore()
 
         # 選択中のプロジェクトをFirestoreから取得
-        projects_ref = (
-            firestore_client.collection('users')
-            .document(user_id)
-            .collection('projects')
-        )
+        projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
         is_selected_filter = FieldFilter("is_selected", "==", True)
         query = projects_ref.where(filter=is_selected_filter).limit(1)
         selected_project = query.get()
 
         if not selected_project:
-            raise HTTPException(
-                status_code=204, detail="No project selected."
-            )  # プロジェクトがない場合は204
+            raise HTTPException(status_code=204, detail="No project selected.")  # プロジェクトがない場合は204
 
         selected_project_id = selected_project[0].id
 
@@ -160,9 +145,7 @@ async def list_document_files(
             doc_data = doc.to_dict()
             file_uuid = doc.id  # FirestoreのドキュメントIDがファイルUUID
 
-            file_name = doc_data.get(
-                'file_name', 'Unknown File'
-            )  # Firestoreに保存されているファイル名
+            file_name = doc_data.get('file_name', 'Unknown File')  # Firestoreに保存されているファイル名
 
             # ストレージからファイルを取得
             blob_path = f"{user_id}/documents/{file_uuid}_{file_name}"
@@ -194,6 +177,4 @@ async def list_document_files(
         return JSONResponse(content={"files": file_data_list}, status_code=200)
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error retrieving or processing files: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error retrieving or processing files: {str(e)}")

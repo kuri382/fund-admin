@@ -19,9 +19,7 @@ async def read_pdf_file(contents: bytes) -> fitz.Document:
     return pdf_document
 
 
-def convert_pdf_page_to_image(
-    pdf_document: fitz.Document, page_number: int
-) -> io.BytesIO:
+def convert_pdf_page_to_image(pdf_document: fitz.Document, page_number: int) -> io.BytesIO:
     """
     PyMuPDFのDocumentオブジェクトから特定のページを画像化する関数
     :param pdf_document: PyMuPDFのDocumentオブジェクト
@@ -58,27 +56,21 @@ async def upload_image_to_firebase(
     :param page_number: ページ番号
     :param storage_client: Firebase StorageのBucketクライアント
     """
-    blob = storage_client.blob(
-        f"{user_id}/image/{unique_filename}+page_{page_number + 1}"
-    )
+    blob = storage_client.blob(f"{user_id}/image/{unique_filename}+page_{page_number + 1}")
 
     try:
         blob.upload_from_file(image_bytes, content_type='image/png')
         logger.info(f"Uploaded {unique_filename} to Firebase Storage.")
 
     except exceptions.FirebaseError as e:
-        logger.error(
-            f"Failed to upload {unique_filename} to Firebase Storage. Error: {e}"
-        )
+        logger.error(f"Failed to upload {unique_filename} to Firebase Storage. Error: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to upload page {page_number + 1} to storage.",
         )
 
     except Exception as e:
-        logger.error(
-            f"An unexpected error occurred while uploading {unique_filename}. Error: {e}"
-        )
+        logger.error(f"An unexpected error occurred while uploading {unique_filename}. Error: {e}")
         raise HTTPException(
             status_code=500,
             detail="An unexpected error occurred during the upload process.",

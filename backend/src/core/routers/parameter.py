@@ -60,12 +60,8 @@ class ResGetParameterAnalysis(BaseJSONSchema):
     gross_profit_actual: Decimal | None = Field(..., description='売上総利益 実績。単位は円')
 
     # 売上総利益率
-    gross_profit_margin_forecast: Decimal | None = Field(
-        ..., description='売上総利益率 予測。単位は円'
-    )
-    gross_profit_margin_actual: Decimal | None = Field(
-        ..., description='売上総利益率 実績。単位は円'
-    )
+    gross_profit_margin_forecast: Decimal | None = Field(..., description='売上総利益率 予測。単位は円')
+    gross_profit_margin_actual: Decimal | None = Field(..., description='売上総利益率 実績。単位は円')
 
 
 class DataSource(BaseModel):
@@ -240,9 +236,7 @@ def convert_business_summary_to_financial_response(
             url="https://placehold.jp/300x200.png",
         )
 
-    def create_quarter_data(
-        summary: firebase_driver.BusinessSummary, metric_key: str
-    ) -> QuarterData:
+    def create_quarter_data(summary: firebase_driver.BusinessSummary, metric_key: str) -> QuarterData:
         forecast_value = getattr(summary, f"{metric_key}_forecast")
         actual_value = getattr(summary, f"{metric_key}_actual")
 
@@ -283,19 +277,13 @@ def convert_business_summary_to_financial_response(
     for metric in metrics:
         values = []
         for summary in summaries:
-            if (
-                summary.has_non_none_fields() and summary.period.quarter
-            ):  # summryの中に有効データがある場合
+            if summary.has_non_none_fields() and summary.period.quarter:  # summryの中に有効データがある場合
                 quarter_data = create_quarter_data(summary, metric["key"])
                 if quarter_data is not None:
                     values.append(quarter_data)
 
         if values:  # 値が存在する場合のみFinancialDataを作成
-            financial_data.append(
-                FinancialData(
-                    key=metric['key'], metric=f"{metric['name']}", values=values
-                )
-            )
+            financial_data.append(FinancialData(key=metric['key'], metric=f"{metric['name']}", values=values))
     return financial_data
 
 

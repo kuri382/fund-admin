@@ -48,9 +48,7 @@ def save_analysis_result(
     analysis_result: AnalysisResult,
     target_collection: str,
 ) -> None:
-    projects_ref = (
-        firestore_client.collection('users').document(user_id).collection('projects')
-    )
+    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
     is_selected_filter = FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
     selected_project = query.get()
@@ -127,18 +125,12 @@ class BusinessSummary(BaseModel):
     gross_profit_actual: Decimal | None = Field(..., description='売上総利益 実績。単位は円')
 
     # 売上総利益率
-    gross_profit_margin_forecast: Decimal | None = Field(
-        ..., description='売上総利益率 予測。単位は円'
-    )
-    gross_profit_margin_actual: Decimal | None = Field(
-        ..., description='売上総利益率 実績。単位は円'
-    )
+    gross_profit_margin_forecast: Decimal | None = Field(..., description='売上総利益率 予測。単位は円')
+    gross_profit_margin_actual: Decimal | None = Field(..., description='売上総利益率 実績。単位は円')
 
     def has_non_none_fields(self) -> bool:
         """period以外のフィールドが全てNoneならFalse、少なくとも1つでもNoneでないフィールドがあればTrueを返す"""
-        return any(
-            value is not None for field, value in self.dict(exclude={'period'}).items()
-        )
+        return any(value is not None for field, value in self.dict(exclude={'period'}).items())
 
 
 def save_page_image_analysis(
@@ -154,9 +146,7 @@ def save_page_image_analysis(
     opinion: str,
     target_collection: str = 'sales',
 ) -> None:
-    projects_ref = (
-        firestore_client.collection('users').document(user_id).collection('projects')
-    )
+    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
     is_selected_filter = FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
     selected_project = query.get()
@@ -188,12 +178,8 @@ def save_page_image_analysis(
                 "revenue_actual": str(business_summary.revenue_actual),
                 "gross_profit_forecast": str(business_summary.gross_profit_forecast),
                 "gross_profit_actual": str(business_summary.gross_profit_actual),
-                "gross_profit_margin_forecast": str(
-                    business_summary.gross_profit_margin_forecast
-                ),
-                "gross_profit_margin_actual": str(
-                    business_summary.gross_profit_margin_actual
-                ),
+                "gross_profit_margin_forecast": str(business_summary.gross_profit_margin_forecast),
+                "gross_profit_margin_actual": str(business_summary.gross_profit_margin_actual),
                 "explanation": str(explanation),
                 "output": str(output),
                 'opinion': str(opinion),
@@ -216,9 +202,7 @@ def safe_decimal(value: Optional[str]) -> Optional[Decimal]:
 
 
 def get_selected_project_id(firestore_client: firestore.Client, user_id: str) -> str:
-    projects_ref = (
-        firestore_client.collection('users').document(user_id).collection('projects')
-    )
+    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
     is_selected_filter = FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
     selected_project = query.get()
@@ -243,9 +227,7 @@ def parse_business_summary(doc) -> BusinessSummary:
         revenue_actual=safe_decimal(data.get("revenue_actual")),
         gross_profit_forecast=safe_decimal(data.get("gross_profit_forecast")),
         gross_profit_actual=safe_decimal(data.get("gross_profit_actual")),
-        gross_profit_margin_forecast=safe_decimal(
-            data.get("gross_profit_margin_forecast")
-        ),
+        gross_profit_margin_forecast=safe_decimal(data.get("gross_profit_margin_forecast")),
         gross_profit_margin_actual=safe_decimal(data.get("gross_profit_margin_actual")),
     )
 
@@ -316,9 +298,7 @@ def fetch_page_summary(
 def retrieve_and_convert_to_json(
     firestore_client, user_id: str, file_uuid: str, target_collection: str = 'plans'
 ) -> str:
-    projects_ref = (
-        firestore_client.collection('users').document(user_id).collection('projects')
-    )
+    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
     is_selected_filter = FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
     selected_project = query.get()
@@ -361,9 +341,7 @@ def save_pages_to_analysis_result(
     target_collection: str,
     pages: list[PageDetail],
 ) -> None:
-    projects_ref = (
-        firestore_client.collection('users').document(user_id).collection('projects')
-    )
+    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
     is_selected_filter = FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
     selected_project = query.get()
@@ -405,9 +383,7 @@ async def get_pages_from_analysis_result(
     target_collection: str,
 ) -> list[PageDetail]:
     """指定されたUUIDに紐づくデータを取得し、重複するindexがあれば最新のものを返す"""
-    projects_ref = (
-        firestore_client.collection('users').document(user_id).collection('projects')
-    )
+    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
     is_selected_filter = firestore.FieldFilter("is_selected", "==", True)
     query = projects_ref.where(filter=is_selected_filter).limit(1)
     selected_project = query.get()
@@ -428,9 +404,7 @@ async def get_pages_from_analysis_result(
     # Firestoreからデータを取得
     doc_snapshot = doc_ref.get()
     if not doc_snapshot.exists:
-        raise HTTPException(
-            status_code=404, detail="No pages found for the specified UUID"
-        )
+        raise HTTPException(status_code=404, detail="No pages found for the specified UUID")
 
     # Firestoreから取得した`pages`フィールドのリストを取得
     pages_data = doc_snapshot.to_dict().get("pages", [])
@@ -443,8 +417,6 @@ async def get_pages_from_analysis_result(
 
         # `index` が存在しない、もしくは `updated_at` がより新しい場合に更新
         if index not in latest_pages or updated_at > latest_pages[index].updated_at:
-            latest_pages[index] = PageDetail(
-                index=index, summary=page["summary"], updated_at=updated_at
-            )
+            latest_pages[index] = PageDetail(index=index, summary=page["summary"], updated_at=updated_at)
 
     return list(latest_pages.values())

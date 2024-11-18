@@ -59,14 +59,10 @@ def create_chat_completion_message(system_prompt, prompt, image_base64):
     return messages
 
 
-async def upload_image(
-    pdf_document, user_id, page_number, unique_filename, storage_client
-):
+async def upload_image(pdf_document, user_id, page_number, unique_filename, storage_client):
     """PDFページを画像に変換してFirebaseにアップロードする"""
     image_bytes = pdf_processor.convert_pdf_page_to_image(pdf_document, page_number)
-    await pdf_processor.upload_image_to_firebase(
-        image_bytes, user_id, page_number, unique_filename, storage_client
-    )
+    await pdf_processor.upload_image_to_firebase(image_bytes, user_id, page_number, unique_filename, storage_client)
     return encode_binaryio_to_base64(image_bytes)
 
 
@@ -95,9 +91,7 @@ async def fetch_and_parse_response(openai_client, image_base64, max_retries=3):
                             },
                             {
                                 "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{image_base64}"
-                                },
+                                "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
                             },
                         ],
                     },
@@ -108,9 +102,7 @@ async def fetch_and_parse_response(openai_client, image_base64, max_retries=3):
 
         except ValidationError as e:
             retry_count += 1
-            logger.warning(
-                f'Validation error occurred: {e}. Retrying {retry_count}/{max_retries}'
-            )
+            logger.warning(f'Validation error occurred: {e}. Retrying {retry_count}/{max_retries}')
             if retry_count >= max_retries:
                 logger.error("Max retries reached. Exiting the retry loop.")
                 raise e
@@ -135,9 +127,7 @@ async def process_pdf_background(
     for page_number in range(max_pages):
         try:
             logger.info(f'Processing page {page_number + 1}/{max_pages}')
-            image_base64 = await upload_image(
-                pdf_document, user_id, page_number, unique_filename, storage_client
-            )
+            image_base64 = await upload_image(pdf_document, user_id, page_number, unique_filename, storage_client)
             result = await fetch_and_parse_response(openai_client, image_base64)
             logger.info('result analysed')
             page_uuid = uuid.uuid4()
@@ -156,15 +146,11 @@ async def process_pdf_background(
             logger.info('firebase storage saved')
 
             if result is None:
-                logger.warning(
-                    f"Skipping page {page_number + 1} due to repeated validation errors."
-                )
+                logger.warning(f"Skipping page {page_number + 1} due to repeated validation errors.")
                 continue
 
         except Exception as e:
-            logger.error(
-                f"An error occurred while processing page {page_number + 1}: {e}"
-            )
+            logger.error(f"An error occurred while processing page {page_number + 1}: {e}")
             logger.info(f"Skipping page {page_number + 1} due to error.")
             continue  # エラー発生時にスキップして次のページに進む
 
@@ -218,15 +204,11 @@ async def upload_file(
         case ".xlsx":
             try:
                 content_text = table_processor.convert_xlsx_row_to_text(contents)
-                analysis_result = extract_document_information(
-                    openai_client=openai_client, content_text=content_text
-                )
+                analysis_result = extract_document_information(openai_client=openai_client, content_text=content_text)
 
             except Exception as e:
                 logger.error(f"Error: {str(e)}")
-                raise HTTPException(
-                    status_code=500, detail=f"Error analyzing Excel file: {str(e)}"
-                )
+                raise HTTPException(status_code=500, detail=f"Error analyzing Excel file: {str(e)}")
 
             try:
                 firebase_driver.save_analysis_result(
@@ -239,22 +221,16 @@ async def upload_file(
                 )
 
             except Exception as e:
-                raise HTTPException(
-                    status_code=500, detail=f"Error saving csv result: {str(e)}"
-                )
+                raise HTTPException(status_code=500, detail=f"Error saving csv result: {str(e)}")
 
         case ".csv":
             try:
                 content_text = table_processor.analyze_csv_content(contents)
             except Exception as e:
-                raise HTTPException(
-                    status_code=500, detail=f"Error converting csv file: {str(e)}"
-                )
+                raise HTTPException(status_code=500, detail=f"Error converting csv file: {str(e)}")
 
             try:
-                analysis_result = extract_document_information(
-                    openai_client=openai_client, content_text=content_text
-                )
+                analysis_result = extract_document_information(openai_client=openai_client, content_text=content_text)
 
             except Exception as e:
                 if "rate_limit_exceeded" in str(e) or "Too Many Requests" in str(e):
@@ -262,9 +238,7 @@ async def upload_file(
                         status_code=429,
                         detail="Token limit exceeded or too many requests. Please try again later.",
                     )
-                raise HTTPException(
-                    status_code=500, detail=f"Error analyizing csv file: {str(e)}"
-                )
+                raise HTTPException(status_code=500, detail=f"Error analyizing csv file: {str(e)}")
 
             try:
                 firebase_driver.save_analysis_result(
@@ -276,16 +250,12 @@ async def upload_file(
                     target_collection='tables',
                 )
             except Exception as e:
-                raise HTTPException(
-                    status_code=500, detail=f"Error uploading csv file: {str(e)}"
-                )
+                raise HTTPException(status_code=500, detail=f"Error uploading csv file: {str(e)}")
 
         case ".pdf":
             try:
                 pdf_text = extract_text_from_pdf(file)
-                analysis_result = extract_document_information(
-                    openai_client=openai_client, content_text=pdf_text
-                )
+                analysis_result = extract_document_information(openai_client=openai_client, content_text=pdf_text)
 
             except Exception as e:
                 if "rate_limit_exceeded" in str(e) or "Too Many Requests" in str(e):
@@ -293,9 +263,7 @@ async def upload_file(
                         status_code=429,
                         detail="Token limit exceeded or too many requests. Please try again later.",
                     )
-                raise HTTPException(
-                    status_code=500, detail=f"Error analyizing csv file: {str(e)}"
-                )
+                raise HTTPException(status_code=500, detail=f"Error analyizing csv file: {str(e)}")
 
             try:
                 firebase_driver.save_analysis_result(
@@ -308,9 +276,7 @@ async def upload_file(
                 )
 
             except Exception as e:
-                raise HTTPException(
-                    status_code=500, detail=f"Error saving pdf result: {str(e)}"
-                )
+                raise HTTPException(status_code=500, detail=f"Error saving pdf result: {str(e)}")
 
             try:
                 background_tasks.add_task(

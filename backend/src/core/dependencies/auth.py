@@ -9,9 +9,7 @@ def get_user_id(request: Request) -> str:
     """
     authorization = request.headers.get("Authorization")
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=401, detail="Authorization header missing or invalid format"
-        )
+        raise HTTPException(status_code=401, detail="Authorization header missing or invalid format")
 
     token = authorization.split("Bearer ")[1]
     try:

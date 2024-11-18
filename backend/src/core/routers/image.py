@@ -8,11 +8,14 @@ from typing import Literal
 import openai
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import ORJSONResponse
+from google.cloud import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 from pydantic import BaseModel, Field, validator
 from pydantic_core import ValidationError
 
 from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
+from src.core.models.plan import Step, TempSaaSMetrics
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 
 from ._base import BaseJSONSchema
@@ -48,16 +51,12 @@ async def get_parameter_list(
 
         for blob in blobs:
             if uuid in blob.name:
-                url = blob.generate_signed_url(
-                    expiration=3600, method='GET', version='v4'
-                )
+                url = blob.generate_signed_url(expiration=3600, method='GET', version='v4')
                 # image_urls.append(url)
 
                 # page_n を抽出（例: "page_1" -> 1）
                 match = re.search(r'page_(\d+)', blob.name)
-                page_number = (
-                    int(match.group(1)) if match else float('inf')
-                )  # page_nがない場合は最後に来るように
+                page_number = int(match.group(1)) if match else float('inf')  # page_nがない場合は最後に来るように
 
                 # (page_number, url) のタプルとしてリストに追加
                 blob_with_page_numbers.append((page_number, url))
@@ -71,16 +70,12 @@ async def get_parameter_list(
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        return ORJSONResponse(
-            content={"imageUrls": image_urls}, status_code=status.HTTP_200_OK
-        )
+        return ORJSONResponse(content={"imageUrls": image_urls}, status_code=status.HTTP_200_OK)
 
     except Exception as e:
         logger.error(f"Error retrieving images: {str(e)}")
         traceback.print_exc()
-        raise HTTPException(
-            status_code=500, detail=f"Error retrieving or processing images: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error retrieving or processing images: {str(e)}")
 
 
 class Period(BaseModel):
@@ -124,29 +119,17 @@ class BusinessSummary(BaseModel):
     gross_profit_actual: Decimal | None = Field(..., description='売上総利益 実績。単位は円')
 
     # 売上総利益率
-    gross_profit_margin_forecast: Decimal | None = Field(
-        ..., description='売上総利益率 予測。単位は円'
-    )
-    gross_profit_margin_actual: Decimal | None = Field(
-        ..., description='売上総利益率 実績。単位は円'
-    )
+    gross_profit_margin_forecast: Decimal | None = Field(..., description='売上総利益率 予測。単位は円')
+    gross_profit_margin_actual: Decimal | None = Field(..., description='売上総利益率 実績。単位は円')
 
     def has_non_none_fields(self) -> bool:
         """period以外のフィールドが全てNoneならFalse、少なくとも1つでもNoneでないフィールドがあればTrueを返す"""
-        return any(
-            value is not None for field, value in self.dict(exclude={'period'}).items()
-        )
+        return any(value is not None for field, value in self.dict(exclude={'period'}).items())
 
 
-class Step(BaseModel):
-    explanation: str
-    output: str
-
-
-class CustomResponse(BaseModel):
+class TempCustomResponse(BaseModel):
     steps: list[Step]
-    # opinion: str = Field(..., description='アナリスト視点での分析。リスク要素や異常値の確認を相対的・トレンド分析を交えながら行う')
-    business_summaries: list[BusinessSummary] = Field(..., description='期間ごとに整理したデータ')
+    business_summaries: list[TempSaaSMetrics] = Field(..., description='期間ごとに整理したデータ')
 
 
 async def send_to_analysis_api(openai_client, image_url, max_retries=3):
@@ -178,19 +161,60 @@ async def send_to_analysis_api(openai_client, image_url, max_retries=3):
                     },
                 ],
                 temperature=0.3,
-                response_format=CustomResponse,
+                response_format=TempCustomResponse,
             )
             return response.choices[0].message.parsed
 
         except ValidationError as e:
             retry_count += 1
-            logger.warning(
-                f'Validation error occurred: {e}. Retrying {retry_count}/{max_retries}'
-            )
+            logger.warning(f'Validation error occurred: {e}. Retrying {retry_count}/{max_retries}')
             if retry_count >= max_retries:
                 logger.error("Max retries reached. Exiting the retry loop.")
                 raise e
             await asyncio.sleep(2)
+
+
+def save_parameters(
+    firestore_client: firestore.Client,
+    user_id: str,
+    file_uuid: str,
+    page_uuid: str,
+    page_number: int,
+    year: int,
+    month: int,
+) -> None:
+    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+    is_selected_filter = FieldFilter("is_selected", "==", True)
+    query = projects_ref.where(filter=is_selected_filter).limit(1)
+    selected_project = query.get()
+
+    if not selected_project:
+        raise ValueError("No project selected for the user")
+
+    selected_project_id = selected_project[0].id
+    doc_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(selected_project_id)
+        .collection('projection')
+        .collection('year')
+        .document(str(year))
+        .collection('month')
+        .document(str(month))
+    )
+
+    try:
+        doc_ref.set(
+            {
+                "file_uuid": str(file_uuid),
+                "page_number": page_number,
+            }
+        )
+        return
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get(
@@ -210,27 +234,35 @@ async def get_parameter_analyze(
     try:
         user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
         storage_client = firebase_client.get_storage()
+        firestore_client = firebase_client.get_firestore()
 
-        # 7 cpa や顧客ARPUなど
-        file_title = (
-            '0c504cb0-5c8f-4440-9237-1ddcb7e9d4c0_2024年8月度月次業績報告資料 copy.pdf+page_7'
-        )
         # 5 セグメント売上抽出
-        file_title = (
-            '0c504cb0-5c8f-4440-9237-1ddcb7e9d4c0_2024年8月度月次業績報告資料 copy.pdf+page_5'
-        )
+        file_title = '0c504cb0-5c8f-4440-9237-1ddcb7e9d4c0_2024年8月度月次業績報告資料 copy.pdf+page_5'
+        # 7 cpa や顧客ARPUなど
+        file_title = '0c504cb0-5c8f-4440-9237-1ddcb7e9d4c0_2024年8月度月次業績報告資料 copy.pdf+page_7'
         blobs = storage_client.list_blobs(prefix=f"{user_id}/image/")
 
         url = None
         for blob in blobs:
             if file_title in blob.name:
-                url = blob.generate_signed_url(
-                    expiration=3600, method='GET', version='v4'
-                )
+                url = blob.generate_signed_url(expiration=3600, method='GET', version='v4')
 
-        # Send encoded images to an external API for analysis
-        analysis_result = await send_to_analysis_api(openai_client, url)
-        print(analysis_result)
+        print(url)
+        file_uuid = ''
+        page_uuid = ''
+        page_number = 1
+
+        save_parameters(
+            firestore_client,
+            user_id,
+            file_uuid,
+            page_uuid,
+            page_number,
+            year=2024,
+            month=1,
+        )
+        # analysis_result = await send_to_analysis_api(openai_client, url)
+        # print(analysis_result)
 
         return None
 
