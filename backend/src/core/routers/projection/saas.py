@@ -10,11 +10,11 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from pydantic import BaseModel, Field
 from pydantic_core import ValidationError
 
-from src.settings import Settings
 from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
 from src.core.models.plan import Step, TempSaaSMetrics, all_fields_are_none
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
+from src.settings import Settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

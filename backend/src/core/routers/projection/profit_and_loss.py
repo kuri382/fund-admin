@@ -3,7 +3,7 @@ import logging
 import uuid
 
 import openai
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
 from google.cloud import firestore
@@ -11,7 +11,6 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from pydantic import BaseModel, Field, validator
 from pydantic_core import ValidationError
 
-from src.settings import Settings
 import src.core.services.firebase_driver as firebase_driver
 from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
@@ -19,6 +18,7 @@ from src.core.models.plan import Step, SummaryProfitAndLoss, all_fields_are_none
 from src.core.routers._base import BaseJSONSchema
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services.query import profit_and_loss
+from src.settings import Settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -301,12 +301,12 @@ def process_summaries(storage_client, user_id: str, summaries: list[dict], year:
 
     for summary in summaries:
         if summary["business_scope"]["scope_type"] == "company":
-            data_key='profit_and_loss'
+            data_key = 'profit_and_loss'
             add_or_update_monthly_data(storage_client, user_id, monthly_data, summary, year, data_key)
         else:
-            data_key='saas_customer_metrics'
+            data_key = 'saas_customer_metrics'
             add_or_update_monthly_data(storage_client, user_id, monthly_data, summary, year, data_key)
-            data_key='saas_revenue_metrics'
+            data_key = 'saas_revenue_metrics'
             add_or_update_monthly_data(storage_client, user_id, monthly_data, summary, year, data_key)
 
     return ResGetPLMetrics(rows=list(monthly_data.values()))

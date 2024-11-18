@@ -10,7 +10,6 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFi
 from pydantic import BaseModel, Field
 from pydantic_core import ValidationError
 
-from src.settings import Settings
 import src.core.services.firebase_driver as firebase_driver
 from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
@@ -18,6 +17,7 @@ from src.core.services.firebase_client import FirebaseClient, get_firebase_clien
 from src.core.services.openai_client import extract_document_information
 from src.core.services.pdf_processing import extract_text_from_pdf
 from src.core.services.upload import pdf_processor, table_processor
+from src.settings import Settings
 
 router = APIRouter(prefix='/upload', tags=['upload'])
 logger = logging.getLogger(__name__)
