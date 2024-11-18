@@ -3,7 +3,7 @@ import logging
 import uuid
 
 import openai
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
 from google.cloud import firestore
@@ -11,6 +11,7 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from pydantic import BaseModel, Field, validator
 from pydantic_core import ValidationError
 
+from src.settings import Settings
 import src.core.services.firebase_driver as firebase_driver
 from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
@@ -61,7 +62,7 @@ async def send_to_analysis_api(openai_client, image_url, max_retries=3):
             )
             return response.choices[0].message.parsed
 
-        except ValidationError as e:
+        except Exception as e:
             retry_count += 1
             logger.warning(f'Validation error occurred: {e}. Retrying {retry_count}/{max_retries}')
             if retry_count >= max_retries:
@@ -152,31 +153,38 @@ async def post_projection_profit_and_loss_metrics(
     file_uuid: str,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     openai_client: openai.ChatCompletion = Depends(get_openai_client),
-    # user_id: str = Depends(get_user_id),
+    user_id: str = Depends(get_user_id),
 ):
     try:
-        user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
         storage_client = firebase_client.get_storage()
         firestore_client = firebase_client.get_firestore()
 
-        page_number = 10
-        blobs = storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}/{page_number}")
+        max_pages_to_parse = Settings.max_pages_to_parse
+        pages_to_parse = range(1, max_pages_to_parse + 1)
 
-        url = None
-        for blob in blobs:
-            url = blob.generate_signed_url(expiration=3600, method='GET', version='v4')
-        data = await send_to_analysis_api(openai_client, url)
+        for page_number in pages_to_parse:
+            blobs = storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}/{page_number}")
 
-        for summary in data.business_summaries:
-            if not all(
-                [
-                    all_fields_are_none(summary.profit_and_loss),
-                ]
-            ):
-                save_parameters(firestore_client, user_id, file_uuid, page_number, summary=summary)
+            url = None
+            for blob in blobs:
+                url = blob.generate_signed_url(expiration=3600, method='GET', version='v4')
+
+            if url:
+                data = await send_to_analysis_api(openai_client, url)
+
+                for summary in data.business_summaries:
+                    if not all(
+                        [
+                            all_fields_are_none(summary.profit_and_loss),
+                        ]
+                    ):
+                        save_parameters(firestore_client, user_id, file_uuid, page_number, summary=summary)
+                    else:
+                        logger.info("すべてのデータがNoneです。処理をスキップします。")
             else:
-                logger.info("すべてのデータがNoneです。処理をスキップします。")
-        return
+                logger.info(f"No blobs found for page {page_number}")
+
+        return {"message": "Processing completed."}
 
     except Exception as e:
         logger.error(f"Error retrieving or analyzing images: {str(e)}")
@@ -227,6 +235,7 @@ def add_or_update_monthly_data(
     monthly_data: dict,
     summary: dict,
     year: int,
+    data_key: str,
 ):
     """月ごとのデータを追加または更新する"""
     month = summary["month"]
@@ -256,10 +265,21 @@ def add_or_update_monthly_data(
         ("ebitda", "EBITDA"),
         ("psr", "株価収益率 (PSR)"),
         ("ev_to_ebitda", "企業価値倍率 (EV/EBITDA)"),
+        ("arpu", "ARPU(ユーザー1人あたりの平均収益)"),
+        ("mrr", "MRR"),
+        ("arr", "ARR"),
+        ("expansion_revenue", "既存顧客からの追加収益（アップセル・クロスセル）"),
+        ("new_customer_revenue", "新規顧客からの収益"),
+        ("churn_rate", "解約率"),
+        ("retention_rate", "継続率"),
+        ("active_users", "アクティブユーザー数"),
+        ("trial_conversion_rate", "無料トライアルから有料プランへの転換率"),
+        ("average_contract_value", "顧客1件あたりの平均契約額"),
     ]
 
     for key, title in keys_and_titles:
-        value = summary["profit_and_loss"].get(key)
+        value = summary.get(data_key, {}).get(key)  # 動的に指定されたキーを使用
+
         if value is not None:
             # 既存データの確認
             existing_param = next((param for param in monthly_data[month].items if param.key == key), None)
@@ -281,7 +301,13 @@ def process_summaries(storage_client, user_id: str, summaries: list[dict], year:
 
     for summary in summaries:
         if summary["business_scope"]["scope_type"] == "company":
-            add_or_update_monthly_data(storage_client, user_id, monthly_data, summary, year)
+            data_key='profit_and_loss'
+            add_or_update_monthly_data(storage_client, user_id, monthly_data, summary, year, data_key)
+        else:
+            data_key='saas_customer_metrics'
+            add_or_update_monthly_data(storage_client, user_id, monthly_data, summary, year, data_key)
+            data_key='saas_revenue_metrics'
+            add_or_update_monthly_data(storage_client, user_id, monthly_data, summary, year, data_key)
 
     return ResGetPLMetrics(rows=list(monthly_data.values()))
 
@@ -298,10 +324,8 @@ def process_summaries(storage_client, user_id: str, summaries: list[dict], year:
 async def get_projection_profit_and_loss_metrics(
     year: int,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
-    # user_id: str = Depends(get_user_id),
+    user_id: str = Depends(get_user_id),
 ):
-    user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
-    # file_uuid = '01166a7a-9350-49bc-914c-902bedcc3544'
     firestore_client = firebase_client.get_firestore()
     storage_client = firebase_client.get_storage()
 
@@ -311,47 +335,8 @@ async def get_projection_profit_and_loss_metrics(
             user_id,
             year,
         )
-
-        """
-        rows = []
-        for summary in summaries:
-            print('------')
-            print(summary['month'])
-            print(summary['option_uuid'])
-
-            if summary['business_scope']['scope_type']=='company':
-                url = get_image_url(storage_client, summary['file_uuid'], int(summary['page_number']))
-                row = GetPLMetrics(
-                    period=ResPeriod(year=year, month=summary['month']),
-                    page_number=summary['page_number'],
-                    items = [
-                        Params(key='revenue', title='売上高', values=[
-                                Items(value=str(summary['profit_and_loss']['revenue']), url=url),
-                            ]
-                        ),
-                        Params(key='cogs', title='売上原価', value=str(summary['profit_and_loss']['cogs'])),
-                        Params(key='gross_profit_margin', title='売上総利益率', value=str(summary['profit_and_loss']['gross_profit_margin'])),
-                        Params(key='sg_and_a', title='販売費・一般管理費', value=str(summary['profit_and_loss']['sg_and_a'])),
-                        Params(key='operating_income', title='営業利益', value=str(summary['profit_and_loss']['operating_income'])),
-                        Params(key='operating_income_margin', title='営業利益率', value=str(summary['profit_and_loss']['operating_income_margin'])),
-                        Params(key='non_operating_income', title='営業外収益', value=str(summary['profit_and_loss']['non_operating_income'])),
-                        Params(key='non_operating_expenses', title='営業外費用', value=str(summary['profit_and_loss']['non_operating_expenses'])),
-                        Params(key='ordinary_income', title='経常利益', value=str(summary['profit_and_loss']['ordinary_income'])),
-                        Params(key='extraordinary_income', title='特別利益', value=str(summary['profit_and_loss']['extraordinary_income'])),
-                        Params(key='extraordinary_losses', title='特別損失', value=str(summary['profit_and_loss']['extraordinary_losses'])),
-                        Params(key='profit_before_tax', title='税引前当期純利益', value=str(summary['profit_and_loss']['profit_before_tax'])),
-                        Params(key='corporate_taxes', title='法人税等', value=str(summary['profit_and_loss']['corporate_taxes'])),
-                        Params(key='net_income', title='当期純利益', value=str(summary['profit_and_loss']['net_income'])),
-                        Params(key='ebitda', title='EBITDA', value=str(summary['profit_and_loss']['ebitda'])),
-                        Params(key='psr', title='株価収益率 (PSR)', value=str(summary['profit_and_loss']['psr'])),
-                        Params(key='ev_to_ebitda', title='企業価値倍率 (EV/EBITDA)', value=str(summary['profit_and_loss']['ev_to_ebitda'])),
-                    ]
-                )
-                rows.append(row)
-
-        content = ResGetPLMetrics(rows=rows)
-        """
         content = process_summaries(storage_client, user_id, summaries, year)
+
         return ORJSONResponse(content=jsonable_encoder(content))
 
     except Exception as e:

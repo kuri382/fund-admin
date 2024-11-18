@@ -10,6 +10,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFi
 from pydantic import BaseModel, Field
 from pydantic_core import ValidationError
 
+from src.settings import Settings
 import src.core.services.firebase_driver as firebase_driver
 from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
@@ -117,7 +118,7 @@ async def process_pdf_background(
     storage_client,
     openai_client,
     firestore_client,
-    max_pages=15,
+    max_pages=Settings.max_pages_to_parse,
 ):
     """PDFを処理し、各ページを画像化、アップロード、解析を行うメイン関数"""
     pdf_document = await pdf_processor.read_pdf_file(contents)

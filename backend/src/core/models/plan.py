@@ -30,6 +30,8 @@ class Period(BaseJSONSchema):
 
     @validator('month')
     def month_must_be_valid(cls, v):
+        if v is None:
+            return v
         if not (1 <= v <= 12):
             raise ValueError('Month must be between 1 and 12')
         return v

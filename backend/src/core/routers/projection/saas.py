@@ -10,6 +10,8 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from pydantic import BaseModel, Field
 from pydantic_core import ValidationError
 
+from src.settings import Settings
+from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
 from src.core.models.plan import Step, TempSaaSMetrics, all_fields_are_none
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
@@ -38,7 +40,7 @@ async def send_to_analysis_api(openai_client, image_url, max_retries=3):
                     },
                     {
                         "role": "system",
-                        "content": "接頭語に気をつけながら、かならず単位を円で計算しなさい。「百万円」や「億円」をすべて「円」に統一する",
+                        "content": "- かならず単位を円で計算しなさい。「百万円」や「億円」をすべて「円」に統一する。 - 複数候補がある場合は単一の値のみを採用せよ",
                     },
                     {
                         "role": "user",
@@ -56,7 +58,7 @@ async def send_to_analysis_api(openai_client, image_url, max_retries=3):
             )
             return response.choices[0].message.parsed
 
-        except ValidationError as e:
+        except Exception as e:
             retry_count += 1
             logger.warning(f'Validation error occurred: {e}. Retrying {retry_count}/{max_retries}')
             if retry_count >= max_retries:
@@ -145,34 +147,37 @@ async def post_projection_customer_revenue(
     file_uuid: str,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     openai_client: openai.ChatCompletion = Depends(get_openai_client),
-    # user_id: str = Depends(get_user_id),
+    user_id: str = Depends(get_user_id),
 ):
     try:
-        user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
         storage_client = firebase_client.get_storage()
         firestore_client = firebase_client.get_firestore()
 
-        page_number = 6
-        blobs = storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}/{page_number}")
+        max_pages_to_parse = Settings.max_pages_to_parse
+        pages_to_parse = range(1, max_pages_to_parse + 1)
 
-        url = None
-        for blob in blobs:
-            url = blob.generate_signed_url(expiration=3600, method='GET', version='v4')
-        data = await send_to_analysis_api(openai_client, url)
-        # data = TempCustomResponse(steps = [Step(explanation='', output='')], business_summaries = [sample_temp_saas_metrics, sample_temp_saas_metrics])
+        for page_number in pages_to_parse:
+            blobs = storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}/{page_number}")
 
-        for summary in data.business_summaries:
-            if not all(
-                [
-                    all_fields_are_none(summary.business_scope),
-                    all_fields_are_none(summary.saas_customer_metrics),
-                    all_fields_are_none(summary.saas_revenue_metrics),
-                ]
-            ):
-                # 少なくとも1つ以上の有効データが存在する場合
-                save_parameters(firestore_client, user_id, file_uuid, page_number, summary=summary)
-            else:
-                logger.info("すべてのデータがNoneです。処理をスキップします。")
+            url = None
+            for blob in blobs:
+                url = blob.generate_signed_url(expiration=3600, method='GET', version='v4')
+
+            data = await send_to_analysis_api(openai_client, url)
+            # data = TempCustomResponse(steps = [Step(explanation='', output='')], business_summaries = [sample_temp_saas_metrics, sample_temp_saas_metrics])
+            if not data.business_summaries:
+                for summary in data.business_summaries:
+                    if not all(
+                        [
+                            all_fields_are_none(summary.business_scope),
+                            all_fields_are_none(summary.saas_customer_metrics),
+                            all_fields_are_none(summary.saas_revenue_metrics),
+                        ]
+                    ):
+                        # 少なくとも1つ以上の有効データが存在する場合
+                        save_parameters(firestore_client, user_id, file_uuid, page_number, summary=summary)
+                    else:
+                        logger.info("すべてのデータがNoneです。処理をスキップします。")
         return
 
     except Exception as e:
