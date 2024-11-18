@@ -1,6 +1,6 @@
 from datetime import date
 from decimal import Decimal
-from typing import Dict, Literal
+from typing import Any, Dict, Literal
 
 from pydantic import Field, validator
 
@@ -18,9 +18,9 @@ class Period(BaseJSONSchema):
     """期間情報"""
 
     year: int = Field(..., description='年度を表す。例: 2024')
-    month: int = Field(..., description='月を表す。例: 8')
+    month: int| None = Field(..., description='月を表す。例: 8')
     quarter: int | None = Field(..., description='四半期を表す。例: 第2四半期なら2、該当なしはNone')
-    period_type: Literal['年度', '月次', '四半期'] = Field(..., description='期間の種類を表す')
+    type: Literal['年度', '月次', '四半期'] = Field(..., description='期間の種類を表す')
 
     @validator('year')
     def year_must_be_four_digits(cls, v):
@@ -258,3 +258,42 @@ class BusinessSummary(BaseJSONSchema):
     technology: Technology = Field(..., description='技術・特許情報')
     risks: Risks = Field(..., description='リスク情報')
     legal: Legal = Field(..., description='法的事項')
+
+
+def all_fields_are_none(instance: Any) -> bool:
+    """
+    BaseModelインスタンスのすべてのフィールドがNoneでないかを確認する。
+    """
+    return all(value is None for value in instance.dict().values())
+
+
+sample_temp_saas_metrics = TempSaaSMetrics(
+    period=Period(
+        year=2024,
+        month=2,
+        quarter=1,
+        type="月次"
+    ),
+    business_scope=BusinessScope(
+        scope_type="product",
+        company_name=None,
+        department_name=None,
+        product_name="ProductA"
+    ),
+    saas_revenue_metrics=SaaSRevenueMetrics(
+        revenue=Decimal("1200000.50"),
+        mrr=Decimal("100000.00"),
+        arr=Decimal("1200000.00"),
+        arpu=Decimal("5000.00"),
+        expansion_revenue=None, #Decimal("200000.00"),
+        new_customer_revenue=Decimal("150000.00")
+    ),
+    saas_customer_metrics=SaaSCustomerMetrics(
+        churn_rate=Decimal("5.0"),
+        retention_rate=None, #Decimal("95.0"),
+        active_users=None,
+        trial_conversion_rate=Decimal("20.0"),
+        average_contract_value=Decimal("20000.00"),
+        nrr=Decimal("120.0")
+    )
+)

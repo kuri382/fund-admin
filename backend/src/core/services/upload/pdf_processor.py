@@ -46,7 +46,7 @@ async def upload_image_to_firebase(
     image_bytes: io.BytesIO,
     user_id: str,
     page_number: int,
-    unique_filename: str,
+    file_uuid: str,
     storage_client,
 ) -> None:
     """
@@ -56,21 +56,21 @@ async def upload_image_to_firebase(
     :param page_number: ページ番号
     :param storage_client: Firebase StorageのBucketクライアント
     """
-    blob = storage_client.blob(f"{user_id}/image/{unique_filename}+page_{page_number + 1}")
+    blob = storage_client.blob(f"{user_id}/image/{file_uuid}/{page_number}")
 
     try:
         blob.upload_from_file(image_bytes, content_type='image/png')
-        logger.info(f"Uploaded {unique_filename} to Firebase Storage.")
+        logger.info(f"Uploaded {file_uuid} to Firebase Storage.")
 
     except exceptions.FirebaseError as e:
-        logger.error(f"Failed to upload {unique_filename} to Firebase Storage. Error: {e}")
+        logger.error(f"Failed to upload {file_uuid} to Firebase Storage. Error: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to upload page {page_number + 1} to storage.",
         )
 
     except Exception as e:
-        logger.error(f"An unexpected error occurred while uploading {unique_filename}. Error: {e}")
+        logger.error(f"An unexpected error occurred while uploading {file_uuid}. Error: {e}")
         raise HTTPException(
             status_code=500,
             detail="An unexpected error occurred during the upload process.",

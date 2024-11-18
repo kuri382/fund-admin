@@ -59,10 +59,10 @@ def create_chat_completion_message(system_prompt, prompt, image_base64):
     return messages
 
 
-async def upload_image(pdf_document, user_id, page_number, unique_filename, storage_client):
+async def upload_image(pdf_document, user_id, page_number, file_uuid, storage_client):
     """PDFページを画像に変換してFirebaseにアップロードする"""
     image_bytes = pdf_processor.convert_pdf_page_to_image(pdf_document, page_number)
-    await pdf_processor.upload_image_to_firebase(image_bytes, user_id, page_number, unique_filename, storage_client)
+    await pdf_processor.upload_image_to_firebase(image_bytes, user_id, page_number, file_uuid, storage_client)
     return encode_binaryio_to_base64(image_bytes)
 
 
@@ -126,8 +126,8 @@ async def process_pdf_background(
 
     for page_number in range(max_pages):
         try:
-            logger.info(f'Processing page {page_number + 1}/{max_pages}')
-            image_base64 = await upload_image(pdf_document, user_id, page_number, unique_filename, storage_client)
+            logger.info(f'Processing page {page_number}/{max_pages}')
+            image_base64 = await upload_image(pdf_document, user_id, page_number, file_uuid, storage_client)
             result = await fetch_and_parse_response(openai_client, image_base64)
             logger.info('result analysed')
             page_uuid = uuid.uuid4()
