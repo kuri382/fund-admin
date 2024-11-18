@@ -5,7 +5,15 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 
 import { apiUrlGetProjectionProfitAndLoss } from "@/utils/api";
-import { PLMetricsResponse, Item } from "./types"; // 型定義をインポート
+import { PLMetricsResponse, Item } from "./types";
+
+const formatNumber = (value: string | number): string => {
+  if (isNaN(Number(value))) {
+    return value.toString();
+  }
+  return new Intl.NumberFormat("ja-JP").format(Number(value));
+};
+
 
 const PLMetricsTable: React.FC = () => {
   const [data, setData] = useState<PLMetricsResponse | null>(null);
@@ -89,12 +97,12 @@ const PLMetricsTable: React.FC = () => {
         return {
           props: {
             style: {
-              background: hasDuplicates ? "#ff6666" : "transparent", // 重複時は赤、それ以外は透明
+              background: hasDuplicates ? "#fadaaa" : "transparent",
             },
           },
           children: (
-            <Button type="link" onClick={() => handleCellClick(candidates)}>
-              {displayValue}
+            <Button type="text" onClick={() => handleCellClick(candidates)}>
+              {formatNumber(displayValue)}
             </Button>
           ),
         };
@@ -160,7 +168,7 @@ const PLMetricsTable: React.FC = () => {
         {drawerData.map((item, index) => (
           <div key={index} style={{ marginBottom: "1em" }}>
             <p>
-              値: {item.value}
+              値: {formatNumber(item.value)}
             </p>
             <Image
               src={item.url}

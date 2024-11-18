@@ -21,3 +21,9 @@ export interface Row {
 export interface PLMetricsResponse {
   rows: Row[];
 }
+
+interface CellData {
+  displayValue: string; // 表示される値
+  candidates: Item[]; // 候補の値とそのURL
+  isDuplicate: boolean; // 重複フラグ
+}
