@@ -1,10 +1,10 @@
 import asyncio
 import logging
+import uuid
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Literal, Optional
-import uuid
 
 import openai
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -18,8 +18,9 @@ from pydantic_core import ValidationError
 import src.core.services.firebase_driver as firebase_driver
 from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
+from src.core.models.plan import Step, TempSaaSMetrics, all_fields_are_none
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
-from src.core.models.plan import Step, TempSaaSMetrics, sample_temp_saas_metrics, all_fields_are_none
+from src.core.services.query import fetch_saas_metrics
 
 from ._base import BaseJSONSchema
 
@@ -318,9 +319,9 @@ async def get_parameter_sales(
         result = convert_business_summary_to_financial_response(data)
 
         return FinancialResponse(data=result)
+
     except Exception as e:
         logger.error(f'error: {e}')
-
 
 
 class Period(BaseModel):
@@ -506,9 +507,6 @@ async def post_analyze_saas_metrics(
         storage_client = firebase_client.get_storage()
         firestore_client = firebase_client.get_firestore()
 
-        # 4 セグメント売上抽出
-        #file_uuid = e6ee2b5c-14e0-4a99-bc5a-d01668aca109
-        #file_title = '0c504cb0-5c8f-4440-9237-1ddcb7e9d4c0_2024年8月度月次業績報告資料 copy.pdf+page_5'
         page_number = 6
         blobs = storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}/{page_number}")
 
@@ -516,25 +514,20 @@ async def post_analyze_saas_metrics(
         for blob in blobs:
             url = blob.generate_signed_url(expiration=3600, method='GET', version='v4')
         data = await send_to_analysis_api(openai_client, url)
-        #data = TempCustomResponse(steps = [Step(explanation='', output='')], business_summaries = [sample_temp_saas_metrics, sample_temp_saas_metrics])
+        # data = TempCustomResponse(steps = [Step(explanation='', output='')], business_summaries = [sample_temp_saas_metrics, sample_temp_saas_metrics])
 
         for summary in data.business_summaries:
-            if not all([
-                all_fields_are_none(summary.business_scope),
-                all_fields_are_none(summary.saas_customer_metrics),
-                all_fields_are_none(summary.saas_revenue_metrics)
-            ]):
-                # 少なくとも1つのデータが存在します
-                save_parameters(
-                    firestore_client,
-                    user_id,
-                    file_uuid,
-                    page_number,
-                    summary = summary
-                )
+            if not all(
+                [
+                    all_fields_are_none(summary.business_scope),
+                    all_fields_are_none(summary.saas_customer_metrics),
+                    all_fields_are_none(summary.saas_revenue_metrics),
+                ]
+            ):
+                # 少なくとも1つ以上の有効データが存在する場合
+                save_parameters(firestore_client, user_id, file_uuid, page_number, summary=summary)
             else:
-                print("すべてのデータがNoneです。処理をスキップします。")
-                # print(analysis_result)
+                logger.info("すべてのデータがNoneです。処理をスキップします。")
         return
 
     except Exception as e:
@@ -545,40 +538,32 @@ async def post_analyze_saas_metrics(
         )
 
 
-@router.get(
-    '/saas_metrics',
-    response_class=ORJSONResponse,
-    responses={
-        status.HTTP_200_OK: {
-            'description': 'Images retrieved successfully.',
-        }
-    },
-)
-async def get_parameter_summary(
-    file_uuid: str,
-    firebase_client: FirebaseClient = Depends(get_firebase_client),
-    user_id: str = Depends(get_user_id),
-):
-    # user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
-    # file_uuid = '63961f2f-a852-4206-a5eb-2c6d6ed696cb'
+class Params(BaseJSONSchema):
+    key: str
+    row_title: str
+    values: list[str]
 
-    firestore_client = firebase_client.get_firestore()
 
-    try:
-        data = firebase_driver.fetch_page_summary(
-            firestore_client,
-            user_id,
-            file_uuid,
-        )
-        result = convert_to_res_get_parameter_summary(data)
-        return ORJSONResponse(content=jsonable_encoder(result))
+class ResPeriod(BaseModel):
+    year: int = Field(..., description="年度を表す。例: 2024")
+    month: int = Field(..., description="月を表す。例: 8")
 
-    except Exception as e:
-        print(f'error: {e}')
+
+class GetSaasMetrics(BaseJSONSchema):
+    period: ResPeriod
+    page_number: int
+    url: str
+    row: list[Params]
+
+
+class ResGetSaasMetrics(BaseJSONSchema):
+    """GET `/parameter/saas_metrics` request schema."""
+
+    data: list[GetSaasMetrics] = Field(None, description='月ごとのデータ')
 
 
 @router.get(
-    "/saas/metrics",
+    "/saas_metrics",
     response_class=ORJSONResponse,
     responses={
         status.HTTP_200_OK: {
@@ -587,19 +572,42 @@ async def get_parameter_summary(
     },
 )
 async def get_parameter_saas_metrics(
+    year: int,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
-    user_id: str = Depends(get_user_id),
+    # user_id: str = Depends(get_user_id),
 ):
+    user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
+    # file_uuid = 'e6ee2b5c-14e0-4a99-bc5a-d01668aca109'
     firestore_client = firebase_client.get_firestore()
 
     try:
-        data = firebase_driver.fetch_page_parameter_analysis(
+        data = fetch_saas_metrics.fetch_saas_metrics_by_year(
             firestore_client,
             user_id,
+            year,
         )
-        result = convert_business_summary_to_financial_response(data)
 
-        return FinancialResponse(data=result)
+        # result = convert_business_summary_to_financial_response(data)
+        for row in data:
+            print('------')
+            print(year)
+            print(row['month'])
+            print(row['business_scope'])
+            print(row['saas_revenue_metrics'])
+            print(row['saas_customer_metrics'])
+            print(row['file_uuid'])
+            print(row['page_number'])
+            result = GetSaasMetrics(
+                period=ResPeriod(year=year, month=row['month']),
+                page_number=row['page_number'],
+                url=row['url'],
+                row=[
+                    Params(key='', title='', values=''),
+                ],
+            )
+
+        # return FinancialResponse(data=result)
+        return
     except Exception as e:
         logger.error(f'error: {e}')
 
@@ -646,9 +654,6 @@ async def get_parameter_summary(
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     user_id: str = Depends(get_user_id),
 ):
-    # user_id = '36n89vb4JpNwBGiuboq6BjvoY3G2'
-    # file_uuid = '63961f2f-a852-4206-a5eb-2c6d6ed696cb'
-
     firestore_client = firebase_client.get_firestore()
 
     try:

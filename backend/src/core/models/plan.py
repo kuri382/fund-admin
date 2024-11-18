@@ -18,7 +18,7 @@ class Period(BaseJSONSchema):
     """期間情報"""
 
     year: int = Field(..., description='年度を表す。例: 2024')
-    month: int| None = Field(..., description='月を表す。例: 8')
+    month: int | None = Field(..., description='月を表す。例: 8')
     quarter: int | None = Field(..., description='四半期を表す。例: 第2四半期なら2、該当なしはNone')
     type: Literal['年度', '月次', '四半期'] = Field(..., description='期間の種類を表す')
 
@@ -148,23 +148,29 @@ class TempSaaSMetrics(BaseJSONSchema):
 class ProfitAndLoss(BaseJSONSchema):
     """PL（損益計算書の指標）"""
 
-    revenue: Decimal | None = Field(..., description='月次の売上高（円）')
-    cogs: Decimal | None = Field(..., description='月次の売上原価（円）')
+    revenue: Decimal | None = Field(..., description='売上高（円）')
+    cogs: Decimal | None = Field(..., description='売上原価（円）')
     gross_profit_margin: Decimal | None = Field(..., description='売上総利益率（%）')
-    sg_and_a: Decimal | None = Field(..., description='月次の販売費および一般管理費（円）')
-    operating_income: Decimal | None = Field(..., description='月次の営業利益（円）')
+    sg_and_a: Decimal | None = Field(..., description='販売費および一般管理費（円）')
+    operating_income: Decimal | None = Field(..., description='営業利益（円）')
     operating_income_margin: Decimal | None = Field(..., description='営業利益率（%）')
-    non_operating_income: Decimal | None = Field(..., description='月次の営業外収益（円）')
-    non_operating_expenses: Decimal | None = Field(..., description='月次の営業外費用（円）')
-    ordinary_income: Decimal | None = Field(..., description='月次の経常利益（円）')
-    extraordinary_income: Decimal | None = Field(..., description='月次の特別利益（円）')
-    extraordinary_losses: Decimal | None = Field(..., description='月次の特別損失（円）')
-    profit_before_tax: Decimal | None = Field(..., description='月次の税引前当期純利益（円）')
-    corporate_taxes: Decimal | None = Field(..., description='月次の法人税等（円）')
-    net_income: Decimal | None = Field(..., description='月次の当期純利益（円）')
+    non_operating_income: Decimal | None = Field(..., description='営業外収益（円）')
+    non_operating_expenses: Decimal | None = Field(..., description='営業外費用（円）')
+    ordinary_income: Decimal | None = Field(..., description='経常利益（円）')
+    extraordinary_income: Decimal | None = Field(..., description='特別利益（円）')
+    extraordinary_losses: Decimal | None = Field(..., description='特別損失（円）')
+    profit_before_tax: Decimal | None = Field(..., description='税引前当期純利益（円）')
+    corporate_taxes: Decimal | None = Field(..., description='法人税等（円）')
+    net_income: Decimal | None = Field(..., description='当期純利益（円）')
     ebitda: Decimal | None = Field(..., description='EBITDA（税引前利益 + 減価償却費）')
     psr: Decimal | None = Field(..., description='Price/Sales Ratio（株価収益率）')
     ev_to_ebitda: Decimal | None = Field(..., description='EV/EBITDA（企業価値倍率）')
+
+
+class SummaryProfitAndLoss(BaseJSONSchema):
+    period: Period = Field(...)
+    business_scope: BusinessScope = Field(...)
+    profit_and_loss: ProfitAndLoss | None = Field(..., description='損益計算書のデータ')
 
 
 class ManagerialAccounting(BaseJSONSchema):
@@ -268,32 +274,24 @@ def all_fields_are_none(instance: Any) -> bool:
 
 
 sample_temp_saas_metrics = TempSaaSMetrics(
-    period=Period(
-        year=2024,
-        month=2,
-        quarter=1,
-        type="月次"
-    ),
+    period=Period(year=2024, month=2, quarter=1, type="月次"),
     business_scope=BusinessScope(
-        scope_type="product",
-        company_name=None,
-        department_name=None,
-        product_name="ProductA"
+        scope_type="product", company_name=None, department_name=None, product_name="ProductA"
     ),
     saas_revenue_metrics=SaaSRevenueMetrics(
         revenue=Decimal("1200000.50"),
         mrr=Decimal("100000.00"),
         arr=Decimal("1200000.00"),
         arpu=Decimal("5000.00"),
-        expansion_revenue=None, #Decimal("200000.00"),
-        new_customer_revenue=Decimal("150000.00")
+        expansion_revenue=None,  # Decimal("200000.00"),
+        new_customer_revenue=Decimal("150000.00"),
     ),
     saas_customer_metrics=SaaSCustomerMetrics(
         churn_rate=Decimal("5.0"),
-        retention_rate=None, #Decimal("95.0"),
+        retention_rate=None,  # Decimal("95.0"),
         active_users=None,
         trial_conversion_rate=Decimal("20.0"),
         average_contract_value=Decimal("20000.00"),
-        nrr=Decimal("120.0")
-    )
+        nrr=Decimal("120.0"),
+    ),
 )

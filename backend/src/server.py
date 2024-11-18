@@ -6,7 +6,7 @@ from typing import Final
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.core.routers import auth, data, explorer, image, parameter, project, summary, upload
+from src.core.routers import auth, data, explorer, image, parameter, project, projection, summary, upload
 from src.core.services import firebase_client
 from src.settings import settings
 
@@ -34,6 +34,7 @@ app.include_router(explorer.router)
 app.include_router(image.router)
 app.include_router(parameter.router)
 app.include_router(project.router)
+app.include_router(projection.router)
 app.include_router(summary.router)
 app.include_router(upload.router)
 
