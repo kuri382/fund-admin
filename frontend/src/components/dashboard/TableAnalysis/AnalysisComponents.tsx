@@ -13,6 +13,7 @@ import ProjectManager from '@/components/dashboard/ProjectManager';
 import ResultReport from '@/components/dashboard/TableAnalysis/ResultReport';
 import IssueAnalysisComponent from '@/components/dashboard/IssueAnalysis/IssueAnalysisComponent';
 import QuestionAnswerComponent from '@/components/dashboard/IssueAnalysis/QuestionAnswerComponent';
+import MainTable from '@/components/dashboard/Projection/MainTable';
 import FinancialTable from '@/components/dashboard/Generator/generateBusinessPlan';
 
 const AnalysisComponents: React.FC = () => {
@@ -84,7 +85,7 @@ const AnalysisComponents: React.FC = () => {
           <Tag color='gray'>β版</Tag>
         </div>
       ),
-      children: <IssueAnalysisComponent />,
+      children: <MainTable />,
       style: { height: '800px' }
     },
     /*

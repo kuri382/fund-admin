@@ -34,3 +34,6 @@ export const apiUrlGetImageList = `${api.baseUrl}/image/list`;
 
 export const apiUrlGetParameterSummary = `${api.baseUrl}/parameter/summary`;
 export const apiUrlGetParameterSales = `${api.baseUrl}/parameter/sales`;
+
+// projection 事業計画書
+export const apiUrlGetProjectionProfitAndLoss = `${api.baseUrl}/projection/profit_and_loss/metrics`;

@@ -62,7 +62,7 @@ const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
             <Tag color="blue">{file.category}</Tag>
             <p>ファイル概要</p>
             <p style={{ marginBottom: '20px' }}>{file.abstract}</p>
-            <ImageSummaryList uuid={file.file_uuid} />
+            <ImageSummaryList file_uuid={file.file_uuid} />
           </Col>
         </Row>
         </>

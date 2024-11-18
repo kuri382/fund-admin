@@ -7,9 +7,8 @@ import { getAuth } from "firebase/auth";
 
 import { apiUrlGetImageList, apiUrlGetParameterSummary } from '@/utils/api';
 
-const { Title, Paragraph } = Typography;
+const { Paragraph } = Typography;
 
-// インターフェース定義
 interface ImageURLsResponse {
   imageUrls: string[];
 }
@@ -26,10 +25,10 @@ interface SummaryResponse {
 }
 
 interface ImageListComponentProps {
-  uuid: string;
+  file_uuid: string;
 }
 
-const ImageListComponent: React.FC<ImageListComponentProps> = ({ uuid }) => {
+const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) => {
   const [images, setImages] = useState<string[]>([]);
   const [parameterSummaries, setParameterSummaries] = useState<ParameterSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -51,26 +50,24 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ uuid }) => {
     try {
       const accessToken = await user.getIdToken(true);
 
-      // 画像の取得
       const imageResponse = await axios.get<ImageURLsResponse>(
         apiUrlGetImageList,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
           },
-          params: { uuid },
+          params: { file_uuid },
         }
       );
       setImages(imageResponse.data.imageUrls || []);
 
-      // サマリーの取得
       const summaryResponse = await axios.get<SummaryResponse>(
         apiUrlGetParameterSummary,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
           },
-          params: { uuid },
+          params: { file_uuid },
         }
       );
       console.log(summaryResponse.data)
