@@ -31,6 +31,13 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   const props = {
     name: 'file',
     multiple: true,
+    beforeUpload: (file: File, fileList: File[]) => {
+      if (fileList.length > 3) {
+        message.error('一度にアップロードできるファイルは最大3つまでです。');
+        return Upload.LIST_IGNORE; // このファイルはリストから無視する
+      }
+      return true; // アップロードを続行
+    },
     customRequest: async ({ file, onSuccess, onError }: any) => {
       const user = auth.currentUser;
       if (user) {
@@ -106,7 +113,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
           クリックまたはドラッグして複数のファイルをアップロード
         </p>
         <p className="ant-upload-hint">
-          10ファイルまで同時にアップロードできます。
+          3ファイルまで同時にアップロードできます。
         </p>
       </Dragger>
 
