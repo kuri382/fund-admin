@@ -2,7 +2,6 @@
 
 ## Run
 ```bash
-poetry run uvicorn src.server:app --workers 4 --reload
 poetry run uvicorn src.server:app --workers 4
 # debug
 poetry run uvicorn src.server:app --reload --log-level debug

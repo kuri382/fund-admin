@@ -153,7 +153,7 @@ async def process_pdf_background(
         except Exception as e:
             logger.error(f"An error occurred while processing page {page_number + 1}: {e}")
             logger.info(f"Skipping page {page_number + 1} due to error.")
-            continue  # エラー発生時にスキップして次のページに進む
+            continue
 
 
 class Step(BaseModel):

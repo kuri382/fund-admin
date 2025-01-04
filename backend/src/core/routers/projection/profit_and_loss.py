@@ -33,7 +33,7 @@ def send_to_analysis_api(openai_client, image_url, max_retries=3):
     """OpenAI APIにリクエストを送信し、パースされたレスポンスを取得する。リトライ機能付き"""
     retry_count = 0
     while retry_count < max_retries:
-        logger.info(f'OpenAI API retry: {retry_count}/{max_retries}')
+        logger.info(f'OpenAI API retry: {retry_count+1}/{max_retries}')
         try:
             response = openai_client.beta.chat.completions.parse(
                 model='gpt-4o-2024-08-06',
@@ -174,6 +174,7 @@ def process_profit_and_loss_metrics(
                             logger.warning("Profit and Loss の全フィールドが None のためスキップ")
                             continue
 
+                        logger.info('正常データがあるため保存')
                         save_parameters(firestore_client, user_id, file_uuid, page_number, summary=summary)
 
             else:

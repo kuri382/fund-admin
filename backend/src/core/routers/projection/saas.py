@@ -29,7 +29,7 @@ def send_to_analysis_api(openai_client, image_url, max_retries=3):
     """OpenAI APIにリクエストを送信し、パースされたレスポンスを取得する。リトライ機能付き"""
     retry_count = 0
     while retry_count < max_retries:
-        logger.info(f'OpenAI API retry: {retry_count}/{max_retries}')
+        logger.info(f'OpenAI API retry: {retry_count+1}/{max_retries}')
         try:
             response = openai_client.beta.chat.completions.parse(
                 model='gpt-4o-2024-08-06',
@@ -160,8 +160,6 @@ def process_customer_revenue_analysis(
                     continue
 
                 data = send_to_analysis_api(openai_client, url)
-                logger.info(f'target data: {data.business_summaries}')
-
                 if not data.business_summaries:
                     logger.info(f"No business summaries found in page {page_number}")
                     continue
@@ -177,6 +175,7 @@ def process_customer_revenue_analysis(
                         continue
 
                     try:
+                        logger.info('正常データを保存します')
                         save_parameters(
                             firestore_client,
                             user_id,
