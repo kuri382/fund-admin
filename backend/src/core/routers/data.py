@@ -1,13 +1,14 @@
 import io
 import logging
+import traceback
+
+import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 from google.cloud.firestore_v1.base_query import FieldFilter
-import pandas as pd
-import traceback
 
-from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services import auth_service
+from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,8 +42,13 @@ async def list_excel_files_by_project(
 
         selected_project_id = selected_project[0].id
 
-        # 選択されたプロジェクト配下の 'tables' コレクションからファイル情報を取得
-        tables_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection('tables')
+        tables_ref = (
+            firestore_client.collection('users')
+            .document(user_id)
+            .collection('projects')
+            .document(selected_project_id)
+            .collection('tables')
+        )
         tables_docs = tables_ref.stream()  # 複数のファイル情報を取得
 
         file_data_list = []
@@ -53,7 +59,7 @@ async def list_excel_files_by_project(
             file_name = file_info.get('file_name', 'Unknown File')  # Firestoreに保存されているファイル名
             file_extension = file_name.split('.')[-1].lower()
             # ストレージからファイルを取得 (file_uuidをキーとして使用)
-            blob_path = f"{user_id}/{file_uuid}_{file_name}"
+            blob_path = f"{user_id}/documents/{file_uuid}_{file_name}"
             blob = storage_client.blob(blob_path)
             if not blob.exists():
                 continue  # ファイルがストレージに存在しない場合はスキップ
@@ -76,14 +82,16 @@ async def list_excel_files_by_project(
             json_data = output.to_dict(orient="records")
 
             # ファイル情報をリストに追加
-            file_data_list.append({
-                "file_name": file_name,
-                "data": json_data,
-                "feature": file_info.get("feature", ""),
-                "abstract": file_info.get("abstract", ""),
-                "extractable_info": file_info.get("extractable_info", {}),
-                "category": file_info.get("category", "")
-            })
+            file_data_list.append(
+                {
+                    "file_name": file_name,
+                    "data": json_data,
+                    "feature": file_info.get("feature", ""),
+                    "abstract": file_info.get("abstract", ""),
+                    "extractable_info": file_info.get("extractable_info", {}),
+                    "category": file_info.get("category", ""),
+                }
+            )
 
         if not file_data_list:
             return Response(status_code=204)
@@ -122,7 +130,13 @@ async def list_document_files(
         selected_project_id = selected_project[0].id
 
         # Firestoreから選択中のプロジェクト配下の 'documents' コレクションのファイル情報を取得
-        documents_ref = firestore_client.collection('users').document(user_id).collection('projects').document(selected_project_id).collection('documents')
+        documents_ref = (
+            firestore_client.collection('users')
+            .document(user_id)
+            .collection('projects')
+            .document(selected_project_id)
+            .collection('documents')
+        )
         documents = documents_ref.stream()  # 複数のドキュメントを取得
 
         file_data_list = []
@@ -146,14 +160,16 @@ async def list_document_files(
             category = doc_data.get("category", "")
             feature = doc_data.get("feature", "")
 
-            file_data_list.append({
-                "file_name": file_name,
-                "file_uuid": file_uuid,
-                "feature": feature,
-                "abstract": abstract,
-                "extractable_info": extractable_info,
-                "category": category
-            })
+            file_data_list.append(
+                {
+                    "file_name": file_name,
+                    "file_uuid": file_uuid,
+                    "feature": feature,
+                    "abstract": abstract,
+                    "extractable_info": extractable_info,
+                    "category": category,
+                }
+            )
 
         if not file_data_list:
             return Response(status_code=204)

@@ -1,29 +1,17 @@
 """Server.
 """
+
 from typing import Final
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.core.routers import (
-    auth,
-    data,
-    explorer,
-    financial,
-    image,
-    market,
-    parameter,
-    project,
-    services,
-    summary,
-    upload,
-)
+from src.core.routers import auth, data, explorer, image, parameter, project, projection, summary, upload
 from src.core.services import firebase_client
 from src.settings import settings
 
-
 TITLE: Final[str] = 'Granite API'
-VERSION: Final[str] = '0.4.5'
+VERSION: Final[str] = '0.4.7'
 
 app = FastAPI(
     title=TITLE,
@@ -43,14 +31,13 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(data.router)
 app.include_router(explorer.router)
-app.include_router(financial.router)
 app.include_router(image.router)
-app.include_router(market.router)
 app.include_router(parameter.router)
 app.include_router(project.router)
+app.include_router(projection.router)
 app.include_router(summary.router)
-app.include_router(services.router)
 app.include_router(upload.router)
+
 
 @app.on_event("startup")
 def startup_event():
@@ -59,4 +46,5 @@ def startup_event():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

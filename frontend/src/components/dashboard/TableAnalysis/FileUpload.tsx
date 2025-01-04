@@ -8,13 +8,6 @@ import { auth } from '@/services/firebase'
 
 const { Dragger } = Upload
 
-const divUpload: React.CSSProperties = {
-  height: '220px',
-  backgroundColor: 'white',
-  padding: '20px',
-  borderRadius: '10px',
-}
-
 interface FileStatus {
   filename: string;
   status: string;
@@ -38,6 +31,13 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   const props = {
     name: 'file',
     multiple: true,
+    beforeUpload: (file: File, fileList: File[]) => {
+      if (fileList.length > 3) {
+        message.error('一度にアップロードできるファイルは最大3つまでです。');
+        return Upload.LIST_IGNORE; // このファイルはリストから無視する
+      }
+      return true; // アップロードを続行
+    },
     customRequest: async ({ file, onSuccess, onError }: any) => {
       const user = auth.currentUser;
       if (user) {
@@ -46,7 +46,6 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
           message.loading(`${file.name}を分析しています...`);
 
           const accessToken = await user.getIdToken(true);
-          console.log('print==========',accessToken);
           const apiUrl = `${api.baseUrl}/upload`;
           const formData = new FormData();
           formData.append('file', file);
@@ -105,7 +104,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   };
 
   return (
-    <Card title="資料をアップロードしてください" style={{ height: '100%' }}>
+    <Card bordered={false}>
       <Dragger {...props}>
         <p className="ant-upload-drag-icon">
           <InboxOutlined />
@@ -114,7 +113,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
           クリックまたはドラッグして複数のファイルをアップロード
         </p>
         <p className="ant-upload-hint">
-          複数のファイルを選択またはドラッグできます
+          3ファイルまで同時にアップロードできます。
         </p>
       </Dragger>
 

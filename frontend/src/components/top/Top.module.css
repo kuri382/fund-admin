@@ -1,0 +1,72 @@
+
+.heroSection {
+    background-image: url('/top/granite-top.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    padding: 50px 20px;
+}
+
+@keyframes Titlefloat {
+    0%, 100% {
+        transform: translateY(0); /* 元の位置 */
+    }
+    50% {
+        transform: translateY(-2px); /* 少し上に移動 */
+    }
+}
+
+@keyframes SubFloat {
+    0%, 100% {
+        transform: translateY(0); /* 元の位置 */
+    }
+    50% {
+        transform: translateY(-1px); /* 少し上に移動 */
+    }
+}
+
+.heroTitle {
+    animation: Titlefloat 3s ease-in-out infinite; /* アニメーションを適用 */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6); /* シャドウはそのまま */
+}
+
+.heroSub {
+    animation: SubFloat 3s ease-in-out infinite; /* アニメーションを適用 */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6); /* シャドウはそのまま */
+}
+
+
+
+.actionButton {
+    margin-right: 10px;
+    font-weight: bold;
+    padding: 0 20px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.actionButton:hover {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.ctaButton {
+    font-size: 1.0rem;
+    padding: 10px 30px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin: 5px;
+    background-color: rgb(47, 31, 134);
+}
+
+.secondaryButton {
+    background: transparent;
+    border: 1px solid white;
+    color: white;
+}
+
+.secondaryButton:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid white;
+}

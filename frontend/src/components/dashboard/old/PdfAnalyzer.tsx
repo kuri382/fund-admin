@@ -1,7 +1,7 @@
 import React from 'react';
 import { Row, Col } from 'antd';
 
-import FileUpload from '@/components/dashboard/old/FileUpload';
+import FileUpload from '@/components/dashboard/TableAnalysis/FileUpload';
 import FileDropdown from '@/components/dashboard/old/FileDropdown';
 import AnalysisResults from '@/components/dashboard/old/AnalysisResults';
 import FileList from '@/components/dashboard/old/FileList';

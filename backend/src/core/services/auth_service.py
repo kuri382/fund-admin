@@ -1,17 +1,17 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from firebase_admin import auth as firebase_auth
 from datetime import datetime, timedelta
-from jose import JWTError, jwt
+
+from fastapi import HTTPException
+from firebase_admin import auth as firebase_auth
+from jose import jwt
+from pydantic import BaseModel
 
 from src.settings import settings
 
 
-app = FastAPI()
-
 class LoginRequest(BaseModel):
     email: str
     password: str
+
 
 class TokenData(BaseModel):
     uid: str
@@ -50,4 +50,4 @@ def verify_token(authorization: str):
         return user_id
 
     except Exception as e:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")

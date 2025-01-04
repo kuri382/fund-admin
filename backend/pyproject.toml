@@ -34,6 +34,62 @@ beautifulsoup4 = "^4.12.3"
 pydantic-settings = "^2.6.0"
 
 
+[tool.poetry.group.dev.dependencies]
+black = "^24.10.0"
+isort = "^5.13.2"
+ruff = "^0.7.4"
+pre-commit = "^4.0.1"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 119
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 119
+known_third_party = [
+]
+
+[tool.ruff]
+line-length = 119
+#select = ["E", "F", "W", "I"]
+extend-ignore = [
+  "ANN",
+  "ARG",
+  "B",
+  "BLE001", # Do not catch blind exception: `Exception`
+  "D",
+  "E501", # Line length
+  "E701", # Multiple statements on one line (colon)
+  "EM101", # Exception must not use a string literal, assign to variable first
+  "ERA",
+  "FIX001", # Line contains FIXME, consider resolving the issue"
+  "FIX002", # Line contains TODO, consider resolving the issue
+  "FBT001", #Boolean-typed positional argument in function definition
+  "FBT002", # Boolean default value positional argument
+  "FBT003", # Boolean positional value in function call
+  "I001",  # Import block is un-sorted or un-formatted
+  "INP001", # File is part of an implicit namespace package.
+  "N804", # First argument of a class method should be named `cls`
+  "N805", # First argument of a method should be named `self`
+  "PERF",
+  "PLC0414", # Import alias does not rename original package"
+  "PLR",
+  "PTH1",
+  "Q000", # Single quotes found but double quotes preferred
+  "Q001", # Single quote multiline found but double quotes preferred
+  "RET",
+  "RSE102", # Unnecessary parentheses on raised exception
+  "S",
+  "TD",
+  "TID252", # Relative imports from parent modules are banned
+  "TRY003", # Avoid specifying long messages outside the exception class
+  "UP",
+  "W605", # [*] Invalid escape sequence: `\d`
+]
+fixable = ["E", "W", "Q"]

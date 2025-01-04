@@ -154,35 +154,6 @@ const FinancialTable: React.FC = () => {
         return <div>データが存在しません。</div>;
     }
 
-    const fetchFinancialData = async () => {
-        try {
-            //setLoading(true);
-            const response = await fetch(apiUrlGetParameterSales, {
-                headers: {
-                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result: APIResponse = await response.json();
-
-            if (!result?.data || !Array.isArray(result.data)) {
-                throw new Error('Invalid data format received');
-            }
-
-            dispatch({ type: 'INITIALIZE_DATA', payload: result.data });
-        } catch (err) {
-            //setError(err instanceof Error ? err.message : 'An error occurred');
-            dispatch({ type: 'INITIALIZE_DATA', payload: [] });
-        } finally {
-            //setLoading(false);
-        }
-    };
-
     const columns = Array.from(
         new Set(data.flatMap((item) => item.values.map((value) => `${value.year}-${value.quarter}`)))
     )

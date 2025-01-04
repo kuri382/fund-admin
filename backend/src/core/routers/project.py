@@ -1,14 +1,12 @@
-import uuid
-from fastapi import Depends, HTTPException, Request, APIRouter
 import logging
-
-from pydantic import BaseModel
 import traceback
+import uuid
 
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 
-from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services import auth_service
-
+from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -16,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class ProjectCreate(BaseModel):
     name: str
+
 
 class ProjectResponse(BaseModel):
     project_id: str
@@ -30,7 +29,6 @@ async def create_project(
     project_data: ProjectCreate,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
 ):
-
     authorization = request.headers.get("Authorization")
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
@@ -70,7 +68,7 @@ async def create_project(
 async def select_project(
     project_id: str,
     request: Request,
-    firebase_client: FirebaseClient = Depends(get_firebase_client)
+    firebase_client: FirebaseClient = Depends(get_firebase_client),
 ):
     authorization = request.headers.get("Authorization")
     if not authorization:
@@ -97,7 +95,6 @@ async def select_project(
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error updating project: {str(e)}")
-
 
     return {"detail": "Project selected successfully", "project_id": project_id}
 
@@ -129,7 +126,8 @@ async def get_projects(
                     name=project_data["name"],
                     is_archived=project_data["is_archived"],
                     is_selected=project_data["is_selected"],
-            ))
+                )
+            )
 
     except Exception as e:
         traceback.print_exc()
@@ -139,10 +137,7 @@ async def get_projects(
 
 
 @router.get("/projects/selected")
-async def get_selected_project(
-    request: Request,
-    firebase_client: FirebaseClient = Depends(get_firebase_client)
-):
+async def get_selected_project(request: Request, firebase_client: FirebaseClient = Depends(get_firebase_client)):
     authorization = request.headers.get("Authorization")
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")

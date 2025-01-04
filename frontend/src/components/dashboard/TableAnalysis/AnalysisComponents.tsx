@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { Button, message, Row, Col, Spin, Alert, Tabs, Tag } from 'antd';
+import { Alert, Button, Row, Col, notification, Spin, Tabs, Tag } from 'antd';
 import type { TabsProps } from 'antd';
-import FileUpload from '@/components/dashboard/old/FileUpload';
+import { ReloadOutlined } from '@ant-design/icons';
 
+import FileUpload from '@/components/dashboard/TableAnalysis/FileUpload';
 import fetchTable from '@/hooks/useFetchTable';
 import fetchDocument from '@/hooks/useFetchDocument';
 
@@ -12,6 +13,7 @@ import ProjectManager from '@/components/dashboard/ProjectManager';
 import ResultReport from '@/components/dashboard/TableAnalysis/ResultReport';
 import IssueAnalysisComponent from '@/components/dashboard/IssueAnalysis/IssueAnalysisComponent';
 import QuestionAnswerComponent from '@/components/dashboard/IssueAnalysis/QuestionAnswerComponent';
+import MainTable from '@/components/dashboard/Projection/MainTable';
 import FinancialTable from '@/components/dashboard/Generator/generateBusinessPlan';
 
 const AnalysisComponents: React.FC = () => {
@@ -36,24 +38,6 @@ const AnalysisComponents: React.FC = () => {
     fetchFilesDocument
   } = fetchDocument() || {};
 
-  const handleUploadComplete = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setFetchError(null);
-
-      await Promise.all([
-        fetchFilesTable(),
-        fetchFilesDocument()
-      ]);
-
-      message.success('ファイルリストを更新しました');
-    } catch (error) {
-      setFetchError('データの更新中にエラーが発生しました。');
-      console.error('Fetch error after upload:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchFilesTable, fetchFilesDocument]);
 
   // タブ項目の定義
   const tabItems: TabsProps['items'] = [
@@ -61,17 +45,6 @@ const AnalysisComponents: React.FC = () => {
       key: '1',
       label: (
         <div key="tab-1">
-          <div>入力 テーブルデータ</div>
-          <Tag color='green'>xlsx, csvなど</Tag>
-        </div>
-      ),
-      children: <TableFileTabs files={filesTable} />,
-      style: { height: '800px' }
-    },
-    {
-      key: '2',
-      label: (
-        <div key="tab-2">
           <div style={{ width: '150px' }}>入力 ドキュメントデータ</div>
           <Tag color='red'>pdf, wordなど</Tag>
         </div>
@@ -79,6 +52,31 @@ const AnalysisComponents: React.FC = () => {
       children: <PdfsFileTabs files={filesDocument} />,
       style: { height: '800px' }
     },
+    {
+      key: '2',
+      label: (
+        <div key="tab-2">
+          <div>入力 テーブルデータ</div>
+          <Tag color='green'>xlsx, csvなど</Tag>
+        </div>
+      ),
+      children: <TableFileTabs
+        files={filesTable}
+      />,
+      style: { height: '800px' }
+    },
+    {
+      key: '3',
+      label: (
+        <div key="tab-4">
+          <div style={{ width: '150px' }}>事業計画書自動作成</div>
+          <Tag color='gray'>数値はバックグラウンドで収集されます</Tag>
+        </div>
+      ),
+      children: <MainTable projectChanged={projectChanged} />,
+      style: { height: '800px' }
+    },
+    /*
     {
       key: '3',
       label: (
@@ -92,17 +90,6 @@ const AnalysisComponents: React.FC = () => {
       style: { height: '800px' }
     },
     {
-      key: '4',
-      label: (
-        <div key="tab-4">
-          <div style={{ width: '150px' }}>出力 Issue Analysis</div>
-          <Tag color='gray'>β版</Tag>
-        </div>
-      ),
-      children: <IssueAnalysisComponent />,
-      style: { height: '800px' }
-    },
-    {
       key: '5',
       label: (
         <div key="tab-5">
@@ -113,6 +100,7 @@ const AnalysisComponents: React.FC = () => {
       children: <ResultReport />,
       style: { height: '800px' }
     }
+    */
   ];
 
   // プロジェクト変更ハンドラー
@@ -156,6 +144,12 @@ const AnalysisComponents: React.FC = () => {
         fetchFilesTable(),
         fetchFilesDocument()
       ]);
+
+      notification.success({
+        message: 'データ読み込み完了',
+        description: 'データの読み込みが正常に完了しました。',
+      });
+
     } catch (error) {
       setFetchError('データの更新中にエラーが発生しました。もう一度お試しください。');
       console.error('Fetch error:', error);
@@ -173,18 +167,31 @@ const AnalysisComponents: React.FC = () => {
   const isLoadingAny = isLoading || loadingTable || loadingDocument;
 
   // ローディング表示
-  if (isLoadingAny) {
-    return (
-      <>
-        <ProjectManager onProjectChange={handleProjectChange} />
-        <FileUpload onUploadComplete={handleUploadComplete} />
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <Spin size="large" />
-          <p>データを読み込んでいます...</p>
-        </div>
-      </>
-    );
+  {
+    isLoadingAny && (
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        zIndex: 9999,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <Spin size="large" />
+      </div>
+    )
   }
+  <Tabs
+    defaultActiveKey="1"
+    activeKey={activeTab}
+    items={tabItems}
+    onChange={handleTabChange}
+    centered
+  />
 
   // エラー表示
   if (errorTable || errorDocument || fetchError) {
@@ -208,30 +215,35 @@ const AnalysisComponents: React.FC = () => {
     );
   }
 
-  // メインのレンダリング
+
   return (
     <>
       <ProjectManager onProjectChange={handleProjectChange} />
       <FileUpload />
-      <Button
-        onClick={handleAnalysisButtonClick}
-        type="primary"
-        style={{ marginBottom: '20px', margin: '10px' }}
-      >
-        読み込んだファイル情報を更新
-      </Button>
 
-      <Row justify="center" style={{ marginTop: '20px' }}>
-        <Col span={18}>
-          <Tabs
-            defaultActiveKey="1"
-            activeKey={activeTab}
-            items={tabItems}
-            onChange={handleTabChange}
-            centered
-          />
-        </Col>
-      </Row>
+      <div style={{ minHeight: '200px' }}>
+        <Button
+          onClick={handleAnalysisButtonClick}
+          type="primary"
+          style={{ margin: '10px 0px 0px 20px' }}
+          icon={<ReloadOutlined />}
+          loading={isLoading}
+        >
+          ファイル情報を更新する
+        </Button>
+
+        <Row justify="center" style={{ marginTop: '20px' }}>
+          <Col span={18}>
+            <Tabs
+              defaultActiveKey="1"
+              activeKey={activeTab}
+              items={tabItems}
+              onChange={handleTabChange}
+              centered
+            />
+          </Col>
+        </Row>
+      </div>
 
       <style jsx global>{`
         .compact-table .ant-table-cell {

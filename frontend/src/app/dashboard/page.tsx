@@ -3,14 +3,14 @@
 import React from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 //import ExcelAnalysis from '@/components/dashboard/ExcelAnalysis';
-import SimpleAnalysis from '@/components/dashboard/TableAnalysis/AnalysisComponents';
+import AnalysisComponents from '@/components/dashboard/TableAnalysis/AnalysisComponents';
 import Navbar from '@/components/navbar/Navbar';
 
 const ExcelAnalyzer = () => {
   return (
     <ProtectedRoute>
       <Navbar />
-      <SimpleAnalysis />
+      <AnalysisComponents />
     </ProtectedRoute>
   );
 };

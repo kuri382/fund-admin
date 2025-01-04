@@ -2,9 +2,9 @@ import io
 import logging
 
 import fitz
-from PIL import Image
 from fastapi import HTTPException
 from firebase_admin import exceptions
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +19,7 @@ async def read_pdf_file(contents: bytes) -> fitz.Document:
     return pdf_document
 
 
-def convert_pdf_page_to_image(
-    pdf_document: fitz.Document,
-    page_number: int
-) -> io.BytesIO:
+def convert_pdf_page_to_image(pdf_document: fitz.Document, page_number: int) -> io.BytesIO:
     """
     PyMuPDFのDocumentオブジェクトから特定のページを画像化する関数
     :param pdf_document: PyMuPDFのDocumentオブジェクト
@@ -35,8 +32,8 @@ def convert_pdf_page_to_image(
     page = pdf_document.load_page(page_number)
     pix = page.get_pixmap()
     image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-    #resize_width: int = 800
-    #image = image.resize((resize_width, int((resize_width / image.width) * image.height)), Image.ANTIALIAS)
+    # resize_width: int = 800
+    # image = image.resize((resize_width, int((resize_width / image.width) * image.height)), Image.ANTIALIAS)
 
     # 画像をバイナリストリームに変換
     image_bytes = io.BytesIO()
@@ -49,7 +46,7 @@ async def upload_image_to_firebase(
     image_bytes: io.BytesIO,
     user_id: str,
     page_number: int,
-    unique_filename: str,
+    file_uuid: str,
     storage_client,
 ) -> None:
     """
@@ -59,17 +56,22 @@ async def upload_image_to_firebase(
     :param page_number: ページ番号
     :param storage_client: Firebase StorageのBucketクライアント
     """
-    blob = storage_client.blob(f"{user_id}/image/{unique_filename}+page_{page_number + 1}")
+    blob = storage_client.blob(f"{user_id}/image/{file_uuid}/{page_number}")
 
     try:
         blob.upload_from_file(image_bytes, content_type='image/png')
-        logger.info(f"Uploaded {unique_filename} to Firebase Storage.")
+        logger.info(f"Uploaded {file_uuid} to Firebase Storage.")
 
     except exceptions.FirebaseError as e:
-        logger.error(f"Failed to upload {unique_filename} to Firebase Storage. Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload page {page_number + 1} to storage.")
+        logger.error(f"Failed to upload {file_uuid} to Firebase Storage. Error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to upload page {page_number + 1} to storage.",
+        )
 
     except Exception as e:
-        logger.error(f"An unexpected error occurred while uploading {unique_filename}. Error: {e}")
-        raise HTTPException(status_code=500, detail="An unexpected error occurred during the upload process.")
-
+        logger.error(f"An unexpected error occurred while uploading {file_uuid}. Error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred during the upload process.",
+        )
