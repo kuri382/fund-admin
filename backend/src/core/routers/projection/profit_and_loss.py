@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import uuid
 
@@ -305,7 +304,7 @@ def add_or_update_monthly_data(
     ]
 
     for key, title in keys_and_titles:
-        value=None
+        value = None
         if isinstance(summary, dict) and isinstance(summary.get(data_key), dict):
             value = summary.get(data_key, {}).get(key)
 

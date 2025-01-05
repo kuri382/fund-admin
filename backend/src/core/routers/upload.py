@@ -5,6 +5,7 @@ import logging
 import os
 import uuid
 
+from google.cloud import tasks_v2
 import openai
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
 from pydantic import BaseModel, Field
@@ -13,14 +14,31 @@ from pydantic_core import ValidationError
 import src.core.services.firebase_driver as firebase_driver
 from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
+from src.core.dependencies.cloud_tasks import get_cloud_tasks_client, get_queue_path
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services.openai_client import extract_document_information
 from src.core.services.pdf_processing import extract_text_from_pdf
 from src.core.services.upload import pdf_processor, table_processor
+from src.core.services.worker import models, cloud_tasks
 from src.settings import Settings
+
 
 router = APIRouter(prefix='/upload', tags=['upload'])
 logger = logging.getLogger(__name__)
+
+
+class Step(BaseModel):
+    explanation: str
+    output: str
+
+
+class CustomResponse(BaseModel):
+    steps: list[Step]
+    opinion: str = Field(
+        ...,
+        description='アナリスト視点での分析。リスク要素や異常値の確認を相対的・トレンド分析を交えながら行う',
+    )
+    business_summary: firebase_driver.BusinessSummary
 
 
 def encode_binaryio_to_base64(image_binary: io.BytesIO) -> str:
@@ -60,14 +78,21 @@ def create_chat_completion_message(system_prompt, prompt, image_base64):
     return messages
 
 
-async def upload_image(pdf_document, user_id, page_number, file_uuid, storage_client):
+async def upload_image_and_get_base64(pdf_document, user_id, page_number, file_uuid, storage_client):
     """PDFページを画像に変換してFirebaseにアップロードする"""
     image_bytes = pdf_processor.convert_pdf_page_to_image(pdf_document, page_number)
     await pdf_processor.upload_image_to_firebase(image_bytes, user_id, page_number, file_uuid, storage_client)
     return encode_binaryio_to_base64(image_bytes)
 
 
-async def fetch_and_parse_response(openai_client, image_base64, max_retries=3):
+async def upload_image(pdf_document, user_id, page_number, file_uuid, storage_client):
+    """PDFページを画像に変換してFirebaseにアップロードする"""
+    image_bytes = pdf_processor.convert_pdf_page_to_image(pdf_document, page_number)
+    await pdf_processor.upload_image_to_firebase(image_bytes, user_id, page_number, file_uuid, storage_client)
+    return
+
+
+async def fetch_and_parse_response(openai_client, image_base64, max_retries=3) -> CustomResponse:
     """OpenAI APIにリクエストを送信し、パースされたレスポンスを取得する。リトライ機能付き"""
     retry_count = 0
     while retry_count < max_retries:
@@ -128,7 +153,9 @@ async def process_pdf_background(
     for page_number in range(max_pages):
         try:
             logger.info(f'Processing page {page_number}/{max_pages}')
-            image_base64 = await upload_image(pdf_document, user_id, page_number, file_uuid, storage_client)
+            image_base64 = await upload_image_and_get_base64(
+                pdf_document, user_id, page_number, file_uuid, storage_client
+            )
             result = await fetch_and_parse_response(openai_client, image_base64)
             logger.info('result analysed')
             page_uuid = uuid.uuid4()
@@ -154,20 +181,6 @@ async def process_pdf_background(
             logger.error(f"An error occurred while processing page {page_number + 1}: {e}")
             logger.info(f"Skipping page {page_number + 1} due to error.")
             continue
-
-
-class Step(BaseModel):
-    explanation: str
-    output: str
-
-
-class CustomResponse(BaseModel):
-    steps: list[Step]
-    opinion: str = Field(
-        ...,
-        description='アナリスト視点での分析。リスク要素や異常値の確認を相対的・トレンド分析を交えながら行う',
-    )
-    business_summary: firebase_driver.BusinessSummary
 
 
 @router.post("")
@@ -302,3 +315,112 @@ async def upload_file(
             raise HTTPException(status_code=400, detail="サポートされていないファイル形式です")
 
     return {"filename": file.filename, "status": "ファイルを解析し保存しました"}
+
+
+@router.post("/task")
+async def create_task(
+    file: UploadFile,
+    firebase_client: FirebaseClient = Depends(get_firebase_client),
+    user_id: str = Depends(get_user_id),
+    cloud_tasks_client: tasks_v2.CloudTasksClient = Depends(get_cloud_tasks_client),
+    queue_path: str = Depends(get_queue_path),
+):
+    """
+    Cloud Tasks にタスクを登録
+    """
+    # ファイルを読み込む
+    # PDFファイルだった場合それぞれのページを分析する
+    # 元ファイルはストレージに保存
+    # 元ファイルを画像化し、1画像ごとに保存
+    # 1画像ごとの解析を行う
+
+    try:
+        contents = await file.read()
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"File read error: {str(e)}")
+
+    file_uuid = uuid.uuid4()
+    unique_filename = f"{file_uuid}_{file.filename}"
+
+    try:
+        storage_client = firebase_client.get_storage()
+        blob = storage_client.blob(f"{user_id}/documents/{unique_filename}")
+        blob.upload_from_string(
+            contents,
+            content_type='application/pdf',
+        )
+
+    except Exception as e:
+        detail = f'error uploading file: {str(e)}'
+        raise HTTPException(status_code=400, detail=detail)
+
+    file_extension = os.path.splitext(file.filename)[1].lower()
+
+    match file_extension:
+        case ".pdf":
+            try:
+                # pdfのサマリーを分析するタスクを投げる
+                pdf_text = extract_text_from_pdf(file)
+                max_length = 2000
+                extracted_text = pdf_text[:max_length]
+                payload = models.SummaryMetadata(
+                    user_id=user_id,
+                    file_uuid=str(file_uuid),
+                    file_name=file.filename,
+                    summary_text=extracted_text,
+                )
+                worker_url = f'{Settings.google_cloud.api_base_url}/worker/summary:analyze'
+                task = cloud_tasks.create_task_payload(worker_url, payload)
+
+                try:
+                    logger.info("Creating a new task in Cloud Tasks...")
+                    response = cloud_tasks_client.create_task(parent=queue_path, task=task)
+                    eta = response.schedule_time.strftime("%m/%d/%Y, %H:%M:%S")
+                    logger.info(f"Task created successfully: {response.name}, {eta}")
+
+                except Exception as e:
+                    logger.error(f"Error occurred while creating a task: {e}")
+
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error saving pdf result: {str(e)}")
+
+            pdf_document = await pdf_processor.read_pdf_file(contents)
+            max_pages = min(Settings.max_pages_to_parse, len(pdf_document))  # 読み込む最大ページ数は30ページとする
+
+            for page_number in range(max_pages):
+                logger.info(f'page number: {page_number}, max pages: {max_pages}')
+                image_bytes = pdf_processor.convert_pdf_page_to_image(pdf_document, page_number)
+                await pdf_processor.upload_image_to_firebase(
+                    image_bytes, user_id, page_number, file_uuid, storage_client
+                )
+
+                try:
+                    signed_url = await pdf_processor.generate_signed_url(
+                        user_id, page_number, file_uuid, storage_client
+                    )
+                except ValueError as e:
+                    logger.error(f"Failed to generate signed URL for page {page_number}: {e}")
+                    continue
+
+                payload = models.PageMetadata(
+                    user_id=user_id,
+                    file_uuid=str(file_uuid),
+                    file_name=unique_filename,
+                    page_url=signed_url,
+                    page_number=str(page_number),
+                )
+                worker_url = f'{Settings.google_cloud.api_base_url}/worker/page:analyze'
+                task = cloud_tasks.create_task_payload(worker_url, payload)
+
+                try:
+                    logger.info("Creating a new task in Cloud Tasks...")
+                    response = cloud_tasks_client.create_task(parent=queue_path, task=task)
+                    eta = response.schedule_time.strftime("%m/%d/%Y, %H:%M:%S")
+                    logger.info(f"Task created successfully: {response.name}, {eta}")
+
+                except Exception as e:
+                    logger.error(f"Error occurred while creating a task: {e}")
+                    continue
+
+    return {"message": "PDF processing completed"}
