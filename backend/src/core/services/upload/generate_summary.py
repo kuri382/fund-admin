@@ -21,7 +21,7 @@ class CustomResponse(BaseModel):
     steps: list[Step]
     opinion: str = Field(
         ...,
-        description='アナリスト視点での分析。リスク要素や異常値の確認を相対的・トレンド分析を交えながら行う',
+        description='アナリスト視点での分析を行う。リスク要素や異常値の確認を相対的・トレンド分析を交えながら行う',
     )
     business_summary: firebase_driver.BusinessSummary
 
@@ -58,11 +58,17 @@ async def get_page_summary(openai_client, image_base64, max_retries=3):
                 ],
                 response_format=CustomResponse,
             )
-            return response.choices[0].message.parsed
+            parsed_response = response.choices[0].message.parsed
 
-        except ValidationError as e:
+            # opinionの文字数チェック
+            if len(parsed_response.opinion) > 2000:
+                raise ValueError("opinion length exceeds 2000 characters. Retrying...")
+
+            return parsed_response
+
+        except (ValidationError, ValueError) as e:
             retry_count += 1
-            logger.warning(f'Validation error occurred: {e}. Retrying {retry_count}/{max_retries}')
+            logger.warning(f'Error occurred: {e}. Retrying {retry_count}/{max_retries}')
             if retry_count >= max_retries:
                 logger.error("Max retries reached. Exiting the retry loop.")
                 raise e

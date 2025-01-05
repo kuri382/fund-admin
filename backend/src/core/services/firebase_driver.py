@@ -280,8 +280,11 @@ def fetch_page_summary(
     query = collection_ref.where("file_uuid", "==", file_uuid).limit(limit)
     file_docs = query.get()
 
-    # page_numberで昇順ソート
-    sorted_docs = sorted(file_docs, key=lambda doc: doc.to_dict().get('page_number', 0))
+    # 文字列型のpage_numberを昇順ソート
+    sorted_docs = sorted(
+        file_docs,
+        key=lambda doc: int(doc.to_dict().get('page_number', 0))
+    )
 
     parameter_summaries = []
     for doc in sorted_docs:
