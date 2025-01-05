@@ -13,7 +13,6 @@ from src.core.services.upload import generate_summary
 from src.core.services.openai_client import extract_document_information
 
 
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ async def worker_summary_analyze(
     request: Request,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     openai_client: openai.ChatCompletion = Depends(get_openai_client),
-    ):
+):
     """
     Cloud Tasks からPOSTされる
     Summaryを出力する
@@ -63,7 +62,7 @@ async def worker_page_analyze(
     request: Request,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     openai_client: openai.ChatCompletion = Depends(get_openai_client),
-    ):
+):
     """
     Cloud Tasks からPOSTされる
     個別のページを分析する

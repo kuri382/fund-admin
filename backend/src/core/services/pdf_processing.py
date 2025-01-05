@@ -11,7 +11,7 @@ def extract_text_from_pdf(file: UploadFile) -> str:
     """
     PDFファイルからテキストを抽出する
     """
-    file.file.seek(0)  # initialize
+    file.file.seek(0)
     contents = file.file.read()
 
     pdf_reader = PyPDF2.PdfReader(io.BytesIO(contents))
