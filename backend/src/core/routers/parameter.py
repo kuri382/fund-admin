@@ -540,9 +540,11 @@ async def post_analyze_saas_metrics(
 
 class ParameterSummaries(BaseJSONSchema):
     page_number: int
-    output: str
-    explanation: str
-    opinion: str
+    facts: str
+    issues: str
+    rationale: str
+    forecast: str
+    investigation: str
 
 
 class ResGetParameterSummary(BaseJSONSchema):
@@ -552,14 +554,16 @@ class ResGetParameterSummary(BaseJSONSchema):
 
 
 def convert_to_res_get_parameter_summary(
-    items: list[firebase_driver.ParameterSummary],
+    items: list[firebase_driver.ResAnalystReportItem],
 ) -> ResGetParameterSummary:
     summaries = [
         ParameterSummaries(
             page_number=item.page_number,
-            output=item.output,
-            explanation=item.explanation,
-            opinion=item.opinion,
+            facts=item.facts,
+            issues=item.issues,
+            rationale=item.rationale,
+            forecast=item.forecast,
+            investigation=item.investigation,
         )
         for item in items
     ]

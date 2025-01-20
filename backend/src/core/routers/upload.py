@@ -18,7 +18,7 @@ from src.core.dependencies.cloud_tasks import get_cloud_tasks_client, get_queue_
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services.openai_client import extract_document_information
 from src.core.services.pdf_processing import extract_text_from_pdf
-from src.core.services.upload import pdf_processor, table_processor
+from src.core.services.upload import pdf_processor, table_processor, generate_summary
 from src.core.services.worker import models, cloud_tasks
 from src.settings import Settings
 
@@ -156,24 +156,22 @@ async def process_pdf_background(
             image_base64 = await upload_image_and_get_base64(
                 pdf_document, user_id, page_number, file_uuid, storage_client
             )
-            result = await fetch_and_parse_response(openai_client, image_base64)
+            #result = await fetch_and_parse_response(openai_client, image_base64)
+            analyst_report = await generate_summary.get_analyst_report(openai_client, image_base64)
             logger.info('result analysed')
             page_uuid = uuid.uuid4()
-            firebase_driver.save_page_image_analysis(
+            firebase_driver.save_page_analyst_report(
                 firestore_client=firestore_client,
                 user_id=user_id,
                 file_uuid=file_uuid,
                 file_name=unique_filename,
-                page_uuid=page_uuid,
+                page_uuid=str(page_uuid),
                 page_number=page_number,
-                business_summary=result.business_summary,
-                explanation="".join([step.explanation for step in result.steps]),
-                output="".join([step.output for step in result.steps]),
-                opinion=result.opinion,
+                analyst_report=analyst_report,
             )
             logger.info('firebase storage saved')
 
-            if result is None:
+            if analyst_report is None:
                 logger.warning(f"Skipping page {page_number + 1} due to repeated validation errors.")
                 continue
 
@@ -269,6 +267,7 @@ async def upload_file(
         case ".pdf":
             try:
                 pdf_text = extract_text_from_pdf(file)
+                pdf_text = pdf_text[:3000] # token数の関係上小さめに
                 analysis_result = extract_document_information(openai_client=openai_client, content_text=pdf_text)
 
             except Exception as e:
@@ -362,16 +361,16 @@ async def create_task(
             try:
                 # pdfのサマリーを分析するタスクを投げる
                 pdf_text = extract_text_from_pdf(file)
-                max_length = 2000
+                max_length = 3000 # token数の関係上文章を短縮
                 extracted_text = pdf_text[:max_length]
-                payload = models.SummaryMetadata(
+                payload_summary = models.SummaryMetadata(
                     user_id=user_id,
                     file_uuid=str(file_uuid),
                     file_name=file.filename,
                     summary_text=extracted_text,
                 )
                 worker_url = f'{Settings.google_cloud.api_base_url}/worker/summary:analyze'
-                task = cloud_tasks.create_task_payload(worker_url, payload)
+                task = cloud_tasks.create_task_payload(worker_url, payload_summary)
 
                 try:
                     logger.info("Creating a new task in Cloud Tasks...")
@@ -395,27 +394,18 @@ async def create_task(
                     image_bytes, user_id, page_number, file_uuid, storage_client
                 )
 
-                try:
-                    signed_url = await pdf_processor.generate_signed_url(
-                        user_id, page_number, file_uuid, storage_client
-                    )
-                except ValueError as e:
-                    logger.error(f"Failed to generate signed URL for page {page_number}: {e}")
-                    continue
-
-                payload = models.PageMetadata(
+                payload_page = models.PageMetadata(
                     user_id=user_id,
                     file_uuid=str(file_uuid),
                     file_name=unique_filename,
-                    page_url=signed_url,
                     page_number=str(page_number),
                 )
                 worker_url = f'{Settings.google_cloud.api_base_url}/worker/page:analyze'
-                task = cloud_tasks.create_task_payload(worker_url, payload)
+                task_page = cloud_tasks.create_task_payload(worker_url, payload_page)
 
                 try:
                     logger.info("Creating a new task in Cloud Tasks...")
-                    response = cloud_tasks_client.create_task(parent=queue_path, task=task)
+                    response = cloud_tasks_client.create_task(parent=queue_path, task=task_page)
                     eta = response.schedule_time.strftime("%m/%d/%Y, %H:%M:%S")
                     logger.info(f"Task created successfully: {response.name}, {eta}")
 
