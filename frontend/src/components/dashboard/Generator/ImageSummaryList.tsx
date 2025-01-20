@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { List, Image, Spin, Alert, Card, Typography, Row, Col, Space, Button } from 'antd';
+import { List, Image, Spin, Alert, Card, Typography, Row, Col, Space, Button, Tag } from 'antd';
 import axios from 'axios';
 import { getAuth } from "firebase/auth";
 
 import { apiUrlGetImageList, apiUrlGetParameterSummary } from '@/utils/api';
 import ButtonAnalyzePL from '@/components/dashboard/TableAnalysis/Button/ButtonAnalyzePL';
 import ButtonAnalyzeSaaS from '@/components/dashboard/TableAnalysis/Button/ButtonAnalyzeSaaS';
+import DetailModal from '@/components/dashboard/Generator/DetailModal';
 
 const { Paragraph } = Typography;
 
@@ -14,11 +15,13 @@ interface ImageURLsResponse {
   pageNumbers: number[];
 }
 
-interface ParameterSummary {
+export interface ParameterSummary {
   pageNumber: number;
-  output: string;
-  explanation: string;
-  opinion: string;
+  facts: string;
+  issues: string;
+  rationale: string;
+  forecast: string;
+  investigation: string;
 }
 
 interface SummaryResponse {
@@ -29,6 +32,12 @@ interface ImageListComponentProps {
   file_uuid: string;
 }
 
+interface CombinedData {
+  pageNumber: number;
+  imageUrl: string;
+  summary?: ParameterSummary;
+}
+
 const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) => {
   const [images, setImages] = useState<string[]>([]);
   const [pageNumbers, setPageNumbers] = useState<number[]>([]);
@@ -36,6 +45,9 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  //modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const auth = getAuth();
 
   const fetchImages = async () => {
@@ -84,10 +96,32 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
     }
   };
 
+  //modal
+  const openModal = (index: number) => {
+    setCurrentIndex(index);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+  };
+
   // 初期化時に fetchImages を自動実行
   useEffect(() => {
     fetchImages();
   }, []);
+
+  // pageNumbers, images, parameterSummariesをまとめた配列を作る
+  const combinedData: CombinedData[] = pageNumbers.map((pageNumber, idx) => {
+    const summary = parameterSummaries.find(
+      (s) => s.pageNumber === pageNumber
+    );
+    return {
+      pageNumber,
+      imageUrl: images[idx],
+      summary,
+    };
+  });
 
   return (
     <div>
@@ -95,8 +129,6 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
         <Button onClick={fetchImages} type="primary" style={{ marginBottom: '10px' }}>
           再読み込み
         </Button>
-        {/*<ButtonAnalyzePL file_uuid={file_uuid} />
-        <ButtonAnalyzeSaaS file_uuid={file_uuid} />*/}
       </Space>
       <div style={{ padding: '20px' }}></div>
 
@@ -105,30 +137,41 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
 
       {images.length > 0 && (
         <List
-          grid={{ gutter: 16, column: 1 }}
+          grid={{ gutter: 20, column: 1 }}
           dataSource={pageNumbers.map((pageNumber, index) => ({
             pageNumber,
             imageUrl: images[index],
           }))}
-          renderItem={(item) => {
+          renderItem={(item, index) => {
             const summary = parameterSummaries.find((s) => s.pageNumber === item.pageNumber);
 
             return (
               <List.Item key={item.pageNumber}>
                 <Card>
-                  <Row gutter={16}>
+                  <Row gutter={20}>
                     <Col span={12}>
-                      <Image src={item.imageUrl} alt={`Page ${item.pageNumber}`} style={{ width: '100%' }} />
+                      <Image
+                        src={item.imageUrl}
+                        alt={`Page ${item.pageNumber}`}
+                        style={{ width: '100%', cursor: 'pointer' }}
+                        preview={false}
+                        onClick={() => openModal(index)}
+                      />
+
                     </Col>
 
                     <Col span={12}>
                       {summary ? (
                         <div style={{ marginTop: '16px' }}>
-                          <p><b>解説</b></p><p style={{ color: 'gray' }}>page.{summary.pageNumber}</p>
-                          {/*<Paragraph>{summary.output}</Paragraph>
-                          <Paragraph>{summary.explanation}</Paragraph>
-                          <p><b>注意ポイント</b></p>*/}
-                          <Paragraph>{summary.opinion}</Paragraph>
+                          <p style={{ color: 'gray' }}>page.{summary.pageNumber}</p>
+                          <p><b><Tag color="cyan">fact</Tag>読み取れる情報</b></p>
+                          <Paragraph>{summary.facts}</Paragraph>
+                          <p><b><Tag color="blue">issues</Tag>潜在的なリスクや経営上の懸念点</b></p>
+                          <Paragraph>{summary.issues}</Paragraph>
+                          <p><b><Tag color="geekblue">rationale</Tag>課題やリスクを推測した理由</b></p>
+                          <Paragraph>{summary.rationale}</Paragraph>
+                          <p><b><Tag color="purple">investigation</Tag>課題やリスク推測をより精緻に行うために必要な情報</b></p>
+                          <Paragraph>{summary.investigation}</Paragraph>
                         </div>
                       ) : (
                         <Space>
@@ -144,6 +187,14 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
           }}
         />
       )}
+
+      <DetailModal
+        open={modalOpen}
+        onClose={closeModal}
+        currentIndex={currentIndex}
+        setCurrentIndex={setCurrentIndex}
+        data={combinedData}
+      />
     </div>
   );
 };
