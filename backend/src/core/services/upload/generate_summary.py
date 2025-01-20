@@ -75,6 +75,56 @@ async def get_page_summary(openai_client, image_base64, max_retries=3):
             await asyncio.sleep(2)
 
 
+async def get_analyst_report(openai_client, image_base64, max_retries=3):
+    """
+    OpenAI APIにリクエストを送信し、パースされたレスポンスを取得する。
+    型に合わない場合リトライを行う
+    """
+
+    prompt = '''これから提示する資料について、企業が公表している事実関係や業績データを客観的にまとめる。
+                あえて触れられていないかもしれないリスク要因や経営課題を推測して指摘する。
+                財務情報の整合性や事業戦略の実現可能性だけでなく、経営陣が認識しているはずの懸念点（市場競合、法規制上の問題、継続的なキャッシュフロー確保の難易度など）が見え隠れする箇所がないかを探り、根拠となる情報や思考プロセスも簡潔に示してください。
+                リスクについて精緻に予測すべく、追加で確認すべき事項があれば述べてください。
+            '''
+
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            response = openai_client.beta.chat.completions.parse(
+                model='gpt-4o-2024-08-06',
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "- 日本語で回答せよ。- 回答の際には「です、ます」ではなく「だ、である」を使用せよ。- 日本の資料の「▲」はマイナスを意味する。 - ロジカルに、そして丁寧に詳しく説明すること。",
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": prompt,
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
+                            },
+                        ],
+                    },
+                ],
+                response_format=firebase_driver.AnalystReport,
+            )
+            parsed_response = response.choices[0].message.parsed
+            return parsed_response
+
+        except (ValidationError, ValueError) as e:
+            retry_count += 1
+            logger.warning(f'Error occurred: {e}. Retrying {retry_count}/{max_retries}')
+            if retry_count >= max_retries:
+                logger.error("Max retries reached. Exiting the retry loop.")
+                raise e
+            await asyncio.sleep(2)
+
+
 def get_encoded_image(url: str) -> str:
     """
     URL先の画像を取得してBase64エンコードする

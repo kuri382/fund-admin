@@ -40,6 +40,63 @@ class AnalysisResult(BaseModel):
     category_ir: str
 
 
+class AnalystReport(BaseModel):
+    facts: str =     Field(..., description='現状の確認事項や客観的なデータ')
+    issues: str =    Field(..., description='潜在的なリスクや経営上の懸念点')
+    rationale: str = Field(..., description='課題やリスクを推測した理由や思考プロセス')
+    forecast: str =  Field(..., description='リスクが顕在化した場合の影響や将来の見通し')
+    investigation: str =    Field(..., description='課題やリスク推測をより精緻に行うために必要な情報')
+
+
+def save_page_analyst_report(
+    firestore_client: firestore.Client,
+    user_id: str,
+    file_uuid: str,
+    file_name: str,
+    page_uuid: str,
+    page_number: int,
+    analyst_report: AnalystReport,
+    target_collection: str = 'sales',
+) -> None:
+    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+    is_selected_filter = FieldFilter("is_selected", "==", True)
+    query = projects_ref.where(filter=is_selected_filter).limit(1)
+    selected_project = query.get()
+
+    if not selected_project:
+        raise ValueError("No project selected for the user")
+
+    selected_project_id = selected_project[0].id
+    doc_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(selected_project_id)
+        .collection(target_collection)
+        .document(str(page_uuid))
+    )
+
+    try:
+        doc_ref.set(
+            {
+                # metadata
+                "file_uuid": str(file_uuid),
+                "file_name": file_name,
+                "page_number": str(page_number),
+                # report
+                "facts": str(analyst_report.facts),
+                "issues": str(analyst_report.issues),
+                'rationale': str(analyst_report.rationale),
+                'forecast': str(analyst_report.forecast),
+                'investigation': str(analyst_report.investigation),
+            }
+        )
+        return
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
+
+
 def save_analysis_result(
     firestore_client: firestore.Client,
     user_id: str,
@@ -254,11 +311,13 @@ def fetch_page_parameter_analysis(
         return [parse_business_summary(doc) for doc in collection_ref.stream()]
 
 
-class ParameterSummary(BaseModel):
+class ResAnalystReportItem(BaseModel):
     page_number: int
-    output: str
-    explanation: str
-    opinion: str
+    facts: str
+    issues: str
+    rationale: str
+    forecast: str
+    investigation: str
 
 
 def fetch_page_summary(
@@ -267,7 +326,7 @@ def fetch_page_summary(
     file_uuid: str,
     target_collection: str = 'sales',
     limit: int = 30,
-) -> list[ParameterSummary]:
+) -> list[ResAnalystReportItem]:
     selected_project_id = get_selected_project_id(firestore_client, user_id)
     collection_ref = (
         firestore_client.collection('users')
@@ -288,11 +347,13 @@ def fetch_page_summary(
 
     parameter_summaries = []
     for doc in sorted_docs:
-        parameter_summary = ParameterSummary(
+        parameter_summary = ResAnalystReportItem(
             page_number=doc.to_dict()['page_number'],
-            output=doc.to_dict()['output'],
-            explanation=doc.to_dict()['explanation'],
-            opinion=doc.to_dict()['opinion'],
+            facts=doc.to_dict()['facts'],
+            issues=doc.to_dict()['issues'],
+            rationale=doc.to_dict()['rationale'],
+            forecast=doc.to_dict()['forecast'],
+            investigation=doc.to_dict()['investigation'],
         )
         parameter_summaries.append(parameter_summary)
     return parameter_summaries

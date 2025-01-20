@@ -12,5 +12,4 @@ class PageMetadata(BaseModel):
     user_id: str
     file_uuid: str
     file_name: str
-    page_url: str
     page_number: str
