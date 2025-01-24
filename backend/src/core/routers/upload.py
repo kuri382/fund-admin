@@ -148,7 +148,6 @@ async def process_pdf_background(
     """PDFを処理し、各ページを画像化、アップロード、解析を行うメイン関数"""
     pdf_document = await pdf_processor.read_pdf_file(contents)
     max_pages = min(max_pages, len(pdf_document))
-    logger.info('Started processing PDF')
 
     for page_number in range(max_pages):
         try:
@@ -156,18 +155,21 @@ async def process_pdf_background(
             image_base64 = await upload_image_and_get_base64(
                 pdf_document, user_id, page_number, file_uuid, storage_client
             )
-            #result = await fetch_and_parse_response(openai_client, image_base64)
+
+            # ページからわかる情報を抽出する
             analyst_report = await generate_summary.get_analyst_report(openai_client, image_base64)
+            # ページからわかる転写（直訳に近い情報抽出）を行う
+            transcription_report = await generate_summary.get_transcription(openai_client, image_base64)
+
             logger.info('result analysed')
-            page_uuid = uuid.uuid4()
             firebase_driver.save_page_analyst_report(
                 firestore_client=firestore_client,
                 user_id=user_id,
                 file_uuid=file_uuid,
                 file_name=unique_filename,
-                page_uuid=str(page_uuid),
                 page_number=page_number,
                 analyst_report=analyst_report,
+                transcription_report=transcription_report,
             )
             logger.info('firebase storage saved')
 

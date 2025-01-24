@@ -48,15 +48,18 @@ class AnalystReport(BaseModel):
     investigation: str =    Field(..., description='課題やリスク推測をより精緻に行うために必要な情報')
 
 
+class TranscriptionReport(BaseModel):
+    transcription: str =     Field(..., description='ファイルに記述されたすべての内容を正確かつ丁寧に抽出した文章')
+
+
 def save_page_analyst_report(
     firestore_client: firestore.Client,
     user_id: str,
     file_uuid: str,
     file_name: str,
-    page_uuid: str,
     page_number: int,
     analyst_report: AnalystReport,
-    target_collection: str = 'sales',
+    transcription_report: TranscriptionReport,
 ) -> None:
     projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
     is_selected_filter = FieldFilter("is_selected", "==", True)
@@ -72,12 +75,13 @@ def save_page_analyst_report(
         .document(user_id)
         .collection('projects')
         .document(selected_project_id)
-        .collection(target_collection)
-        .document(str(page_uuid))
+        .collection('documents')
+        .document(str(file_uuid))
     )
+    page_ref = doc_ref.collection('pages').document(str(page_number))
 
     try:
-        doc_ref.set(
+        page_ref.set(
             {
                 # metadata
                 "file_uuid": str(file_uuid),
@@ -89,6 +93,7 @@ def save_page_analyst_report(
                 'rationale': str(analyst_report.rationale),
                 'forecast': str(analyst_report.forecast),
                 'investigation': str(analyst_report.investigation),
+                'transcription': str(transcription_report.transcription)
             }
         )
         return
@@ -318,44 +323,54 @@ class ResAnalystReportItem(BaseModel):
     rationale: str
     forecast: str
     investigation: str
+    transcription: str
 
 
 def fetch_page_summary(
     firestore_client: firestore.Client,
     user_id: str,
     file_uuid: str,
-    target_collection: str = 'sales',
     limit: int = 30,
 ) -> list[ResAnalystReportItem]:
+    # ユーザーの選択されたプロジェクトIDを取得
     selected_project_id = get_selected_project_id(firestore_client, user_id)
-    collection_ref = (
+
+    # `file_uuid` に対応するドキュメントへの参照
+    file_ref = (
         firestore_client.collection('users')
         .document(user_id)
         .collection('projects')
         .document(selected_project_id)
-        .collection(target_collection)
+        .collection('documents')
+        .document(file_uuid)
     )
 
-    query = collection_ref.where("file_uuid", "==", file_uuid).limit(limit)
-    file_docs = query.get()
+    # `pages` サブコレクションを参照し、すべてのページデータを取得
+    pages_ref = file_ref.collection('pages')
+    query = pages_ref.limit(limit)
+    page_docs = query.get()
 
-    # 文字列型のpage_numberを昇順ソート
+    # 文字列型の `page_number` を昇順ソート
     sorted_docs = sorted(
-        file_docs,
+        page_docs,
         key=lambda doc: int(doc.to_dict().get('page_number', 0))
     )
 
+    # ページごとのデータをリストに変換
     parameter_summaries = []
     for doc in sorted_docs:
+        page_data = doc.to_dict()
         parameter_summary = ResAnalystReportItem(
-            page_number=doc.to_dict()['page_number'],
-            facts=doc.to_dict()['facts'],
-            issues=doc.to_dict()['issues'],
-            rationale=doc.to_dict()['rationale'],
-            forecast=doc.to_dict()['forecast'],
-            investigation=doc.to_dict()['investigation'],
+            page_number=page_data.get('page_number'),
+            facts=page_data.get('facts'),
+            issues=page_data.get('issues'),
+            rationale=page_data.get('rationale'),
+            forecast=page_data.get('forecast'),
+            investigation=page_data.get('investigation'),
+            transcription=page_data.get('transcription'),
         )
         parameter_summaries.append(parameter_summary)
+
     return parameter_summaries
 
 

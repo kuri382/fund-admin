@@ -545,6 +545,7 @@ class ParameterSummaries(BaseJSONSchema):
     rationale: str
     forecast: str
     investigation: str
+    transcription: str
 
 
 class ResGetParameterSummary(BaseJSONSchema):
@@ -564,6 +565,7 @@ def convert_to_res_get_parameter_summary(
             rationale=item.rationale,
             forecast=item.forecast,
             investigation=item.investigation,
+            transcription=item.transcription,
         )
         for item in items
     ]

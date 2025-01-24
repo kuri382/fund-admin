@@ -125,6 +125,53 @@ async def get_analyst_report(openai_client, image_base64, max_retries=3):
             await asyncio.sleep(2)
 
 
+
+async def get_transcription(openai_client, image_base64, max_retries=3):
+    """
+    OpenAI APIにリクエストを送信し、画像ファイルに記述された内容を正確に表現された文章を返す
+    """
+
+    prompt = '''次のビジネスで用いられるファイルについて、記述されたすべての内容を正確かつ丁寧に抽出して、日本語で文章化すること。固有名詞以外は日本語に翻訳して伝わりやすくすること。
+            '''
+
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            response = openai_client.beta.chat.completions.parse(
+                model='gpt-4o-2024-08-06',
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "- 日本語で回答せよ。- 回答の際には「です、ます」ではなく「だ、である」を使用せよ。",
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": prompt,
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
+                            },
+                        ],
+                    },
+                ],
+                response_format=firebase_driver.TranscriptionReport,
+            )
+            parsed_response = response.choices[0].message.parsed
+            return parsed_response
+
+        except (ValidationError, ValueError) as e:
+            retry_count += 1
+            logger.warning(f'Error occurred: {e}. Retrying {retry_count}/{max_retries}')
+            if retry_count >= max_retries:
+                logger.error("Max retries reached. Exiting the retry loop.")
+                raise e
+            await asyncio.sleep(2)
+
+
 def get_encoded_image(url: str) -> str:
     """
     URL先の画像を取得してBase64エンコードする
