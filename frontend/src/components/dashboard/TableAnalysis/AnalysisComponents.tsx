@@ -197,7 +197,12 @@ const AnalysisComponents: React.FC = () => {
     return (
       <>
         <ProjectManager onProjectChange={handleProjectChange} />
-        <FileUpload />
+        <FileUpload onUploadComplete={() => {
+          // アップロード完了後、5秒後にデータ更新を実行
+          setTimeout(() => {
+            handleAnalysisButtonClick();
+          }, 5000);
+        }} />
         <Alert
           message="データがまだありません"
           type="info"

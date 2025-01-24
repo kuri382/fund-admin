@@ -4,6 +4,7 @@ import axios from 'axios';
 import { getAuth } from "firebase/auth";
 
 import { apiUrlGetImageList, apiUrlGetParameterSummary } from '@/utils/api';
+import { ReloadOutlined } from '@ant-design/icons';
 import ButtonAnalyzePL from '@/components/dashboard/TableAnalysis/Button/ButtonAnalyzePL';
 import ButtonAnalyzeSaaS from '@/components/dashboard/TableAnalysis/Button/ButtonAnalyzeSaaS';
 import DetailModal from '@/components/dashboard/Generator/DetailModal';
@@ -139,11 +140,6 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
 
   return (
     <div>
-      <Space>
-        <Button onClick={fetchImages} type="primary" style={{ marginBottom: '10px' }}>
-          再読み込み
-        </Button>
-      </Space>
       <div style={{ padding: '20px' }}></div>
 
       {loading && <Spin />}
@@ -172,7 +168,6 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
                         preview={false}
                         onClick={() => openModal(index)}
                       />
-
                     </Col>
 
                     <Col span={12}>
@@ -191,10 +186,23 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
                           <Paragraph>{summary.investigation}</Paragraph>*/}
                         </div>
                       ) : (
-                        <Space>
-                          <Spin />
-                          <span>解析中</span>
-                        </Space>
+                        <>
+                          <Space>
+                            <Spin />
+                            <span>解析中</span>
+                          </Space>
+                          <br></br>
+                          <div style={{ textAlign: 'left' }}>
+                            <p>ファイルのページ数が多い場合、表示まで時間がかかる場合があります。</p>
+                            <Button
+                              icon={<ReloadOutlined />}
+                              onClick={fetchImages}
+                              type="default"
+                            >
+                              解析結果を更新する
+                            </Button>
+                          </div>
+                        </>
                       )}
                     </Col>
                   </Row>

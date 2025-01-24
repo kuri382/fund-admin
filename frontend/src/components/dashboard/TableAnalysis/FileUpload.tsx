@@ -32,11 +32,17 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
     name: 'file',
     multiple: true,
     beforeUpload: (file: File, fileList: File[]) => {
-      if (fileList.length > 20) {
-        message.error('一度にアップロードできるファイルは最大20ファイルまでです。');
+      // ファイルタイプチェック (PDFのみ許可)
+      if (file.type !== 'application/pdf') {
+        message.error(`${file.name} はPDFファイルではありません。PDFのみアップロード可能です。`);
         return Upload.LIST_IGNORE; // このファイルはリストから無視する
       }
-      return true; // アップロードを続行
+
+      if (fileList.length > 20) {
+        message.error('一度にアップロードできるファイルは最大20ファイルまでです。');
+        return Upload.LIST_IGNORE;
+      }
+      return true;
     },
     customRequest: async ({ file, onSuccess, onError }: any) => {
       const user = auth.currentUser;
@@ -111,10 +117,10 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
           <InboxOutlined />
         </p>
         <p className="ant-upload-text">
-          クリックまたはドラッグして複数のファイルをアップロード
+          クリックまたはドラッグして複数のPDFファイルをアップロード
         </p>
         <p className="ant-upload-hint">
-          20ファイルまで同時にアップロードできます。
+          20ファイルまで同時にアップロードできます。PDFファイルのみ対応しています。
         </p>
       </Dragger>
 
