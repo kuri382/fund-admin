@@ -5,23 +5,23 @@ import logging
 import os
 import uuid
 
-from google.cloud import tasks_v2
 import openai
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
+from google.cloud import tasks_v2
 from pydantic import BaseModel, Field
 from pydantic_core import ValidationError
 
 import src.core.services.firebase_driver as firebase_driver
 from src.core.dependencies.auth import get_user_id
-from src.core.dependencies.external import get_openai_client
 from src.core.dependencies.cloud_tasks import get_cloud_tasks_client, get_queue_path
+from src.core.dependencies.external import get_openai_client
+from src.core.services.endpoints import projection
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services.openai_client import extract_document_information
 from src.core.services.pdf_processing import extract_text_from_pdf
-from src.core.services.upload import pdf_processor, table_processor, generate_summary
-from src.core.services.worker import models, cloud_tasks
+from src.core.services.upload import generate_summary, pdf_processor, table_processor
+from src.core.services.worker import cloud_tasks, models
 from src.settings import Settings
-
 
 router = APIRouter(prefix='/upload', tags=['upload'])
 logger = logging.getLogger(__name__)
@@ -150,18 +150,36 @@ async def process_pdf_background(
     max_pages = min(max_pages, len(pdf_document))
 
     for page_number in range(max_pages):
+        logger.info(f"[Page {page_number}/{max_pages}] Start processing.")
+
+        # 画像のBase64エンコード部分
         try:
-            logger.info(f'Processing page {page_number}/{max_pages}')
+            logger.debug(f"[Page {page_number}] Starting image upload and encoding.")
             image_base64 = await upload_image_and_get_base64(
                 pdf_document, user_id, page_number, file_uuid, storage_client
             )
+        except Exception as e:
+            logger.error(f"[Page {page_number}] Image upload/encoding failed: {e}", exc_info=True)
+            continue
 
-            # ページからわかる情報を抽出する
+        # 情報抽出部分
+        try:
+            logger.debug(f"[Page {page_number}] Starting data extraction.")
             analyst_report = await generate_summary.get_analyst_report(openai_client, image_base64)
-            # ページからわかる転写（直訳に近い情報抽出）を行う
             transcription_report = await generate_summary.get_transcription(openai_client, image_base64)
+            await projection.process_single_page_profit_and_loss(user_id, file_uuid, firestore_client, storage_client, openai_client, page_number)
+            logger.info(f"[Page {page_number}] Data extraction completed successfully.")
 
-            logger.info('result analysed')
+            if analyst_report is None:
+                logger.warning(f"[Page {page_number}] Analyst report is None. Skipping due to validation errors.")
+                continue
+        except Exception as e:
+            logger.error(f"[Page {page_number}] Data extraction failed: {e}", exc_info=True)
+            continue
+
+        # Firebase保存部分
+        try:
+            logger.debug(f"[Page {page_number}] Saving extracted data to Firebase.")
             firebase_driver.save_page_analyst_report(
                 firestore_client=firestore_client,
                 user_id=user_id,
@@ -171,16 +189,13 @@ async def process_pdf_background(
                 analyst_report=analyst_report,
                 transcription_report=transcription_report,
             )
-            logger.info('firebase storage saved')
-
-            if analyst_report is None:
-                logger.warning(f"Skipping page {page_number + 1} due to repeated validation errors.")
-                continue
-
+            logger.info(f"[Page {page_number}] Data saved to Firebase successfully.")
         except Exception as e:
-            logger.error(f"An error occurred while processing page {page_number + 1}: {e}")
-            logger.info(f"Skipping page {page_number + 1} due to error.")
+            logger.error(f"[Page {page_number}] Firebase save failed: {e}", exc_info=True)
             continue
+
+    logger.info("Processing completed for all pages.")
+
 
 
 @router.post("")
@@ -396,6 +411,7 @@ async def create_task(
                     image_bytes, user_id, page_number, file_uuid, storage_client
                 )
 
+                # 1ページごとの内容の解析
                 payload_page = models.PageMetadata(
                     user_id=user_id,
                     file_uuid=str(file_uuid),
@@ -404,15 +420,15 @@ async def create_task(
                 )
                 worker_url = f'{Settings.google_cloud.api_base_url}/worker/page:analyze'
                 task_page = cloud_tasks.create_task_payload(worker_url, payload_page)
+                response = cloud_tasks_client.create_task(parent=queue_path, task=task_page)
+                eta = response.schedule_time.strftime("%m/%d/%Y, %H:%M:%S")
+                logger.info(f"Page analyze task created successfully: {response.name}, {eta}")
 
-                try:
-                    logger.info("Creating a new task in Cloud Tasks...")
-                    response = cloud_tasks_client.create_task(parent=queue_path, task=task_page)
-                    eta = response.schedule_time.strftime("%m/%d/%Y, %H:%M:%S")
-                    logger.info(f"Task created successfully: {response.name}, {eta}")
-
-                except Exception as e:
-                    logger.error(f"Error occurred while creating a task: {e}")
-                    continue
+                # projection内容の解析（時間のかかる処理）
+                worker_projection_url = f'{Settings.google_cloud.api_base_url}/worker/projection:analyze'
+                task_projection = cloud_tasks.create_task_payload(worker_projection_url, payload_page)
+                response = cloud_tasks_client.create_task(parent=queue_path, task=task_projection)
+                eta = response.schedule_time.strftime("%m/%d/%Y, %H:%M:%S")
+                logger.info(f"Projection analyze task created successfully: {response.name}, {eta}")
 
     return {"message": "PDF processing completed"}

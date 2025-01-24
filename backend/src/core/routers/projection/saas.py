@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
-from src.core.models.plan import Step, TempSaaSMetrics, all_fields_are_none
+from src.core.models.plan import Step, TempSaaSMetrics
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.settings import Settings
 

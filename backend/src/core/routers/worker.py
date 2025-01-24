@@ -1,18 +1,17 @@
 import logging
-import uuid
 
-from fastapi import APIRouter, Depends, Request, HTTPException
-from fastapi.responses import JSONResponse
 import openai
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic_core import ValidationError
 
-from src.core.services.worker import models
-from src.core.dependencies.external import get_openai_client
-from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 import src.core.services.firebase_driver as firebase_driver
-from src.core.services.upload import generate_summary, pdf_processor
+from src.core.dependencies.external import get_openai_client
+from src.core.services.endpoints import projection
+from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services.openai_client import extract_document_information
-
+from src.core.services.upload import generate_summary, pdf_processor
+from src.core.services.worker import models
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -138,5 +137,69 @@ async def worker_page_analyze(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error saving project: {str(e)}")
+
+    return JSONResponse({"status": "success", "received": metadata.page_number}, status_code=200)
+
+
+
+@router.post('/projection:analyze')
+async def worker_projection_analyze(
+    request: Request,
+    firebase_client: FirebaseClient = Depends(get_firebase_client),
+    openai_client: openai.ChatCompletion = Depends(get_openai_client),
+):
+    """
+    Cloud Tasks からPOSTされる個別のページを分析する
+    """
+    logger.info("start page analysis worker")
+
+    # Firestore, Storageのクライアント取得
+    firestore_client = firebase_client.get_firestore()
+    storage_client = firebase_client.get_storage()
+
+    # リクエストボディを読み込み。なければログを出して終了
+    raw_body = await request.body()
+    if not raw_body:
+        logger.error("No data received. Skipping processing.")
+        return {"message": "No data received, processing skipped."}
+
+    # metadataのパース。ValidationErrorやJSONデコードエラーを別々にハンドリングする
+    try:
+        metadata = models.PageMetadata.parse_raw(raw_body)
+
+    except ValidationError as e:
+        # フィールドが足りない、型が合わないなどPydanticでのバリデーション失敗
+        logger.error(f"Failed to parse metadata: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid metadata: {e}"
+        )
+
+    except Exception as e:
+        # JSONデコード失敗など、Pydantic以外の部分で起こりうる例外
+        logger.error(f"Unexpected error while parsing metadata: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail="Unable to parse metadata"
+        )
+
+    logger.info(f'page number: {metadata.page_number}')
+
+    try:
+        # Projectionの作成
+        await projection.process_single_page_profit_and_loss(
+            metadata.user_id,
+            metadata.file_uuid,
+            firestore_client,
+            storage_client,
+            openai_client,
+            metadata.page_number,
+        )
+
+        logger.info('projection has been saved')
+
+    except Exception as e:
+        logger.error(f"Failed to create summary {metadata.page_number}: {e}")
+        return {"message": f"Skipping page {metadata.page_number} because gpt error"}
 
     return JSONResponse({"status": "success", "received": metadata.page_number}, status_code=200)

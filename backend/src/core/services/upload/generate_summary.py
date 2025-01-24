@@ -1,13 +1,12 @@
 import asyncio
 import base64
 import logging
-import requests
 
+import requests
 from pydantic import BaseModel, Field
 from pydantic_core import ValidationError
 
 import src.core.services.firebase_driver as firebase_driver
-
 
 logger = logging.getLogger(__name__)
 
@@ -26,18 +25,17 @@ class CustomResponse(BaseModel):
     business_summary: firebase_driver.BusinessSummary
 
 
-async def get_page_summary(openai_client, image_base64, max_retries=3):
-    """OpenAI APIにリクエストを送信し、パースされたレスポンスを取得する。リトライ機能付き"""
+async def get_revenue_report(openai_client, image_base64, max_retries=3):
+    """
+    OpenAI APIにリクエストを送信し、パースされたレスポンスを取得する。
+    型に合わない場合リトライを行う。
+    """
     retry_count = 0
     while retry_count < max_retries:
         try:
             response = openai_client.beta.chat.completions.parse(
                 model='gpt-4o-2024-08-06',
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "あなたはバイサイドアナリストです。厳しい目線で経営・事業の状況を解説します。日本語で回答します。",
-                    },
                     {
                         "role": "system",
                         "content": "接頭語に気をつけながら、かならず単位を円で計算しなさい。「百万円」や「億円」をすべて「円」に統一する",
@@ -56,14 +54,9 @@ async def get_page_summary(openai_client, image_base64, max_retries=3):
                         ],
                     },
                 ],
-                response_format=CustomResponse,
+                response_format=firebase_driver.BusinessSummary,
             )
             parsed_response = response.choices[0].message.parsed
-
-            # opinionの文字数チェック
-            if len(parsed_response.opinion) > 2000:
-                raise ValueError("opinion length exceeds 2000 characters. Retrying...")
-
             return parsed_response
 
         except (ValidationError, ValueError) as e:
@@ -78,7 +71,7 @@ async def get_page_summary(openai_client, image_base64, max_retries=3):
 async def get_analyst_report(openai_client, image_base64, max_retries=3):
     """
     OpenAI APIにリクエストを送信し、パースされたレスポンスを取得する。
-    型に合わない場合リトライを行う
+    型に合わない場合リトライを行う。
     """
 
     prompt = '''これから提示する資料について、企業が公表している事実関係や業績データを客観的にまとめる。
