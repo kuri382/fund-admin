@@ -6,12 +6,12 @@ from typing import Final
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.core.routers import auth, data, explorer, image, parameter, project, projection, summary, upload
+from src.core.routers import auth, data, explorer, image, parameter, project, projection, summary, upload, worker
 from src.core.services import firebase_client
 from src.settings import settings
 
 TITLE: Final[str] = 'Granite API'
-VERSION: Final[str] = '0.4.7'
+VERSION: Final[str] = '0.4.9'
 
 app = FastAPI(
     title=TITLE,
@@ -37,6 +37,7 @@ app.include_router(project.router)
 app.include_router(projection.router)
 app.include_router(summary.router)
 app.include_router(upload.router)
+app.include_router(worker.router)
 
 
 @app.on_event("startup")

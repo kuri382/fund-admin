@@ -18,7 +18,7 @@ class Settings:
             "env.bak/granite-dev.json",
         )
     )
-    max_pages_to_parse: int = 20
+    max_pages_to_parse: int = 30
 
     class APIDocs(BaseSettings):
         """APIDocs settings."""
@@ -26,7 +26,16 @@ class Settings:
         enable_docs: bool = Field(True, env='ENABLE_DOCS')
         enable_redoc: bool = Field(True, env='ENABLE_REDOC')
 
+    class GoogleCloud(BaseSettings):
+        """Google Cloud settings"""
+
+        project_id: str = os.environ['GOOGLE_CLOUD_PROJECT_ID']
+        location_id: str = os.environ['GOOGLE_CLOUD_LOCATION_ID']
+        queue_id: str = os.environ['GOOGLE_CLOUD_QUEUE_ID']
+        api_base_url: str = os.environ['GOOGLE_CLOUD_API_BASE_URL']
+
     api_docs = APIDocs()
+    google_cloud = GoogleCloud()
 
 
 settings = Settings()

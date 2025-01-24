@@ -14,8 +14,14 @@ router = APIRouter(prefix='/image', tags=['image'])
 logger = logging.getLogger(__name__)
 
 
+class ResImageList(BaseJSONSchema):
+    image_urls: list[str]
+    page_numbers: list[int]
+
+
 class ImageURLsResponse(BaseJSONSchema):
     image_urls: list[str]
+    page_numbers: list[int]
 
 
 @router.get(
@@ -23,11 +29,11 @@ class ImageURLsResponse(BaseJSONSchema):
     response_class=ORJSONResponse,
     responses={
         status.HTTP_200_OK: {
-            'description': 'parameters retrieved successfully.',
+            'description': 'images retrieved successfully.',
         }
     },
 )
-async def get_parameter_list(
+async def get_image_list(
     file_uuid: str,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     user_id: str = Depends(get_user_id),
@@ -36,16 +42,16 @@ async def get_parameter_list(
         storage_client = firebase_client.get_storage()
         blobs = storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}")
 
-        image_urls: list[str] = []
         blob_with_page_numbers = []
 
         for blob in blobs:
             if file_uuid in blob.name:
                 url = blob.generate_signed_url(expiration=3600, method='GET', version='v4')
-                page_number = int(blob.name.split('/')[-1])
+                page_number = int(blob.name.split('/')[-1])  # ファイル名からページ番号を抽出
                 blob_with_page_numbers.append((page_number, url))
 
-        blob_with_page_numbers.sort(key=lambda x: x[0])
+        blob_with_page_numbers.sort(key=lambda x: x[0])  # ページ番号でソート
+        page_numbers = [page for page, _ in blob_with_page_numbers]
         image_urls = [url for _, url in blob_with_page_numbers]
 
         if not image_urls:
@@ -53,7 +59,10 @@ async def get_parameter_list(
                 content=None,
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        result = ImageURLsResponse(image_urls=image_urls)
+        result = ImageURLsResponse(
+            image_urls=image_urls,
+            page_numbers=page_numbers
+        )
 
         return ORJSONResponse(content=jsonable_encoder(result), status_code=status.HTTP_200_OK)
 

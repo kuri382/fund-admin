@@ -137,7 +137,7 @@ async def list_document_files(
             .document(selected_project_id)
             .collection('documents')
         )
-        documents = documents_ref.stream()  # 複数のドキュメントを取得
+        documents = documents_ref.stream()
 
         file_data_list = []
 

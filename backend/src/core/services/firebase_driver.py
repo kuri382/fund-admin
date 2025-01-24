@@ -40,6 +40,68 @@ class AnalysisResult(BaseModel):
     category_ir: str
 
 
+class AnalystReport(BaseModel):
+    facts: str =     Field(..., description='現状の確認事項や客観的なデータ')
+    issues: str =    Field(..., description='潜在的なリスクや経営上の懸念点')
+    rationale: str = Field(..., description='課題やリスクを推測した理由や思考プロセス')
+    forecast: str =  Field(..., description='リスクが顕在化した場合の影響や将来の見通し')
+    investigation: str =    Field(..., description='課題やリスク推測をより精緻に行うために必要な情報')
+
+
+class TranscriptionReport(BaseModel):
+    transcription: str =     Field(..., description='ファイルに記述されたすべての内容を正確かつ丁寧に抽出した文章')
+
+
+def save_page_analyst_report(
+    firestore_client: firestore.Client,
+    user_id: str,
+    file_uuid: str,
+    file_name: str,
+    page_number: int,
+    analyst_report: AnalystReport,
+    transcription_report: TranscriptionReport,
+) -> None:
+    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+    is_selected_filter = FieldFilter("is_selected", "==", True)
+    query = projects_ref.where(filter=is_selected_filter).limit(1)
+    selected_project = query.get()
+
+    if not selected_project:
+        raise ValueError("No project selected for the user")
+
+    selected_project_id = selected_project[0].id
+    doc_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(selected_project_id)
+        .collection('documents')
+        .document(str(file_uuid))
+    )
+    page_ref = doc_ref.collection('pages').document(str(page_number))
+
+    try:
+        page_ref.set(
+            {
+                # metadata
+                "file_uuid": str(file_uuid),
+                "file_name": file_name,
+                "page_number": str(page_number),
+                # report
+                "facts": str(analyst_report.facts),
+                "issues": str(analyst_report.issues),
+                'rationale': str(analyst_report.rationale),
+                'forecast': str(analyst_report.forecast),
+                'investigation': str(analyst_report.investigation),
+                'transcription': str(transcription_report.transcription)
+            }
+        )
+        return
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
+
+
 def save_analysis_result(
     firestore_client: firestore.Client,
     user_id: str,
@@ -254,44 +316,61 @@ def fetch_page_parameter_analysis(
         return [parse_business_summary(doc) for doc in collection_ref.stream()]
 
 
-class ParameterSummary(BaseModel):
+class ResAnalystReportItem(BaseModel):
     page_number: int
-    output: str
-    explanation: str
-    opinion: str
+    facts: str
+    issues: str
+    rationale: str
+    forecast: str
+    investigation: str
+    transcription: str
 
 
 def fetch_page_summary(
     firestore_client: firestore.Client,
     user_id: str,
     file_uuid: str,
-    target_collection: str = 'sales',
     limit: int = 30,
-) -> list[ParameterSummary]:
+) -> list[ResAnalystReportItem]:
+    # ユーザーの選択されたプロジェクトIDを取得
     selected_project_id = get_selected_project_id(firestore_client, user_id)
-    collection_ref = (
+
+    # `file_uuid` に対応するドキュメントへの参照
+    file_ref = (
         firestore_client.collection('users')
         .document(user_id)
         .collection('projects')
         .document(selected_project_id)
-        .collection(target_collection)
+        .collection('documents')
+        .document(file_uuid)
     )
 
-    query = collection_ref.where("file_uuid", "==", file_uuid).limit(limit)
-    file_docs = query.get()
+    # `pages` サブコレクションを参照し、すべてのページデータを取得
+    pages_ref = file_ref.collection('pages')
+    query = pages_ref.limit(limit)
+    page_docs = query.get()
 
-    # page_numberで昇順ソート
-    sorted_docs = sorted(file_docs, key=lambda doc: doc.to_dict().get('page_number', 0))
+    # 文字列型の `page_number` を昇順ソート
+    sorted_docs = sorted(
+        page_docs,
+        key=lambda doc: int(doc.to_dict().get('page_number', 0))
+    )
 
+    # ページごとのデータをリストに変換
     parameter_summaries = []
     for doc in sorted_docs:
-        parameter_summary = ParameterSummary(
-            page_number=doc.to_dict()['page_number'],
-            output=doc.to_dict()['output'],
-            explanation=doc.to_dict()['explanation'],
-            opinion=doc.to_dict()['opinion'],
+        page_data = doc.to_dict()
+        parameter_summary = ResAnalystReportItem(
+            page_number=page_data.get('page_number'),
+            facts=page_data.get('facts'),
+            issues=page_data.get('issues'),
+            rationale=page_data.get('rationale'),
+            forecast=page_data.get('forecast'),
+            investigation=page_data.get('investigation'),
+            transcription=page_data.get('transcription'),
         )
         parameter_summaries.append(parameter_summary)
+
     return parameter_summaries
 
 

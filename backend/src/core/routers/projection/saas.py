@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import uuid
 
@@ -8,7 +7,6 @@ from fastapi.responses import ORJSONResponse
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 from pydantic import BaseModel, Field
-from pydantic_core import ValidationError
 
 from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
@@ -108,22 +106,54 @@ def save_parameters(
                     'department_name': summary.business_scope.department_name,
                     'product_name': summary.business_scope.product_name,
                 },
-                'saas_revenue_metrics': {
-                    'revenue': str(summary.saas_revenue_metrics.revenue) if summary.saas_revenue_metrics else None,
-                    'mrr': str(summary.saas_revenue_metrics.mrr) if summary.saas_revenue_metrics else None,
-                    'arr': str(summary.saas_revenue_metrics.arr) if summary.saas_revenue_metrics else None,
-                    'arpu': str(summary.saas_revenue_metrics.arpu) if summary.saas_revenue_metrics else None,
-                    'expansion_revenue': str(summary.saas_revenue_metrics.expansion_revenue) if summary.saas_revenue_metrics else None,
-                    'new_customer_revenue': str(summary.saas_revenue_metrics.new_customer_revenue) if summary.saas_revenue_metrics else None,
-                } if summary.saas_revenue_metrics else None,
-                'saas_customer_metrics': {
-                    'churn_rate': str(summary.saas_customer_metrics.churn_rate) if summary.saas_customer_metrics else None,
-                    'retention_rate': str(summary.saas_customer_metrics.retention_rate) if summary.saas_customer_metrics else None,
-                    'active_users': str(summary.saas_customer_metrics.active_users) if summary.saas_customer_metrics else None,
-                    'trial_conversion_rate': str(summary.saas_customer_metrics.trial_conversion_rate) if summary.saas_customer_metrics else None,
-                    'average_contract_value': str(summary.saas_customer_metrics.average_contract_value) if summary.saas_customer_metrics else None,
-                    'nrr': str(summary.saas_customer_metrics.nrr) if summary.saas_customer_metrics else None,
-                } if summary.saas_customer_metrics else None,
+                'saas_revenue_metrics': (
+                    {
+                        'revenue': str(summary.saas_revenue_metrics.revenue) if summary.saas_revenue_metrics else None,
+                        'mrr': str(summary.saas_revenue_metrics.mrr) if summary.saas_revenue_metrics else None,
+                        'arr': str(summary.saas_revenue_metrics.arr) if summary.saas_revenue_metrics else None,
+                        'arpu': str(summary.saas_revenue_metrics.arpu) if summary.saas_revenue_metrics else None,
+                        'expansion_revenue': (
+                            str(summary.saas_revenue_metrics.expansion_revenue)
+                            if summary.saas_revenue_metrics
+                            else None
+                        ),
+                        'new_customer_revenue': (
+                            str(summary.saas_revenue_metrics.new_customer_revenue)
+                            if summary.saas_revenue_metrics
+                            else None
+                        ),
+                    }
+                    if summary.saas_revenue_metrics
+                    else None
+                ),
+                'saas_customer_metrics': (
+                    {
+                        'churn_rate': (
+                            str(summary.saas_customer_metrics.churn_rate) if summary.saas_customer_metrics else None
+                        ),
+                        'retention_rate': (
+                            str(summary.saas_customer_metrics.retention_rate)
+                            if summary.saas_customer_metrics
+                            else None
+                        ),
+                        'active_users': (
+                            str(summary.saas_customer_metrics.active_users) if summary.saas_customer_metrics else None
+                        ),
+                        'trial_conversion_rate': (
+                            str(summary.saas_customer_metrics.trial_conversion_rate)
+                            if summary.saas_customer_metrics
+                            else None
+                        ),
+                        'average_contract_value': (
+                            str(summary.saas_customer_metrics.average_contract_value)
+                            if summary.saas_customer_metrics
+                            else None
+                        ),
+                        'nrr': str(summary.saas_customer_metrics.nrr) if summary.saas_customer_metrics else None,
+                    }
+                    if summary.saas_customer_metrics
+                    else None
+                ),
             }
         )
         return

@@ -32,8 +32,8 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
     name: 'file',
     multiple: true,
     beforeUpload: (file: File, fileList: File[]) => {
-      if (fileList.length > 3) {
-        message.error('一度にアップロードできるファイルは最大3つまでです。');
+      if (fileList.length > 20) {
+        message.error('一度にアップロードできるファイルは最大20ファイルまでです。');
         return Upload.LIST_IGNORE; // このファイルはリストから無視する
       }
       return true; // アップロードを続行
@@ -46,7 +46,8 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
           message.loading(`${file.name}を分析しています...`);
 
           const accessToken = await user.getIdToken(true);
-          const apiUrl = `${api.baseUrl}/upload`;
+          const apiUrl = `${api.baseUrl}/upload/task`;
+          //const apiUrl = `${api.baseUrl}/upload`; //debug用
           const formData = new FormData();
           formData.append('file', file);
 
@@ -113,7 +114,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
           クリックまたはドラッグして複数のファイルをアップロード
         </p>
         <p className="ant-upload-hint">
-          3ファイルまで同時にアップロードできます。
+          20ファイルまで同時にアップロードできます。
         </p>
       </Dragger>
 

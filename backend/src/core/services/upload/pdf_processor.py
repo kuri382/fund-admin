@@ -4,6 +4,8 @@ import logging
 import fitz
 from fastapi import HTTPException
 from firebase_admin import exceptions
+from google.cloud import storage
+from datetime import datetime, timedelta
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -32,10 +34,7 @@ def convert_pdf_page_to_image(pdf_document: fitz.Document, page_number: int) -> 
     page = pdf_document.load_page(page_number)
     pix = page.get_pixmap()
     image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-    # resize_width: int = 800
-    # image = image.resize((resize_width, int((resize_width / image.width) * image.height)), Image.ANTIALIAS)
 
-    # 画像をバイナリストリームに変換
     image_bytes = io.BytesIO()
     image.save(image_bytes, format="PNG", optimize=True, quality=70)
     image_bytes.seek(0)
@@ -47,7 +46,7 @@ async def upload_image_to_firebase(
     user_id: str,
     page_number: int,
     file_uuid: str,
-    storage_client,
+    storage_client: storage.Client,
 ) -> None:
     """
     画像をFirebase Storageにアップロードする関数
@@ -75,3 +74,28 @@ async def upload_image_to_firebase(
             status_code=500,
             detail="An unexpected error occurred during the upload process.",
         )
+
+
+async def generate_signed_url(
+    user_id: str, page_number: int, file_uuid: str, storage_client: storage.Client, expiration_minutes: int = 60
+) -> str:
+    """
+    Firebase Storageの署名付きURLを生成する関数
+    :param user_id: ユーザーID
+    :param page_number: ページ番号
+    :param file_uuid: ファイルUUID
+    :param storage_client: Firebase Storageのクライアント
+    :param expiration_minutes: URLの有効期限（分単位）
+    :return: 署名付きURL
+    """
+    blob_path = f"{user_id}/image/{file_uuid}/{page_number}"
+    blob = storage_client.blob(blob_path)
+
+    expiration_time = datetime.utcnow() + timedelta(minutes=expiration_minutes)
+
+    try:
+        signed_url = blob.generate_signed_url(expiration=expiration_time, method="GET", version="v4")
+        return signed_url
+
+    except Exception as e:
+        raise ValueError(f"Failed to generate signed URL for {blob_path}. Error: {e}")
