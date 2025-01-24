@@ -19,8 +19,8 @@ interface DetailModalProps {
 const formatText = (text: string | undefined) => {
     if (!text) return "";
     return text
-        .replace(/####\s(.*?)(?:\n|$)/g, '<h3>$1</h3>') // ### を h3 タグに変換
-        .replace(/###\s(.*?)(?:\n|$)/g, '<h3>$1</h3>') // ### を h3 タグに変換
+        .replace(/####\s(.*?)(?:\n|$)/g, '<strong>$1</strong>') // ### を strong タグに変換
+        .replace(/###\s(.*?)(?:\n|$)/g, '<strong>$1</strong>') // ### を strong タグに変換
         .replace(/##\s(.*?)(?:\n|$)/g, '<h2>$1</h2>') // ## を h2 タグに変換
         .replace(/#\s(.*?)(?:\n|$)/g, '<h2>$1</h2>') // # を h2 タグに変換
         //.replace(/^\d+\.\s(.*)$/gm, '<li>$1</li>') // 番号付きリストに対応
