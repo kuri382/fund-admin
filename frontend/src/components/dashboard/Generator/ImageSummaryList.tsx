@@ -22,6 +22,7 @@ export interface ParameterSummary {
   rationale: string;
   forecast: string;
   investigation: string;
+  transcription: string;
 }
 
 interface SummaryResponse {
@@ -38,6 +39,19 @@ interface CombinedData {
   summary?: ParameterSummary;
 }
 
+const formatText = (text: string | undefined) => {
+  if (!text) return "";
+  return text
+      .replace(/####\s(.*?)(?:\n|$)/g, '<h3>$1</h3>') // ### を h3 タグに変換
+      .replace(/###\s(.*?)(?:\n|$)/g, '<h3>$1</h3>') // ### を h3 タグに変換
+      .replace(/##\s(.*?)(?:\n|$)/g, '<h2>$1</h2>') // ## を h2 タグに変換
+      .replace(/#\s(.*?)(?:\n|$)/g, '<h2>$1</h2>') // # を h2 タグに変換
+      //.replace(/^\d+\.\s(.*)$/gm, '<li>$1</li>') // 番号付きリストに対応
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      //.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // **text** を太字に変換
+      .replace(/\n/g, '<br>'); // 改行に変換
+};
+
 const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) => {
   const [images, setImages] = useState<string[]>([]);
   const [pageNumbers, setPageNumbers] = useState<number[]>([]);
@@ -45,7 +59,7 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  //modal
+  //modal settings
   const [modalOpen, setModalOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const auth = getAuth();
@@ -157,6 +171,7 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
                         preview={false}
                         onClick={() => openModal(index)}
                       />
+                      <p style={{color:'gray'}}>画像をクリックすることで、画像と説明を大きく表示できます</p>
 
                     </Col>
 
@@ -164,14 +179,16 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
                       {summary ? (
                         <div style={{ marginTop: '16px' }}>
                           <p style={{ color: 'gray' }}>page.{summary.pageNumber}</p>
-                          <p><b><Tag color="cyan">fact</Tag>読み取れる情報</b></p>
+                          <p><b><Tag color="green">summary</Tag>サマリー</b></p>
                           <Paragraph>{summary.facts}</Paragraph>
+                          <p ><b><Tag color="cyan">transcription</Tag>正確な内容</b></p>
+                          <Paragraph><div dangerouslySetInnerHTML={{ __html: formatText(summary.transcription) }}></div></Paragraph>
                           <p><b><Tag color="blue">issues</Tag>潜在的なリスクや経営上の懸念点</b></p>
                           <Paragraph>{summary.issues}</Paragraph>
                           <p><b><Tag color="geekblue">rationale</Tag>課題やリスクを推測した理由</b></p>
                           <Paragraph>{summary.rationale}</Paragraph>
-                          <p><b><Tag color="purple">investigation</Tag>課題やリスク推測をより精緻に行うために必要な情報</b></p>
-                          <Paragraph>{summary.investigation}</Paragraph>
+                          {/*<p><b><Tag color="purple">investigation</Tag>課題やリスク推測をより精緻に行うために必要な情報</b></p>
+                          <Paragraph>{summary.investigation}</Paragraph>*/}
                         </div>
                       ) : (
                         <Space>

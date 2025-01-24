@@ -16,6 +16,19 @@ interface DetailModalProps {
     data: DataItem[];
 }
 
+const formatText = (text: string | undefined) => {
+    if (!text) return "";
+    return text
+        .replace(/####\s(.*?)(?:\n|$)/g, '<h3>$1</h3>') // ### を h3 タグに変換
+        .replace(/###\s(.*?)(?:\n|$)/g, '<h3>$1</h3>') // ### を h3 タグに変換
+        .replace(/##\s(.*?)(?:\n|$)/g, '<h2>$1</h2>') // ## を h2 タグに変換
+        .replace(/#\s(.*?)(?:\n|$)/g, '<h2>$1</h2>') // # を h2 タグに変換
+        //.replace(/^\d+\.\s(.*)$/gm, '<li>$1</li>') // 番号付きリストに対応
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        //.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // **text** を太字に変換
+        .replace(/\n/g, '<br>'); // 改行に変換
+  };
+
 const DetailModal: React.FC<DetailModalProps> = ({
     open,
     onClose,
@@ -58,7 +71,7 @@ const DetailModal: React.FC<DetailModalProps> = ({
                 </Button>
             </div>
             {/* 親要素に固定高さを与えて、内部のColだけスクロールできるようにする */}
-            <Row gutter={24} style={{ height: '70vh' }}>
+            <Row gutter={24} style={{ height: '80vh' }}>
                 <Col
                     span={14}
                     style={{
@@ -89,8 +102,10 @@ const DetailModal: React.FC<DetailModalProps> = ({
                         {item && item.summary ? (
                             <>
                                 <p style={{ color: 'gray' }}>page.{item.summary.pageNumber}</p>
-                                <p><b><Tag color="cyan">fact</Tag>読み取れる情報</b></p>
+                                <p><b><Tag color="green">summary</Tag>サマリー</b></p>
                                 <Typography.Paragraph>{item.summary.facts}</Typography.Paragraph>
+                                <p><b><Tag color="cyan">transcription</Tag>正確な内容</b></p>
+                                <Typography.Paragraph><div dangerouslySetInnerHTML={{ __html: formatText(item.summary.transcription) }}></div></Typography.Paragraph>
                                 <p><b><Tag color="blue">issues</Tag>潜在的なリスクや経営上の懸念点</b></p>
                                 <Typography.Paragraph>{item.summary.issues}</Typography.Paragraph>
                                 <p><b><Tag color="geekblue">rationale</Tag>課題やリスクを推測した理由</b></p>

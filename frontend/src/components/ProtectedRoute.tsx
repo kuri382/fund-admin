@@ -10,7 +10,6 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
-  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const router = useRouter();
 
   useEffect(() => {
