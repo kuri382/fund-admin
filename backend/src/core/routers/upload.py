@@ -431,4 +431,4 @@ async def create_task(
                 eta = response.schedule_time.strftime("%m/%d/%Y, %H:%M:%S")
                 logger.info(f"Projection analyze task created successfully: {response.name}, {eta}")
 
-    return {"message": "PDF processing completed"}
+    return {"filename": file.filename, "status": "ファイルを解析し保存しました"}
