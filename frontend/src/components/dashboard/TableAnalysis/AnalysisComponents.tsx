@@ -10,7 +10,6 @@ import fetchDocument from '@/hooks/useFetchDocument';
 import TableFileTabs from '@/components/dashboard/TableAnalysis/TablesFileTabs';
 import PdfsFileTabs from '@/components/dashboard/TableAnalysis/PdfsFileTabs';
 import ProjectManager from '@/components/dashboard/ProjectManager';
-import ResultReport from '@/components/dashboard/TableAnalysis/ResultReport';
 import IssueAnalysisComponent from '@/components/dashboard/IssueAnalysis/IssueAnalysisComponent';
 import QuestionAnswerComponent from '@/components/dashboard/IssueAnalysis/QuestionAnswerComponent';
 import MainTable from '@/components/dashboard/Projection/MainTable';
@@ -46,7 +45,7 @@ const AnalysisComponents: React.FC = () => {
       label: (
         <div key="tab-1">
           <div style={{ width: '150px' }}>入力 ドキュメントデータ</div>
-          <Tag color='red'>pdf, wordなど</Tag>
+          <Tag color='red'>pdf分析ができます</Tag>
         </div>
       ),
       children: <PdfsFileTabs files={filesDocument} />,
@@ -57,7 +56,7 @@ const AnalysisComponents: React.FC = () => {
       label: (
         <div key="tab-2">
           <div>入力 テーブルデータ</div>
-          <Tag color='green'>xlsx, csvなど</Tag>
+          <Tag color='green'>次回アップデート：xlsx, csvの整理</Tag>
         </div>
       ),
       children: <TableFileTabs
