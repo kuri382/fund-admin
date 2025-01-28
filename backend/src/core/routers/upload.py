@@ -402,7 +402,7 @@ async def create_task(
                 raise HTTPException(status_code=500, detail=f"Error saving pdf result: {str(e)}")
 
             pdf_document = await pdf_processor.read_pdf_file(contents)
-            max_pages = min(Settings.max_pages_to_parse, len(pdf_document))  # 読み込む最大ページ数は30ページとする
+            max_pages = min(Settings.max_pages_to_parse, len(pdf_document))
 
             for page_number in range(max_pages):
                 logger.info(f'page number: {page_number}, max pages: {max_pages}')

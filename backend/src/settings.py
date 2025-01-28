@@ -18,7 +18,7 @@ class Settings:
             "env.bak/granite-dev.json",
         )
     )
-    max_pages_to_parse: int = 30
+    max_pages_to_parse: int = 60
 
     class APIDocs(BaseSettings):
         """APIDocs settings."""
