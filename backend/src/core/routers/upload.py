@@ -215,11 +215,19 @@ async def upload_file(
     unique_filename = f"{file_uuid}_{file.filename}"
 
     try:
+        firestore_client = firebase_client.get_firestore()
+        project_id = firebase_driver.get_project_id(user_id, firestore_client)
+
+    except Exception as e:
+        detail = f'error loading project id: {str(e)}'
+        raise HTTPException(status_code=400, detail=detail)
+
+    try:
         storage_client = firebase_client.get_storage()
-        blob = storage_client.blob(f"{user_id}/documents/{unique_filename}")
+        blob = storage_client.blob(f"{user_id}/projects/{project_id}/documents/{unique_filename}")
         blob.upload_from_string(
             contents,
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            content_type='application/pdf',
         )
 
     except Exception as e:
@@ -359,9 +367,18 @@ async def create_task(
     file_uuid = uuid.uuid4()
     unique_filename = f"{file_uuid}_{file.filename}"
 
+    # project_idを取得する
+    try:
+        firestore_client = firebase_client.get_firestore()
+        project_id = firebase_driver.get_project_id(user_id, firestore_client)
+
+    except Exception as e:
+        detail = f'error loading project id: {str(e)}'
+        raise HTTPException(status_code=400, detail=detail)
+
     try:
         storage_client = firebase_client.get_storage()
-        blob = storage_client.blob(f"{user_id}/documents/{unique_filename}")
+        blob = storage_client.blob(f"{user_id}/projects/{project_id}/documents/{unique_filename}")
         blob.upload_from_string(
             contents,
             content_type='application/pdf',
@@ -408,7 +425,7 @@ async def create_task(
                 logger.info(f'page number: {page_number}, max pages: {max_pages}')
                 image_bytes = pdf_processor.convert_pdf_page_to_image(pdf_document, page_number)
                 await pdf_processor.upload_image_to_firebase(
-                    image_bytes, user_id, page_number, file_uuid, storage_client
+                    image_bytes, user_id, project_id, page_number, file_uuid, storage_client
                 )
 
                 # 1ページごとの内容の解析

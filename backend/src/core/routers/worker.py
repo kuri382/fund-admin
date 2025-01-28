@@ -3,8 +3,10 @@ import logging
 import openai
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
+from google.cloud import tasks_v2
 from pydantic_core import ValidationError
 
+from src.core.dependencies.cloud_tasks import get_cloud_tasks_client, get_queue_path
 import src.core.services.firebase_driver as firebase_driver
 from src.core.dependencies.external import get_openai_client
 from src.core.services.endpoints import projection
@@ -98,11 +100,20 @@ async def worker_page_analyze(
             detail="Unable to parse metadata"
         )
 
+    # project_idを取得する
+    try:
+        project_id = firebase_driver.get_project_id(metadata.user_id, firestore_client)
+
+    except Exception as e:
+        detail = f'error loading project id: {str(e)}'
+        raise HTTPException(status_code=400, detail=detail)
+
+
     logger.info(f'page number: {metadata.page_number}')
 
     try:
         signed_url = await pdf_processor.generate_signed_url(
-            metadata.user_id, metadata.page_number, metadata.file_uuid, storage_client
+            metadata.user_id, project_id, metadata.page_number, metadata.file_uuid, storage_client
         )
         image_base64 = generate_summary.get_encoded_image(signed_url)
 
@@ -203,3 +214,23 @@ async def worker_projection_analyze(
         return {"message": f"Skipping page {metadata.page_number} because gpt error"}
 
     return JSONResponse({"status": "success", "received": metadata.page_number}, status_code=200)
+
+
+@router.get("/count")
+async def get_worker_count(
+    cloud_tasks_client: tasks_v2.CloudTasksClient = Depends(get_cloud_tasks_client),
+    queue_path: str = Depends(get_queue_path)
+):
+    """
+    Cloud Tasksの指定されたキューにあるタスクの数を取得する
+    """
+    try:
+        # キューに登録されているタスクの一覧を取得
+        tasks = cloud_tasks_client.list_tasks(parent=queue_path)
+
+        # タスクの数を数える
+        task_count = sum(1 for _ in tasks)
+        return {"queue": queue_path, "task_count": task_count}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve task count: {str(e)}")

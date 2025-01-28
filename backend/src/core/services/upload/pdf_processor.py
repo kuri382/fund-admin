@@ -44,6 +44,7 @@ def convert_pdf_page_to_image(pdf_document: fitz.Document, page_number: int) -> 
 async def upload_image_to_firebase(
     image_bytes: io.BytesIO,
     user_id: str,
+    project_id: str,
     page_number: int,
     file_uuid: str,
     storage_client: storage.Client,
@@ -55,7 +56,7 @@ async def upload_image_to_firebase(
     :param page_number: ページ番号
     :param storage_client: Firebase StorageのBucketクライアント
     """
-    blob = storage_client.blob(f"{user_id}/image/{file_uuid}/{page_number}")
+    blob = storage_client.blob(f"{user_id}/projects/{project_id}/image/{file_uuid}/{page_number}")
 
     try:
         blob.upload_from_file(image_bytes, content_type='image/png')
@@ -77,7 +78,12 @@ async def upload_image_to_firebase(
 
 
 async def generate_signed_url(
-    user_id: str, page_number: int, file_uuid: str, storage_client: storage.Client, expiration_minutes: int = 60
+    user_id: str,
+    project_id: str,
+    page_number: int,
+    file_uuid: str,
+    storage_client: storage.Client,
+    expiration_minutes: int = 60
 ) -> str:
     """
     Firebase Storageの署名付きURLを生成する関数
@@ -88,7 +94,7 @@ async def generate_signed_url(
     :param expiration_minutes: URLの有効期限（分単位）
     :return: 署名付きURL
     """
-    blob_path = f"{user_id}/image/{file_uuid}/{page_number}"
+    blob_path = f"{user_id}/projects/{project_id}/image/{file_uuid}/{page_number}"
     blob = storage_client.blob(blob_path)
 
     expiration_time = datetime.utcnow() + timedelta(minutes=expiration_minutes)

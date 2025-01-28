@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from src.core.models.plan import Step, SummaryProfitAndLoss, all_fields_are_none
 from src.settings import Settings
+import src.core.services.firebase_driver as firebase_driver
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -191,11 +192,19 @@ async def process_single_page_profit_and_loss(
     Returns:
         None
     """
+    # project_idを取得する
+    try:
+        project_id = firebase_driver.get_project_id(user_id, firestore_client)
+
+    except Exception as e:
+        detail = f'error loading project id: {str(e)}'
+        raise HTTPException(status_code=400, detail=detail)
+
     try:
         logger.info(f"Processing page_number: {page_number}")
 
         # ページ番号に基づいてストレージ内のBlobを検索
-        blobs = storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}/{page_number}")
+        blobs = storage_client.list_blobs(prefix=f"{user_id}/projects/{project_id}/image/{file_uuid}/{page_number}")
 
         # 署名付きURLを生成
         url = None

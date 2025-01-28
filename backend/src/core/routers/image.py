@@ -6,6 +6,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
 
 from src.core.dependencies.auth import get_user_id
+import src.core.services.firebase_driver as firebase_driver
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 
 from ._base import BaseJSONSchema
@@ -38,9 +39,18 @@ async def get_image_list(
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     user_id: str = Depends(get_user_id),
 ):
+    # project_idを取得する
+    try:
+        firestore_client = firebase_client.get_firestore()
+        project_id = firebase_driver.get_project_id(user_id, firestore_client)
+
+    except Exception as e:
+        detail = f'error loading project id: {str(e)}'
+        raise HTTPException(status_code=400, detail=detail)
+
     try:
         storage_client = firebase_client.get_storage()
-        blobs = storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}")
+        blobs = storage_client.list_blobs(prefix=f"{user_id}/projects/{project_id}/image/{file_uuid}")
 
         blob_with_page_numbers = []
 
