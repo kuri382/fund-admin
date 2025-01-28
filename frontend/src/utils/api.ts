@@ -39,3 +39,6 @@ export const apiUrlGetParameterSales = `${api.baseUrl}/parameter/sales`;
 export const apiUrlGetProjectionProfitAndLoss = `${api.baseUrl}/projection/profit_and_loss/metrics`;
 export const apiUrlPostProjectionProfitAndLoss = `${api.baseUrl}/projection/profit_and_loss/metrics`;
 export const apiUrlPostProjectionSaaSCustomerRevenue = `${api.baseUrl}/projection/saas/customer_revenue`;
+
+// task カウント
+export const apiUrlGetWorkerCount = `${api.baseUrl}/worker/count`;

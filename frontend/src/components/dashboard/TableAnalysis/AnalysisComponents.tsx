@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Alert, Button, Row, Col, notification, Spin, Tabs, Tag } from 'antd';
+import { Alert, Button, Row, Col, notification, Spin, Tabs, Tag, Space } from 'antd';
 import type { TabsProps } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
@@ -14,6 +14,7 @@ import IssueAnalysisComponent from '@/components/dashboard/IssueAnalysis/IssueAn
 import QuestionAnswerComponent from '@/components/dashboard/IssueAnalysis/QuestionAnswerComponent';
 import MainTable from '@/components/dashboard/Projection/MainTable';
 import FinancialTable from '@/components/dashboard/Generator/generateBusinessPlan';
+import TaskCount from './Tasks/TaskCount';
 
 const AnalysisComponents: React.FC = () => {
   // 状態管理
@@ -226,15 +227,18 @@ const AnalysisComponents: React.FC = () => {
       <FileUpload />
 
       <div style={{ minHeight: '200px' }}>
-        <Button
-          onClick={handleAnalysisButtonClick}
-          type="primary"
-          style={{ margin: '10px 0px 0px 20px' }}
-          icon={<ReloadOutlined />}
-          loading={isLoading}
-        >
-          ファイル情報を更新する
-        </Button>
+        <Space align="center" style={{padding:'10px'}}>
+          <Button
+            onClick={handleAnalysisButtonClick}
+            type="primary"
+            style={{ margin: '0px 0px 0px 20px' }}
+            icon={<ReloadOutlined />}
+            loading={isLoading}
+          >
+            ファイル情報を更新する
+          </Button>
+          <TaskCount />
+        </Space>
 
         <Row justify="center" style={{ marginTop: '20px' }}>
           <Col span={18}>
