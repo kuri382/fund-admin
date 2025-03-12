@@ -111,7 +111,7 @@ const AnalysisComponents: React.FC = () => {
           </Space>
 
           <Row justify="center" style={{ marginTop: '20px' }}>
-            <Col span={18}>
+            <Col span={22}>
               <AnalysisTabs
                 activeTab={activeTab}
                 onTabChange={handleTabChange}

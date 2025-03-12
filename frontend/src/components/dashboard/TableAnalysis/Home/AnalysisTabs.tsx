@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs, Tag } from 'antd';
 import type { TabsProps } from 'antd';
-import PdfsFileTabs from '@/components/dashboard/TableAnalysis/PdfsFileTabs';
+import PdfsFileTabs from '@/components/dashboard/TableAnalysis/Home/PdfsFileTabs';
 import TableFileTabs from '@/components/dashboard/TableAnalysis/TablesFileTabs';
 import MainTable from '@/components/dashboard/Projection/MainTable';
 
@@ -12,14 +12,19 @@ interface AnalysisTabsProps {
   filesDocument: any[];
 }
 
-const AnalysisTabs: React.FC<AnalysisTabsProps> = ({ activeTab, onTabChange, filesTable, filesDocument }) => {
+const AnalysisTabs: React.FC<AnalysisTabsProps> = ({
+  activeTab,
+  onTabChange,
+  filesTable,
+  filesDocument
+}) => {
   const tabItems: TabsProps['items'] = [
     {
       key: '1',
       label: (
         <div>
           <div style={{ width: '150px' }}>入力 ドキュメントデータ</div>
-          <Tag color='red'>pdf分析ができます</Tag>
+          <Tag color="red">pdf分析ができます</Tag>
         </div>
       ),
       children: <PdfsFileTabs files={filesDocument} />,
@@ -30,7 +35,7 @@ const AnalysisTabs: React.FC<AnalysisTabsProps> = ({ activeTab, onTabChange, fil
       label: (
         <div>
           <div>入力 テーブルデータ</div>
-          <Tag color='green'>次回アップデート：xlsx, csvの整理</Tag>
+          <Tag color="green">次回アップデート：xlsx, csvの整理</Tag>
         </div>
       ),
       children: <TableFileTabs files={filesTable} />,
@@ -41,7 +46,7 @@ const AnalysisTabs: React.FC<AnalysisTabsProps> = ({ activeTab, onTabChange, fil
       label: (
         <div>
           <div style={{ width: '150px' }}>事業計画書自動作成</div>
-          <Tag color='gray'>数値はバックグラウンドで収集されます</Tag>
+          <Tag color="gray">数値はバックグラウンドで収集されます</Tag>
         </div>
       ),
       children: <MainTable projectChanged={false} />,
