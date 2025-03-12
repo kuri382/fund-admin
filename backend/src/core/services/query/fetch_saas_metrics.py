@@ -1,13 +1,4 @@
-from datetime import datetime
-from decimal import Decimal, InvalidOperation
-from io import BytesIO
-from typing import Literal, Optional
-
-from fastapi import HTTPException, UploadFile
 from google.cloud import firestore
-from google.cloud.firestore_v1.base_query import FieldFilter
-from openpyxl import load_workbook
-from pydantic import BaseModel, Field, validator
 
 from src.core.services.firebase_driver import get_selected_project_id
 

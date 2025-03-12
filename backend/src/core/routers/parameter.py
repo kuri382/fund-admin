@@ -20,7 +20,6 @@ from src.core.dependencies.auth import get_user_id
 from src.core.dependencies.external import get_openai_client
 from src.core.models.plan import Step, TempSaaSMetrics, all_fields_are_none
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
-from src.core.services.query import fetch_saas_metrics
 
 from ._base import BaseJSONSchema
 
@@ -466,7 +465,6 @@ def save_parameters(
                     'revenue': str(summary.saas_revenue_metrics.revenue),
                     'mrr': str(summary.saas_revenue_metrics.mrr),
                     'arr': str(summary.saas_revenue_metrics.arr),
-                    'arpu': str(summary.saas_revenue_metrics.arpu),
                     'arpu': str(summary.saas_revenue_metrics.arpu),
                     'expansion_revenue': str(summary.saas_revenue_metrics.expansion_revenue),
                     'new_customer_revenue': str(summary.saas_revenue_metrics.new_customer_revenue),

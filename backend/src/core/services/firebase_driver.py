@@ -30,6 +30,17 @@ async def parse_excel_file(file: UploadFile):
     return data
 
 
+def get_project_id(user_id, firestore_client) -> str:
+    projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
+    is_selected_filter = firestore.FieldFilter("is_selected", "==", True)
+    query = projects_ref.where(filter=is_selected_filter).limit(1)
+    selected_project = query.get()
+    if not selected_project:
+        raise ValueError("No project selected for the user")
+
+    return str(selected_project[0].id)
+
+
 class AnalysisResult(BaseModel):
     abstract: str
     feature: str
@@ -330,7 +341,7 @@ def fetch_page_summary(
     firestore_client: firestore.Client,
     user_id: str,
     file_uuid: str,
-    limit: int = 30,
+    limit: int = 1000,
 ) -> list[ResAnalystReportItem]:
     # ユーザーの選択されたプロジェクトIDを取得
     selected_project_id = get_selected_project_id(firestore_client, user_id)

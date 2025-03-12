@@ -129,7 +129,13 @@ async def list_document_files(
 
         selected_project_id = selected_project[0].id
 
-        # Firestoreから選択中のプロジェクト配下の 'documents' コレクションのファイル情報を取得
+        prefix = f'{user_id}/projects/{selected_project_id}/documents/'
+        blobs = storage_client.list_blobs(prefix=prefix)
+        file_names = [blob.name.replace(prefix, "") for blob in blobs if blob.name != prefix]
+
+        if not file_names:
+            return Response(status_code=204)
+
         documents_ref = (
             firestore_client.collection('users')
             .document(user_id)
@@ -137,24 +143,20 @@ async def list_document_files(
             .document(selected_project_id)
             .collection('documents')
         )
-        documents = documents_ref.stream()
 
         file_data_list = []
+        for file_name in file_names:
+            # ファイル名 (file_uuid) に対応するFirestoreのドキュメントを取得
+            file_uuid = file_name.split("_")[0]  # ファイル名からfile_uuidを抽出
+            file_title = file_name.split('_',1)[1]  # ファイル名からfile_uuidを抽出
+            doc = documents_ref.document(file_uuid).get()
 
-        for doc in documents:
+            if not doc.exists:
+                continue  # Firestoreに該当するドキュメントがない場合はスキップ
+
             doc_data = doc.to_dict()
-            file_uuid = doc.id  # FirestoreのドキュメントIDがファイルUUID
 
-            file_name = doc_data.get('file_name', 'Unknown File')  # Firestoreに保存されているファイル名
-
-            # ストレージからファイルを取得
-            blob_path = f"{user_id}/documents/{file_uuid}_{file_name}"
-            blob = storage_client.blob(blob_path)
-
-            if not blob.exists():
-                continue  # ストレージにファイルが存在しない場合はスキップ
-
-            # Firestore内のドキュメント情報からファイル情報を取得
+            # Firestoreの情報を抽出
             abstract = doc_data.get("abstract", "")
             extractable_info = doc_data.get("extractable_info", {})
             category = doc_data.get("category", "")
@@ -162,7 +164,7 @@ async def list_document_files(
 
             file_data_list.append(
                 {
-                    "file_name": file_name,
+                    "file_name": file_title,
                     "file_uuid": file_uuid,
                     "feature": feature,
                     "abstract": abstract,

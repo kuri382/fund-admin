@@ -4,6 +4,7 @@ import axios from 'axios';
 import { getAuth } from "firebase/auth";
 
 import { apiUrlGetImageList, apiUrlGetParameterSummary } from '@/utils/api';
+import { ReloadOutlined } from '@ant-design/icons';
 import ButtonAnalyzePL from '@/components/dashboard/TableAnalysis/Button/ButtonAnalyzePL';
 import ButtonAnalyzeSaaS from '@/components/dashboard/TableAnalysis/Button/ButtonAnalyzeSaaS';
 import DetailModal from '@/components/dashboard/Generator/DetailModal';
@@ -42,14 +43,14 @@ interface CombinedData {
 const formatText = (text: string | undefined) => {
   if (!text) return "";
   return text
-      .replace(/####\s(.*?)(?:\n|$)/g, '<h3>$1</h3>') // ### を h3 タグに変換
-      .replace(/###\s(.*?)(?:\n|$)/g, '<h3>$1</h3>') // ### を h3 タグに変換
-      .replace(/##\s(.*?)(?:\n|$)/g, '<h2>$1</h2>') // ## を h2 タグに変換
-      .replace(/#\s(.*?)(?:\n|$)/g, '<h2>$1</h2>') // # を h2 タグに変換
-      //.replace(/^\d+\.\s(.*)$/gm, '<li>$1</li>') // 番号付きリストに対応
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      //.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // **text** を太字に変換
-      .replace(/\n/g, '<br>'); // 改行に変換
+    .replace(/####\s(.*?)(?:\n|$)/g, '<strong>$1</strong>') // ### を strong タグに変換
+    .replace(/###\s(.*?)(?:\n|$)/g, '<strong>$1</strong>') // ### を strong タグに変換
+    .replace(/##\s(.*?)(?:\n|$)/g, '<strong>$1</strong>') // ## を h2 タグに変換
+    .replace(/#\s(.*?)(?:\n|$)/g, '<strong>$1</strong>') // # を h2 タグに変換
+    //.replace(/^\d+\.\s(.*)$/gm, '<li>$1</li>') // 番号付きリストに対応
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    //.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // **text** を太字に変換
+    .replace(/\n/g, '<br>'); // 改行に変換
 };
 
 const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) => {
@@ -139,11 +140,6 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
 
   return (
     <div>
-      <Space>
-        <Button onClick={fetchImages} type="primary" style={{ marginBottom: '10px' }}>
-          再読み込み
-        </Button>
-      </Space>
       <div style={{ padding: '20px' }}></div>
 
       {loading && <Spin />}
@@ -164,6 +160,7 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
                 <Card>
                   <Row gutter={20}>
                     <Col span={12}>
+                      <p style={{ color: 'gray' }}>画像をクリックすることで、画像と説明を大きく表示できます</p>
                       <Image
                         src={item.imageUrl}
                         alt={`Page ${item.pageNumber}`}
@@ -171,8 +168,6 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
                         preview={false}
                         onClick={() => openModal(index)}
                       />
-                      <p style={{color:'gray'}}>画像をクリックすることで、画像と説明を大きく表示できます</p>
-
                     </Col>
 
                     <Col span={12}>
@@ -191,10 +186,23 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
                           <Paragraph>{summary.investigation}</Paragraph>*/}
                         </div>
                       ) : (
-                        <Space>
-                          <Spin />
-                          <span>解析中</span>
-                        </Space>
+                        <>
+                          <Space>
+                            <Spin />
+                            <span>解析中</span>
+                          </Space>
+                          <br></br>
+                          <div style={{ textAlign: 'left' }}>
+                            <p>ファイルのページ数が多い場合、表示まで時間がかかる場合があります。</p>
+                            <Button
+                              icon={<ReloadOutlined />}
+                              onClick={fetchImages}
+                              type="default"
+                            >
+                              解析結果を更新する
+                            </Button>
+                          </div>
+                        </>
                       )}
                     </Col>
                   </Row>

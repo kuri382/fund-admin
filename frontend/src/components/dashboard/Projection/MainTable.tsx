@@ -232,6 +232,10 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
         width={450}
       >
         <p>読み込んだ資料から自動で値を取得しました。</p>
+        <p>アップデート予定1: 読み込んだファイルの詳細情報を表示できるようになります。</p>
+        <p>アップデート予定2: 特定の会計科目について、どのように変化しているかグラフで抽出できるようになります。</p>
+        <p>アップデート予定3: 対話的にデータの探索を行えるようになります。
+        </p>
         {drawerData.map((item, index) => (
           <div key={index} style={{ marginBottom: "20px" }}>
             <Button

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Alert, Button, Row, Col, notification, Spin, Tabs, Tag } from 'antd';
+import { Alert, Button, Row, Col, notification, Spin, Tabs, Tag, Space } from 'antd';
 import type { TabsProps } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
@@ -10,11 +10,11 @@ import fetchDocument from '@/hooks/useFetchDocument';
 import TableFileTabs from '@/components/dashboard/TableAnalysis/TablesFileTabs';
 import PdfsFileTabs from '@/components/dashboard/TableAnalysis/PdfsFileTabs';
 import ProjectManager from '@/components/dashboard/ProjectManager';
-import ResultReport from '@/components/dashboard/TableAnalysis/ResultReport';
 import IssueAnalysisComponent from '@/components/dashboard/IssueAnalysis/IssueAnalysisComponent';
 import QuestionAnswerComponent from '@/components/dashboard/IssueAnalysis/QuestionAnswerComponent';
 import MainTable from '@/components/dashboard/Projection/MainTable';
 import FinancialTable from '@/components/dashboard/Generator/generateBusinessPlan';
+import TaskCount from './Tasks/TaskCount';
 
 const AnalysisComponents: React.FC = () => {
   // 状態管理
@@ -46,7 +46,7 @@ const AnalysisComponents: React.FC = () => {
       label: (
         <div key="tab-1">
           <div style={{ width: '150px' }}>入力 ドキュメントデータ</div>
-          <Tag color='red'>pdf, wordなど</Tag>
+          <Tag color='red'>pdf分析ができます</Tag>
         </div>
       ),
       children: <PdfsFileTabs files={filesDocument} />,
@@ -57,7 +57,7 @@ const AnalysisComponents: React.FC = () => {
       label: (
         <div key="tab-2">
           <div>入力 テーブルデータ</div>
-          <Tag color='green'>xlsx, csvなど</Tag>
+          <Tag color='green'>次回アップデート：xlsx, csvの整理</Tag>
         </div>
       ),
       children: <TableFileTabs
@@ -198,7 +198,12 @@ const AnalysisComponents: React.FC = () => {
     return (
       <>
         <ProjectManager onProjectChange={handleProjectChange} />
-        <FileUpload />
+        <FileUpload onUploadComplete={() => {
+          // アップロード完了後、5秒後にデータ更新を実行
+          setTimeout(() => {
+            handleAnalysisButtonClick();
+          }, 5000);
+        }} />
         <Alert
           message="データがまだありません"
           type="info"
@@ -222,15 +227,18 @@ const AnalysisComponents: React.FC = () => {
       <FileUpload />
 
       <div style={{ minHeight: '200px' }}>
-        <Button
-          onClick={handleAnalysisButtonClick}
-          type="primary"
-          style={{ margin: '10px 0px 0px 20px' }}
-          icon={<ReloadOutlined />}
-          loading={isLoading}
-        >
-          ファイル情報を更新する
-        </Button>
+        <Space align="center" style={{padding:'10px'}}>
+          <Button
+            onClick={handleAnalysisButtonClick}
+            type="primary"
+            style={{ margin: '0px 0px 0px 20px' }}
+            icon={<ReloadOutlined />}
+            loading={isLoading}
+          >
+            ファイル情報を更新する
+          </Button>
+          <TaskCount />
+        </Space>
 
         <Row justify="center" style={{ marginTop: '20px' }}>
           <Col span={18}>
