@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse, Response
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 from src.core.services import auth_service
+import src.core.services.firebase_driver as firebase_driver
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 
 logging.basicConfig(level=logging.INFO)
@@ -118,18 +119,9 @@ async def list_document_files(
         storage_client = firebase_client.get_storage()
         firestore_client = firebase_client.get_firestore()
 
-        # 選択中のプロジェクトをFirestoreから取得
-        projects_ref = firestore_client.collection('users').document(user_id).collection('projects')
-        is_selected_filter = FieldFilter("is_selected", "==", True)
-        query = projects_ref.where(filter=is_selected_filter).limit(1)
-        selected_project = query.get()
+        project_id = firebase_driver.get_project_id(user_id, firestore_client)
 
-        if not selected_project:
-            raise HTTPException(status_code=204, detail="No project selected.")  # プロジェクトがない場合は204
-
-        selected_project_id = selected_project[0].id
-
-        prefix = f'{user_id}/projects/{selected_project_id}/documents/'
+        prefix = f'{user_id}/projects/{project_id}/documents/'
         blobs = storage_client.list_blobs(prefix=prefix)
         file_names = [blob.name.replace(prefix, "") for blob in blobs if blob.name != prefix]
 
@@ -140,7 +132,7 @@ async def list_document_files(
             firestore_client.collection('users')
             .document(user_id)
             .collection('projects')
-            .document(selected_project_id)
+            .document(project_id)
             .collection('documents')
         )
 
