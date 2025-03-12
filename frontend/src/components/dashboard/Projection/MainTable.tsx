@@ -134,31 +134,32 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
     ...sortedColumns.map(({ year, month }) => ({
       title: `${year}年${month}月`,
       dataIndex: `${year}-${month}`,
-      key: `${year}-${month}`,
-      render: (value: any, record: any) => {
-        if (!value) return null;
-
-        const { displayValue, candidates } = value;
-        const hasDuplicates = candidates.length > 1;
-
+      // セルのスタイルを onCell で指定
+      onCell: (record: any) => {
+        const cellData = record[`${year}-${month}`];
         return {
-          props: {
-            style: {
-              background: hasDuplicates ? "#fadaaa" : "transparent",
-            },
+          style: {
+            background: cellData && cellData.candidates && cellData.candidates.length > 1 ? "#fadaaa" : "transparent",
           },
-          children: (
-            <Button
-              type="text"
-              onClick={() => handleCellClick(candidates, record.title, `${year}-${month}`)}
-            >
-              {formatNumber(displayValue)}
-            </Button>
-          ),
         };
       },
+      // renderで表示内容を返す
+      render: (value: any, record: any) => {
+        if (!value) return null;
+        const { displayValue, candidates } = value;
+        return (
+          <Button
+            type="text"
+            onClick={() => handleCellClick(candidates, record.title, `${year}-${month}`)}
+          >
+            {formatNumber(displayValue)}
+          </Button>
+        );
+      },
+      key: `${year}-${month}`,
     })),
   ];
+
 
   const generateRowData = (data: PLMetricsResponse) => {
     const rowMap: Record<string, any> = {};
@@ -193,19 +194,12 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
     return <Spin size="large" />;
   }
 
-  if (!data) {
-    return <div>データがありません</div>;
-  }
-
-  const rows = generateRowData(data);
+  const rows = data ? generateRowData(data) : [];
 
   return (
     <>
       <Space>
-        <ExcelExportButton
-          rows={rows}
-          sortedColumns={sortedColumns}
-        />
+        <ExcelExportButton rows={rows} sortedColumns={sortedColumns} />
         <Button
           onClick={fetchData}
           type="default"
@@ -215,47 +209,48 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
           データ再読み込み
         </Button>
       </Space>
-      <Table
-        columns={columns}
-        dataSource={rows}
-        bordered
-        scroll={{ x: "max-content" }}
-        rowKey="title"
-        pagination={{ pageSize: 50 }}
-        size="small"
-      />
-      <Drawer
-        title="参照元データ"
-        placement="right"
-        onClose={handleDrawerClose}
-        open={isDrawerVisible}
-        width={450}
-      >
-        <p>読み込んだ資料から自動で値を取得しました。</p>
-        <p>アップデート予定1: 読み込んだファイルの詳細情報を表示できるようになります。</p>
-        <p>アップデート予定2: 特定の会計科目について、どのように変化しているかグラフで抽出できるようになります。</p>
-        <p>アップデート予定3: 対話的にデータの探索を行えるようになります。
-        </p>
-        {drawerData.map((item, index) => (
-          <div key={index} style={{ marginBottom: "20px" }}>
-            <Button
-              color="primary"
-              variant="outlined"
-              onClick={() => handleCandidateSelect(item)}
-              style={{ marginBottom: '10px' }}
-            /*icon={< BulbOutlined />}*/
-            >
-              {formatNumber(item.value)} を採用する
-            </Button>
-            <Image
-              src={item.url}
-              alt="プレビュー"
-              style={{ maxWidth: "100%", width: "400px", height: "auto" }}
-            />
-          </div>
-        ))}
-      </Drawer>
-
+      {data && (
+        <>
+          <Table
+            columns={columns}
+            dataSource={rows}
+            bordered
+            scroll={{ x: "max-content" }}
+            rowKey="title"
+            pagination={{ pageSize: 50 }}
+            size="small"
+          />
+          <Drawer
+            title="参照元データ"
+            placement="right"
+            onClose={handleDrawerClose}
+            open={isDrawerVisible}
+            width={450}
+          >
+            <p>読み込んだ資料から自動で値を取得しました。</p>
+            <p>アップデート予定1: 読み込んだファイルの詳細情報を表示できるようになります。</p>
+            <p>アップデート予定2: 特定の会計科目について、どのように変化しているかグラフで抽出できるようになります。</p>
+            <p>アップデート予定3: 対話的にデータの探索を行えるようになります。</p>
+            {drawerData.map((item, index) => (
+              <div key={index} style={{ marginBottom: "20px" }}>
+                <Button
+                  color="primary"
+                  variant="outlined"
+                  onClick={() => handleCandidateSelect(item)}
+                  style={{ marginBottom: "10px" }}
+                >
+                  {formatNumber(item.value)} を採用する
+                </Button>
+                <Image
+                  src={item.url}
+                  alt="プレビュー"
+                  style={{ maxWidth: "100%", width: "400px", height: "auto" }}
+                />
+              </div>
+            ))}
+          </Drawer>
+        </>
+      )}
     </>
   );
 };
