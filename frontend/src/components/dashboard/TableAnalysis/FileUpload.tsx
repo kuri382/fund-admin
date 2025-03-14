@@ -114,10 +114,10 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
     <Card bordered={false}>
       <Dragger {...props}>
         <p className="ant-upload-drag-icon">
-          <InboxOutlined />
+          {/*<InboxOutlined />*/}
         </p>
         <p className="ant-upload-text">
-          クリックまたはドラッグして複数のPDFファイルをアップロード
+          <InboxOutlined /> クリックまたはドラッグして複数のPDFファイルをアップロード
         </p>
         <p className="ant-upload-hint">
           20ファイルまで同時にアップロードできます。PDFファイルのみ対応しています。

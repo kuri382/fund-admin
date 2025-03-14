@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Row, Col, Space, Button, notification, Card } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { Row, Col, Space, notification, Card, message } from 'antd';
 
 import FileUpload from '@/components/dashboard/TableAnalysis/FileUpload';
 import fetchTable from '@/hooks/useFetchTable';
@@ -59,10 +58,7 @@ const AnalysisComponents: React.FC = () => {
         fetchFilesTable(),
         fetchFilesDocument()
       ]);
-      notification.success({
-        message: 'データ読み込み完了',
-        description: 'データの読み込みが正常に完了しました。',
-      });
+      message.success(`データの読み込みが正常に完了しました。`);
     } catch (error) {
       setFetchError('データの更新中にエラーが発生しました。もう一度お試しください。');
       console.error('Fetch error:', error);
