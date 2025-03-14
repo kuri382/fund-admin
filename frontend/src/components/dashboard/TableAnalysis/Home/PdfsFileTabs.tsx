@@ -29,7 +29,6 @@ const getFileExtension = (fileName: string) => {
   return fileName.split('.').pop()?.toLowerCase() || '';
 };
 
-// 右側コンテンツに適用するスタイル（元の styleTabPane を踏襲）
 const styleTabPane: React.CSSProperties = {
   minHeight: '200px',
   maxHeight: '800px',
@@ -39,8 +38,6 @@ const styleTabPane: React.CSSProperties = {
 
 const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
   const [selectedFileIndex, setSelectedFileIndex] = useState<number | null>(null);
-
-  // 現在選択されているファイルデータ
   const selectedFile = selectedFileIndex !== null ? files[selectedFileIndex] : null;
 
   return (
@@ -70,6 +67,7 @@ const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
               const tagColor = getExtensionColor(extension);
               return (
                 <List.Item
+                  key={file.file_uuid}
                   onClick={() => setSelectedFileIndex(index)}
                   style={{
                     cursor: 'pointer',
@@ -93,17 +91,13 @@ const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
         </Col>
 
         {/* 右カラム: 選択中のファイル詳細表示 */}
-        <Col span={18} >
+        <Col span={18}>
           {selectedFile ? (
-            <div style={styleTabPane}>
-              {/* カテゴリ */}
+            <div key={selectedFile.file_uuid} style={styleTabPane}>
               <Tag color="blue">{selectedFile.category}</Tag>
               <p>ファイル概要</p>
               <p style={{ marginBottom: '20px' }}>{selectedFile.abstract}</p>
-              {/* ここで feature 等も表示したい場合は追記 */}
               <p>特徴: {selectedFile.feature}</p>
-
-              {/* PDF や画像の要約リスト (既存コンポーネント) */}
               <ImageSummaryList file_uuid={selectedFile.file_uuid} />
             </div>
           ) : (

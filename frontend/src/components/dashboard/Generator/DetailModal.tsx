@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Modal, Row, Col, Image, Typography, Button, Tag } from 'antd';
 import { ParameterSummary } from '@/components/dashboard/Generator/ImageSummaryList';
 
@@ -19,14 +19,12 @@ interface DetailModalProps {
 const formatText = (text: string | undefined) => {
     if (!text) return "";
     return text
-        .replace(/####\s(.*?)(?:\n|$)/g, '<strong>$1</strong>') // ### を strong タグに変換
-        .replace(/###\s(.*?)(?:\n|$)/g, '<strong>$1</strong>') // ### を strong タグに変換
-        .replace(/##\s(.*?)(?:\n|$)/g, '<strong>$1</strong>') // ## を h2 タグに変換
-        .replace(/#\s(.*?)(?:\n|$)/g, '<strong>$1</strong>') // # を h2 タグに変換
-        //.replace(/^\d+\.\s(.*)$/gm, '<li>$1</li>') // 番号付きリストに対応
+        .replace(/####\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
+        .replace(/###\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
+        .replace(/##\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
+        .replace(/#\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        //.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // **text** を太字に変換
-        .replace(/\n/g, '<br>'); // 改行に変換
+        .replace(/\n/g, '<br>');
 };
 
 const DetailModal: React.FC<DetailModalProps> = ({
@@ -50,12 +48,39 @@ const DetailModal: React.FC<DetailModalProps> = ({
         }
     };
 
+    // --- 矢印キーのハンドリング ---
+    useEffect(() => {
+        if (!open) return; // モーダルが開いていなければイベントを登録しない
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            switch (e.key) {
+                case 'ArrowUp':
+                case 'ArrowLeft':
+                    handlePrev();
+                    break;
+                case 'ArrowDown':
+                case 'ArrowRight':
+                    handleNext();
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        // クリーンアップで監視解除
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [open, currentIndex, data, handlePrev, handleNext]);
+
     return (
         <Modal
             open={open}
             onCancel={onClose}
             footer={null}
             width="95%"
+            // styles は antd v5 新機能ですが、v4 以下の場合は bodyStyle や wrapClassName などで対応してください
             styles={{
                 body: {
                     overflow: 'hidden'
@@ -70,7 +95,6 @@ const DetailModal: React.FC<DetailModalProps> = ({
                     次へ
                 </Button>
             </div>
-            {/* 親要素に固定高さを与えて、内部のColだけスクロールできるようにする */}
             <Row gutter={24} style={{ height: '80vh' }}>
                 <Col
                     span={14}
@@ -94,7 +118,7 @@ const DetailModal: React.FC<DetailModalProps> = ({
                     span={10}
                     style={{
                         height: '100%',
-                        overflowY: 'auto', // 文章部分のみスクロール可
+                        overflowY: 'auto',
                         paddingRight: '8px'
                     }}
                 >
@@ -108,7 +132,7 @@ const DetailModal: React.FC<DetailModalProps> = ({
                                 <Typography.Paragraph><div dangerouslySetInnerHTML={{ __html: formatText(item.summary.transcription) }}></div></Typography.Paragraph>
                                 <p><b><Tag color="blue">issues</Tag>潜在的なリスクや経営上の懸念点</b></p>
                                 <Typography.Paragraph>{item.summary.issues}</Typography.Paragraph>
-                                <p><b><Tag color="geekblue">rationale</Tag>課題やリスクを推測した理由</b></p>
+                                <p><b><Tag color="geekblue">evidence</Tag>課題やリスクを推測した理由</b></p>
                                 <Typography.Paragraph>{item.summary.rationale}</Typography.Paragraph>
                                 {/*<p><b>リスクが顕在化した場合の影響や将来の見通し</b></p>
                                 <Typography.Paragraph>{item.summary.forecast}</Typography.Paragraph> */}
