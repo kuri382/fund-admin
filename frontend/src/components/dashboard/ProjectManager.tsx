@@ -32,6 +32,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
   const [loading, setLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isProjectCreating, setIsProjectCreating] = useState(false);
+  const [isComposing, setIsComposing] = useState(false); // キー入力中
 
   const fetchProjects = async () => {
     const user = auth.currentUser;
@@ -208,7 +209,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
   }
 
   return (
-    <div style={{ margin: '20px'}}>
+    <div style={{ margin: '20px' }}>
 
       <p>データを紐づけるプロジェクトを作成または選択してください。プロジェクトごとに文書・数値データが統合されます。</p>
 
@@ -257,9 +258,15 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
           <Form.Item label="プロジェクト名" required>
             <Input
               value={newProjectName}
+              onCompositionStart={() => setIsComposing(true)} // 変換開始
+              onCompositionEnd={() => setIsComposing(false)} // 変換確定
               onChange={(e) => setNewProjectName(e.target.value)}
               placeholder="プロジェクト名を入力"
-              onPressEnter={handleAddProject}
+              onPressEnter={(e) => {
+                if (!isComposing) {
+                  handleAddProject();
+                }
+              }}
             />
           </Form.Item>
         </Form>
