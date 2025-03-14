@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal, Row, Col, Image, Typography, Button, Tag } from 'antd';
-import { ParameterSummary } from '@/components/dashboard/Generator/ImageSummaryList';
+import { ParameterSummary } from '@/components/dashboard/DocumentsSummary/ImageSummaryList';
 
 interface DataItem {
     pageNumber: number;

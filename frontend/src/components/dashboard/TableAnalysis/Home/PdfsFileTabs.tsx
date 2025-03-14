@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Row, Col, List, Tag, Typography } from 'antd';
-import ImageSummaryList from '@/components/dashboard/Generator/ImageSummaryList';
+import ImageSummaryList from '@/components/dashboard/DocumentsSummary/ImageSummaryList';
 
 interface FileDocumentData {
   file_name: string;

@@ -7,7 +7,7 @@ import { apiUrlGetImageList, apiUrlGetParameterSummary } from '@/utils/api';
 import { ReloadOutlined } from '@ant-design/icons';
 import ButtonAnalyzePL from '@/components/dashboard/TableAnalysis/Button/ButtonAnalyzePL';
 import ButtonAnalyzeSaaS from '@/components/dashboard/TableAnalysis/Button/ButtonAnalyzeSaaS';
-import DetailModal from '@/components/dashboard/Generator/DetailModal';
+import DetailModal from '@/components/dashboard/DocumentsSummary/DetailModal';
 
 const { Paragraph } = Typography;
 

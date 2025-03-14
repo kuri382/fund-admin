@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Row, Col, Space, Button, notification } from 'antd';
+import { Row, Col, Space, Button, notification, Card } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
 import FileUpload from '@/components/dashboard/TableAnalysis/FileUpload';
@@ -31,11 +31,9 @@ const AnalysisComponents: React.FC = () => {
       setIsLoading(true);
       setProjectChanged(true);
       setFetchError(null);
-
       if (projectId) {
         console.log('Project changed to:', projectId);
       }
-
       await Promise.all([
         fetchFilesTable(),
         fetchFilesDocument()
@@ -80,33 +78,52 @@ const AnalysisComponents: React.FC = () => {
 
   return (
     <>
-      <ProjectManager onProjectChange={handleProjectChange} />
-      <FileUpload onUploadComplete={() => {
-        // アップロード完了後、5秒後にデータ更新を実行
-        setTimeout(() => {
-          handleAnalysisButtonClick();
-        }, 5000);
-      }} />
+      {/* 全体の横並びレイアウト */}
+      <Row gutter={[16, 16]} style={{padding: '10px'}}>
+        <Col xs={24} md={12}>
+          <Card
+            title="プロジェクト"
+            style={{ width: '100%',height:'100%'}}
+          >
+            <ProjectManager onProjectChange={handleProjectChange} />
+          </Card>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Card
+            title="ファイル"
+            style={{ width: '100%'}}
+          >
+            <FileUpload
+              onUploadComplete={() => {
+                // アップロード完了後、5秒後にデータ更新を実行
+                setTimeout(() => {
+                  handleAnalysisButtonClick();
+                }, 5000);
+              }}
+            />
+          </Card>
+        </Col>
+      </Row>
 
       <LoadingOverlay isLoading={isLoadingAny} />
 
       {(errorTable || errorDocument || fetchError) ? (
         <ErrorNotification onReload={handleAnalysisButtonClick} />
       ) : (
-        <div style={{ minHeight: '200px' }}>
+        <div style={{ minHeight: '200px', marginTop: '20px' }}>
           <Space align="center" style={{ padding: '10px' }}>
-            {/* ファイル更新を行うボタンを表示しない
+            {/* 不要なボタンはコメントアウト */}
+            {/*
             <Button
               onClick={handleAnalysisButtonClick}
               type="primary"
-              style={{ margin: '0 0 0 20px' }}
               icon={<ReloadOutlined />}
               loading={isLoading}
             >
               ファイル情報を更新する
             </Button>
-           */}
-
+            */}
             <TaskCount />
           </Space>
 

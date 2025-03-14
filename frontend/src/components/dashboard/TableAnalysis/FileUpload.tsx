@@ -124,6 +124,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
         </p>
       </Dragger>
 
+      {/*
       {fileStatuses.length > 0 && (
         <div style={{ marginTop: '15px' }}>
           <h4>アップロード状況:</h4>
@@ -134,6 +135,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
           ))}
         </div>
       )}
+       */}
     </Card>
   );
 }
