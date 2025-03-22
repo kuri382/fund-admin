@@ -13,3 +13,11 @@ class PageMetadata(BaseModel):
     file_uuid: str
     file_name: str
     page_number: str
+
+
+class SingedUrlMetadata(BaseModel):
+    user_id: str
+    project_id: str
+    gcs_path: str
+    filename: str
+    file_uuid: str
