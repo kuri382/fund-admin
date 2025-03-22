@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Row, Col, List, Tag, Typography } from 'antd';
 import ImageSummaryList from '@/components/dashboard/DocumentsSummary/ImageSummaryList';
 
@@ -38,7 +38,18 @@ const styleTabPane: React.CSSProperties = {
 
 const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
   const [selectedFileIndex, setSelectedFileIndex] = useState<number | null>(null);
-  const selectedFile = selectedFileIndex !== null ? files[selectedFileIndex] : null;
+
+  // filesの変更時に有効なインデックスかどうかチェックする
+  useEffect(() => {
+    if (selectedFileIndex !== null && selectedFileIndex >= files.length) {
+      setSelectedFileIndex(null);
+    }
+  }, [files, selectedFileIndex]);
+
+  const selectedFile =
+    selectedFileIndex !== null && selectedFileIndex < files.length
+      ? files[selectedFileIndex]
+      : null;
 
   return (
     <div style={{

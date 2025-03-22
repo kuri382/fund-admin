@@ -92,10 +92,10 @@ const AnalysisComponents: React.FC = () => {
           >
             <FileUpload
               onUploadComplete={() => {
-                // アップロード完了後、5秒後にデータ更新を実行
+                // アップロード完了後、20秒後にデータ更新を実行
                 setTimeout(() => {
                   handleAnalysisButtonClick();
-                }, 5000);
+                }, 20000);
               }}
             />
           </Card>
