@@ -2,6 +2,7 @@
 """
 
 from typing import Final
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,13 +12,24 @@ from src.core.services import firebase_client
 from src.settings import settings
 
 TITLE: Final[str] = 'Granite API'
-VERSION: Final[str] = '0.5.7'
+VERSION: Final[str] = '0.6.0'
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # スタートアップ時に行いたい処理
+    firebase_client.FirebaseClient.initialize_firebase()
+
+    # アプリケーション起動
+    yield
+
+    # シャットダウン時に必要なら行う処理は以降
 
 app = FastAPI(
     title=TITLE,
     version=VERSION,
     docs_url="/docs" if settings.api_docs.enable_docs else None,
     redoc_url="/redoc" if settings.api_docs.enable_redoc else None,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -40,12 +52,6 @@ app.include_router(upload.router)
 app.include_router(worker.router)
 
 
-@app.on_event("startup")
-def startup_event():
-    firebase_client.FirebaseClient.initialize_firebase()
-
-
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000)
