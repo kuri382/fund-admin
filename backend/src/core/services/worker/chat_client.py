@@ -91,7 +91,11 @@ def create_response(
     order: str = ORDER,
 ) -> str:
 
-    system_prompt = '次のフォーマットに従ってIR資料を分析し、7000字以上で丁寧かつわかりやすく整理すること'
+    system_prompt = '''
+    - 次のフォーマットに従ってIR資料を分析し、7000字以上で丁寧かつわかりやすく整理すること
+    - マークダウン形式でまとめること
+    - 前置きなしで直接的な回答から開始せよ
+    '''
     context = order
     sentence = f'次のドキュメントがIRを文字起こししたものである。:{fact_sentence}'
 
