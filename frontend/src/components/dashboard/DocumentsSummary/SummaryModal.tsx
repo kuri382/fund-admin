@@ -15,6 +15,29 @@ interface DataReportResponse {
     summary: string;
 }
 
+const formatText = (text: string | undefined) => {
+    if (!text) return "";
+
+    // まずMarkdown風の記法(####, ###, ##, #, ** **)だけを処理
+    let replaced = text
+        .replace(/####\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
+        .replace(/###\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
+        .replace(/##\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
+        .replace(/#\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // ハッシュタグ (#) や箇条書き記号 (- や ・など) の前で改行を入れる(必要に応じてパターンを追加)
+    // （既に <strong>化した箇所との衝突を避けるため、前後の正規表現を微調整）
+    replaced = replaced
+        .replace(/([^>\n]|^)(#)/g, '$1<br/>$2')        // # の前に改行
+        .replace(/([^>\n]|^)([-・])\s/g, '$1<br/>$2 '); // - や ・の前に改行
+
+    // 仕上げとして文字列中の改行(\n)は <br/> に統一
+    replaced = replaced.replace(/\n/g, '<br/>');
+
+    return replaced;
+};
+
 const SummaryModal: React.FC<SummaryModalProps> = ({ file_uuid }) => {
     const [reportSummary, setReportSummary] = useState<string>('');
     const [reportSummaryLoading, setReportSummaryLoading] = useState<boolean>(true);
@@ -90,15 +113,17 @@ const SummaryModal: React.FC<SummaryModalProps> = ({ file_uuid }) => {
                 open={reportModalOpen}
                 onCancel={handleCloseReportModal}
                 footer={null}
-                width="80%"
+                width="70%"
                 styles={{
                     body: {
-                        maxHeight: '70vh',
+                        maxHeight: '75vh',
                         overflowY: 'auto',
                     },
                 }}
             >
-                <Paragraph>{reportSummary}</Paragraph>
+                <Paragraph>
+                    <div dangerouslySetInnerHTML={{ __html: formatText(reportSummary) }} />
+                </Paragraph>
             </Modal>
         </div>
     );
