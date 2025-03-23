@@ -15,8 +15,8 @@ from pydantic import BaseModel, Field
 from pydantic_core import ValidationError
 
 import src.core.services.firebase_driver as firebase_driver
-from src.core.dependencies.auth import get_user_id
-from src.core.dependencies.cloud_tasks import get_cloud_tasks_client, get_queue_path
+from src.dependencies.auth import get_user_id
+from src.dependencies.cloud_tasks import get_cloud_tasks_client, get_queue_path
 from src.core.services.endpoints import projection
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services.upload import generate_summary, pdf_processor

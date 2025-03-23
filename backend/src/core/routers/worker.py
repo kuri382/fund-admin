@@ -9,15 +9,18 @@ from google.cloud import tasks_v2
 from pydantic import Field
 from pydantic_core import ValidationError
 
-from src.core.dependencies.cloud_tasks import get_cloud_tasks_client, get_queue_path
+from src.dependencies.cloud_tasks import get_cloud_tasks_client, get_queue_path
 import src.core.services.firebase_driver as firebase_driver
-from src.core.dependencies.external import get_openai_client
+from src.dependencies.external import get_openai_client
 from src.core.services.endpoints import projection
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.core.services.openai_client import extract_document_information
 from src.core.services.upload import generate_summary, pdf_processor
 from src.core.services.worker import cloud_tasks, models, chat_client
 from src.settings import Settings
+from src.schemas.documents import Documents, Item
+from src.repositories.abstract import DocumentRepository
+from src.dependencies.document_repository import get_document_repository
 
 from ._base import BaseJSONSchema
 
@@ -57,7 +60,7 @@ async def worker_file_separate(
         logger.error("No data received. Skipping processing.")
         return {"message": "No data received, processing skipped."}
 
-    metadata = models.SingedUrlMetadata.parse_raw(raw_body)
+    metadata = models.SingedUrlMetadata.model_validate_json(raw_body)
 
     # GCS から PDF をダウンロード
     storage_client = firebase_client.get_storage()
@@ -169,7 +172,8 @@ async def worker_summary_analyze(
         logger.error("No data received. Skipping processing.")
         return {"message": "No data received, processing skipped."}
 
-    metadata = models.SummaryMetadata.parse_raw(raw_body)
+    metadata = models.SummaryMetadata.model_validate_json(raw_body)
+
     analysis_result = extract_document_information(openai_client=openai_client, content_text=metadata.summary_text)
 
     try:
@@ -195,6 +199,7 @@ async def worker_page_analyze(
     openai_client: openai.ChatCompletion = Depends(get_openai_client),
     cloud_tasks_client: tasks_v2.CloudTasksClient = Depends(get_cloud_tasks_client),
     queue_path: str = Depends(get_queue_path),
+    doc_repository: DocumentRepository = Depends(get_document_repository),
 ):
     """
     Cloud Tasks からPOSTされる個別のページを分析する
@@ -211,7 +216,7 @@ async def worker_page_analyze(
 
     # metadataのパース。ValidationErrorやJSONデコードエラーを別々にハンドリングする
     try:
-        metadata = models.PageMetadata.parse_raw(raw_body)
+        metadata = models.PageMetadata.model_validate_json(raw_body)
 
     except ValidationError as e:
         # フィールドが足りない、型が合わないなどPydanticでのバリデーション失敗
@@ -275,6 +280,26 @@ async def worker_page_analyze(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error saving project: {str(e)}")
 
+    # ベクトルDB Weaviateへの保存
+    try:
+        #logger.info(f'started uploading to weaviate, client status:{doc_repository.client.is_ready()}')
+        items = Item(
+            user_id=metadata.user_id,
+            file_uuid=metadata.file_uuid,
+            file_name=metadata.file_name,
+            page_number=str(metadata.page_number),
+            transcription=transcription_report.transcription,
+        )
+        documents = Documents(items=[items])
+        doc_repository.add_documents(documents)
+
+    except Exception as e:
+        logger.error(f'failed to upload data to weaviate cloud{e}', exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error saving to weaviate cloud: {str(e)}")
+
+    finally:
+        doc_repository.client.close()
+
     # 最終ページの処理だった場合、タスクに追加する
     if int(metadata.page_number) == (int(metadata.max_page_number)-1):
         logger.info(f'final page processing: {metadata.page_number}, {metadata.max_page_number}')
@@ -317,7 +342,7 @@ async def worker_projection_analyze(
 
     # metadataのパース。ValidationErrorやJSONデコードエラーを別々にハンドリングする
     try:
-        metadata = models.PageMetadata.parse_raw(raw_body)
+        metadata = models.PageMetadata.model_validate_json(raw_body)
 
     except ValidationError as e:
         # フィールドが足りない、型が合わないなどPydanticでのバリデーション失敗
@@ -394,7 +419,7 @@ async def worker_analyst_analyze(
     if not raw_body:
         logger.error("No data received. Skipping processing.")
         return {"message": "No data received, processing skipped."}
-    metadata = models.PageMetadata.parse_raw(raw_body)
+    metadata = models.PageMetadata.model_validate_json(raw_body)
 
     data = firebase_driver.fetch_page_summary(
         firestore_client,

@@ -12,7 +12,7 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from src.core.services import auth_service
 import src.core.services.firebase_driver as firebase_driver
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
-from src.core.dependencies.auth import get_user_id
+from src.dependencies.auth import get_user_id
 
 from ._base import BaseJSONSchema
 

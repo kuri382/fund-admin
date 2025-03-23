@@ -17,7 +17,7 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from pydantic import Field
 
 import src.core.services.firebase_driver as firebase_driver
-from src.core.dependencies.external import get_openai_client
+from src.dependencies.external import get_openai_client
 from src.core.models.financial import CategoryIR
 from src.core.services import auth_service
 from src.core.services.exploler import formatter

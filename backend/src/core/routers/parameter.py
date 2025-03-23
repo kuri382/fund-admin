@@ -16,8 +16,8 @@ from pydantic import BaseModel, Field, validator
 from pydantic_core import ValidationError
 
 import src.core.services.firebase_driver as firebase_driver
-from src.core.dependencies.auth import get_user_id
-from src.core.dependencies.external import get_openai_client
+from src.dependencies.auth import get_user_id
+from src.dependencies.external import get_openai_client
 from src.core.models.plan import Step, TempSaaSMetrics, all_fields_are_none
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 

@@ -6,8 +6,8 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
 from pydantic import  Field
 
-from src.core.dependencies.auth import get_user_id
-from src.core.dependencies.external import get_openai_client
+from src.dependencies.auth import get_user_id
+from src.dependencies.external import get_openai_client
 from src.core.routers._base import BaseJSONSchema
 from src.core.services.endpoints.projection import process_profit_and_loss_metrics
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client

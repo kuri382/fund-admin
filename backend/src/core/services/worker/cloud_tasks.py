@@ -12,6 +12,6 @@ def create_task_payload(worker_url, payload):
             "http_method": tasks_v2.HttpMethod.POST,
             "url": worker_url,
             "headers": {"Content-Type": "application/json"},
-            "body": json.dumps(payload.dict()).encode('utf-8'),
+            "body": json.dumps(payload.model_dump()).encode('utf-8'),
         }
     }
