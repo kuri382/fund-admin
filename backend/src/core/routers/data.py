@@ -3,13 +3,19 @@ import logging
 import traceback
 
 import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse, Response, ORJSONResponse
+from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 from src.core.services import auth_service
 import src.core.services.firebase_driver as firebase_driver
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
+from src.core.dependencies.auth import get_user_id
+
+from ._base import BaseJSONSchema
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -172,3 +178,59 @@ async def list_document_files(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving or processing files: {str(e)}")
+
+
+def fetch_summary_doc(
+    firestore_client: firestore.Client,
+    user_id: str,
+    project_id: str,
+    file_uuid: str
+) -> dict:
+    try:
+        doc_ref = (
+            firestore_client.collection("users")
+            .document(user_id)
+            .collection("projects")
+            .document(project_id)
+            .collection("documents")
+            .document(file_uuid)
+            .collection("analyst_report")
+            .document("summary")
+        )
+
+        doc = doc_ref.get()
+
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Analyst report not found.")
+
+        data = doc.to_dict()
+
+        return data.get("analyst_summary", "")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ResGetDataReport(BaseJSONSchema):
+    summary: str
+
+
+@router.get(
+    "/data/report",
+    response_class=ORJSONResponse,
+    responses={
+        status.HTTP_200_OK: {
+            'description': 'images retrieved successfully.',
+        }
+    },
+)
+async def get_data_report(
+    file_uuid: str,
+    firebase_client: FirebaseClient = Depends(get_firebase_client),
+    user_id: str = Depends(get_user_id),
+):
+    firestore_client = firebase_client.get_firestore()
+    project_id = firebase_driver.get_project_id(user_id, firestore_client)
+    result = fetch_summary_doc(firestore_client, user_id, project_id, file_uuid)
+    content = ResGetDataReport(summary=result)
+    return ORJSONResponse(content=jsonable_encoder(content), status_code=status.HTTP_200_OK)

@@ -60,7 +60,6 @@ async def upload_image_to_firebase(
 
     try:
         blob.upload_from_file(image_bytes, content_type='image/png')
-        logger.info(f"Uploaded {file_uuid} to Firebase Storage.")
 
     except exceptions.FirebaseError as e:
         logger.error(f"Failed to upload {file_uuid} to Firebase Storage. Error: {e}")
