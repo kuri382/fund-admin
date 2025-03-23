@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, List, Tag, Typography } from 'antd';
 import ImageSummaryList from '@/components/dashboard/DocumentsSummary/ImageSummaryList';
+import SummaryModal from '@/components/dashboard/DocumentsSummary/SummaryModal';
 
 interface FileDocumentData {
   file_name: string;
@@ -108,7 +109,8 @@ const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
               <Tag color="blue">{selectedFile.category}</Tag>
               <p>ファイル概要</p>
               <p style={{ marginBottom: '20px' }}>{selectedFile.abstract}</p>
-              <p>特徴: {selectedFile.feature}</p>
+              <p>{selectedFile.feature}</p>
+              <SummaryModal file_uuid={selectedFile.file_uuid}/>
               <ImageSummaryList file_uuid={selectedFile.file_uuid} />
             </div>
           ) : (

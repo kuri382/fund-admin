@@ -10,6 +10,8 @@ export const apiUrlFileUploader = `${api.baseUrl}/data/document`;
 export const apiUrlCheckDocumentData = `${api.baseUrl}/data/document`;
 // テーブルデータを取得する
 export const apiUrlCheckTableData = `${api.baseUrl}/data/table`;
+export const apiUrlGetDataReport = `${api.baseUrl}/data/report`;
+
 // プロジェクトデータを管理する
 export const apiUrlGetProjects = `${api.baseUrl}/projects`;
 export const apiUrlSelectProject = `${api.baseUrl}/projects`;

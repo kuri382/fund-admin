@@ -143,7 +143,9 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
       <div style={{ padding: '20px' }}></div>
 
       {loading && <Spin />}
-      {error && <Alert message={error} type="error" showIcon />}
+      <br />
+      <br />
+      {/*error && <Alert message={error} type="error" showIcon />*/}
 
       {images.length > 0 && (
         <List

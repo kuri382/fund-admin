@@ -30,6 +30,7 @@ const AnalysisTabs: React.FC<AnalysisTabsProps> = ({
       children: <PdfsFileTabs files={filesDocument} />,
       style: { height: '800px' }
     },
+    /*
     {
       key: '2',
       label: (
@@ -41,8 +42,9 @@ const AnalysisTabs: React.FC<AnalysisTabsProps> = ({
       children: <TableFileTabs files={filesTable} />,
       style: { height: '800px' }
     },
+    */
     {
-      key: '3',
+      key: '2',
       label: (
         <div>
           <div style={{ width: '150px' }}>事業計画書自動作成</div>

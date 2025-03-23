@@ -132,7 +132,7 @@ const TaskCount = () => {
           ) : (
             <Space align="center">
               <SyncOutlined spin style={{ color: "#262260", fontSize: 16 }} />
-              <Text>解析中です。残り {taskCount === null ? "..." : Math.floor(taskCount / 4)} 秒ほどで全てのページの分析が完了します。</Text>
+              <Text>解析中です。残り {taskCount === null ? "..." : Math.floor(taskCount / 1)} 秒ほどで全てのページの分析が完了します。</Text>
             </Space>
           )}
 
