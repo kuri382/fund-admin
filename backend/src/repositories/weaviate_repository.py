@@ -41,7 +41,7 @@ class WeaviateDocumentRepository(DocumentRepository):
         project_id: str,
         grouped_task: str,
         file_uuid_list: list[str] = None,
-        limit: int = 3,
+        limit: int = 5,
     ):
         documents_collection = self.client.collections.get("Documents")
 
