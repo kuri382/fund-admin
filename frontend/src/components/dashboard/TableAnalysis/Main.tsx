@@ -130,6 +130,7 @@ const AnalysisComponents: React.FC = () => {
                 onTabChange={handleTabChange}
                 filesTable={filesTable}
                 filesDocument={filesDocument}
+                projectChanged={projectChanged}
               />
             </Col>
           </Row>

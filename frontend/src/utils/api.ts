@@ -44,3 +44,13 @@ export const apiUrlPostProjectionSaaSCustomerRevenue = `${api.baseUrl}/projectio
 
 // task カウント
 export const apiUrlGetWorkerCount = `${api.baseUrl}/worker/count`;
+
+// 例：ファイルリスト取得用APIエンドポイント
+export const apiUrlGetRetrieverFiles = `${api.baseUrl}/retriever/files`;
+// 例：選択されたファイルを送信するAPIエンドポイント
+export const apiUrlPostRetrieverDebug = `${api.baseUrl}/api/sendSelectedFileUuids`;
+export const apiUrlGetRetrieverChatSessions = `${api.baseUrl}/retriever/chat/sessions`;
+export const apiUrlGetRetrieverChatSessionsSessionId = (sessionId: string) =>
+  `${api.baseUrl}/retriever/chat/sessions/${sessionId}`;
+export const apiUrlPostRetrieverChatSessions = `${api.baseUrl}/retriever/chat/sessions`;
+export const apiUrlPostRetrieverChatSendMessage = `${api.baseUrl}/retriever/chat/send_message`;

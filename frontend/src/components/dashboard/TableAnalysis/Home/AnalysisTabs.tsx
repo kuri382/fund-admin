@@ -3,6 +3,7 @@ import { Tabs, Tag } from 'antd';
 import type { TabsProps } from 'antd';
 import PdfsFileTabs from '@/components/dashboard/TableAnalysis/Home/PdfsFileTabs';
 import TableFileTabs from '@/components/dashboard/TableAnalysis/TablesFileTabs';
+import ChatMain from '@/components/dashboard/Chat/ChatMain';
 import MainTable from '@/components/dashboard/Projection/MainTable';
 
 interface AnalysisTabsProps {
@@ -10,13 +11,15 @@ interface AnalysisTabsProps {
   onTabChange: (key: string) => void;
   filesTable: any[];
   filesDocument: any[];
+  projectChanged: boolean;
 }
 
 const AnalysisTabs: React.FC<AnalysisTabsProps> = ({
   activeTab,
   onTabChange,
   filesTable,
-  filesDocument
+  filesDocument,
+  projectChanged,
 }) => {
   const tabItems: TabsProps['items'] = [
     {
@@ -24,7 +27,7 @@ const AnalysisTabs: React.FC<AnalysisTabsProps> = ({
       label: (
         <div>
           <div style={{ width: '150px' }}>入力 ドキュメントデータ</div>
-          <Tag color="red">pdf分析ができます</Tag>
+          <Tag color="red">PDF資料の分析ができます</Tag>
         </div>
       ),
       children: <PdfsFileTabs files={filesDocument} />,
@@ -48,12 +51,23 @@ const AnalysisTabs: React.FC<AnalysisTabsProps> = ({
       label: (
         <div>
           <div style={{ width: '150px' }}>事業計画書自動作成</div>
-          <Tag color="gray">数値はバックグラウンドで収集されます</Tag>
+          <Tag color="orange">自動で集計されたデータの確認ができます</Tag>
         </div>
       ),
-      children: <MainTable projectChanged={false} />,
+      children: <MainTable projectChanged={projectChanged} />,
       style: { height: '800px' }
-    }
+    },
+    {
+      key: '3',
+      label: (
+        <div>
+          <div>データ検索</div>
+          <Tag color="blue">データの探索が行えます</Tag>
+        </div>
+      ),
+      children: <ChatMain projectChanged={projectChanged} />,
+      style: { height: '800px' }
+    },
   ];
 
   return (
@@ -62,7 +76,7 @@ const AnalysisTabs: React.FC<AnalysisTabsProps> = ({
       activeKey={activeTab}
       items={tabItems}
       onChange={onTabChange}
-      centered
+      tabPosition='top'
     />
   );
 };
