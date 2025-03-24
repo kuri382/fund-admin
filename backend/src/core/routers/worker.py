@@ -1,5 +1,4 @@
 import logging
-import time
 
 import fitz
 import openai
@@ -285,6 +284,7 @@ async def worker_page_analyze(
         #logger.info(f'started uploading to weaviate, client status:{doc_repository.client.is_ready()}')
         items = Item(
             user_id=metadata.user_id,
+            project_id=project_id,
             file_uuid=metadata.file_uuid,
             file_name=metadata.file_name,
             page_number=str(metadata.page_number),

@@ -2,11 +2,9 @@ import asyncio
 import base64
 import io
 import logging
-import os
 import uuid
 
 from datetime import timedelta
-import openai
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
