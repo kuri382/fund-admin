@@ -134,6 +134,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({ messages }) => {
           padding: "16px",
           background: "#f9f9f9",
           borderRadius: "8px",
+          border: '5px solid #f0f0f0',
         }}
       >
         {/* エラーがある場合の表示 */}

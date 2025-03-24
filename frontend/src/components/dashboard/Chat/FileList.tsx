@@ -69,12 +69,12 @@ const FileListPane: React.FC<FileListPaneProps> = ({
   };
 
   return (
-    <div style={{ padding: 8 }}>
+    <div style={{ padding: '0px 10px'}}>
       <h3>ファイル一覧</h3>
 
       {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
       {loading && <Spin style={{ marginBottom: 16 }} />}
-
+      <div>
       <List
         bordered
         dataSource={fileList}
@@ -89,6 +89,7 @@ const FileListPane: React.FC<FileListPaneProps> = ({
           </List.Item>
         )}
       />
+      </div>
     </div>
   );
 };

@@ -38,11 +38,21 @@ const styleTabPane: React.CSSProperties = {
 };
 
 const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files = [] }) => {
-  const [selectedFileIndex, setSelectedFileIndex] = useState<number | null>(null);
+  const [selectedFileIndex, setSelectedFileIndex] = useState<number | null>(
+    files.length > 0 ? 0 : null
+  );
 
+  // ファイル一覧が変化したら、selectedFileIndex の範囲を補正する
   useEffect(() => {
-    if (selectedFileIndex !== null && selectedFileIndex >= files.length) {
+    if (files.length === 0) {
+      // ファイルが空になった場合は選択を解除
       setSelectedFileIndex(null);
+    } else if (selectedFileIndex === null) {
+      // 未選択の場合、強制的に先頭を選択させる
+      setSelectedFileIndex(0);
+    } else if (selectedFileIndex >= files.length) {
+      // 選択中のインデックスがファイル数を超えてしまった場合は修正
+      setSelectedFileIndex(files.length - 1);
     }
   }, [files, selectedFileIndex]);
 
@@ -56,10 +66,13 @@ const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files = [] }) => {
       width: '100%',
       height: '100%',
       overflow: 'hidden',
-      background: '#f7f7f7',
-      borderRadius: '3px'
+      background: '#ffffff',
+      borderRight: '1px solid #f0f0f0',
+      borderBottom: '1px solid #f0f0f0',
+      borderLeft: '1px solid #f0f0f0',
+      borderTopRightRadius: '5px',
     }}>
-      <Row style={{ height: '100%' }}>
+      <Row style={{ height: '100%', paddingTop: '16px' }}>
         {/* 左カラム: ファイル一覧 */}
         <Col
           span={6}
@@ -109,7 +122,7 @@ const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files = [] }) => {
               <p>ファイル概要</p>
               <p style={{ marginBottom: '20px' }}>{selectedFile.abstract}</p>
               <p>{selectedFile.feature}</p>
-              <SummaryModal file_uuid={selectedFile.file_uuid}/>
+              <SummaryModal file_uuid={selectedFile.file_uuid} />
               <ImageSummaryList file_uuid={selectedFile.file_uuid} />
             </div>
           ) : (

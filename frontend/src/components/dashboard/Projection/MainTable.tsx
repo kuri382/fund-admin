@@ -207,7 +207,7 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
   };
 
   if (loading) {
-    return <Spin size="large" />;
+    return <Spin size="default" />;
   }
 
   if (!data) {
@@ -217,8 +217,15 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
   const rows = generateRowData(data);
 
   return (
-    <>
-      <Space>
+    <div style={{
+      background: '#ffffff',
+      borderRight: '1px solid #f0f0f0',
+      borderBottom: '1px solid #f0f0f0',
+      borderLeft: '1px solid #f0f0f0',
+      borderTopRightRadius: '5px',
+      borderTopLeftRadius: '5px',
+    }}>
+      <Space style={{ padding: '16px' }}>
         <ExcelExportButton rows={rows} sortedColumns={sortedColumns} />
         <Button
           onClick={fetchData}
@@ -238,6 +245,7 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
         rowKey="title"
         pagination={{ pageSize: 50 }}
         size="small"
+        style={{ height: '100%', padding: '16px' }}
       />
 
       <Drawer
@@ -264,7 +272,7 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
           </div>
         ))}
       </Drawer>
-    </>
+    </div>
   );
 };
 

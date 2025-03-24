@@ -61,7 +61,7 @@ const AnalysisComponents: React.FC = () => {
   };
 
   return (
-    <>
+    <div>
       <Row justify="center" style={{ paddingTop: '10px' }}>
         <Col span={22}>
           <Collapse
@@ -145,7 +145,7 @@ const AnalysisComponents: React.FC = () => {
           padding: 4px 8px !important;
         }
       `}</style>
-    </>
+    </div>
   );
 };
 

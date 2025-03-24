@@ -1,12 +1,14 @@
 import React from 'react';
-import { Tabs, Tag } from 'antd';
+import { ConfigProvider, Tabs, Tag } from 'antd';
 import type { TabsProps } from 'antd';
+
+import "@/styles/dashboard.css";
+
 import PdfsFileTabs from '@/components/dashboard/TableAnalysis/Home/PdfsFileTabs';
 import TableFileTabs from '@/components/dashboard/TableAnalysis/TablesFileTabs';
 import ChatMain from '@/components/dashboard/Chat/ChatMain';
 import MainTable from '@/components/dashboard/Projection/MainTable';
 
-import "@/styles/dashboard.css";
 
 interface AnalysisTabsProps {
   activeTab: string;
@@ -73,14 +75,24 @@ const AnalysisTabs: React.FC<AnalysisTabsProps> = ({
   ];
 
   return (
-    <Tabs
-      defaultActiveKey="1"
-      activeKey={activeTab}
-      items={tabItems}
-      onChange={onTabChange}
-      tabPosition='top'
-      type="card"
-    />
+    <ConfigProvider
+      theme={{
+        components: {
+          Tabs: {
+            inkBarColor:'#1677ff'
+          }
+        },
+      }}
+    >
+      <Tabs
+        defaultActiveKey="1"
+        activeKey={activeTab}
+        items={tabItems}
+        onChange={onTabChange}
+        tabPosition='top'
+        type="card"
+      />
+    </ConfigProvider>
   );
 };
 

@@ -1,6 +1,6 @@
 // src/pages/ChatMain.tsx
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Layout, message, Spin, Button } from 'antd';
+import { Row, Col, Layout, message, Spin, Button, Space } from 'antd';
 import axios from 'axios';
 
 import ChatTabs from '@/components/dashboard/Chat/ChatTabs';
@@ -23,9 +23,8 @@ import {
     ChatReference
 } from "@/components/dashboard/Chat/types";
 
-const { Header, Content } = Layout;
 
-const ChatMain: React.FC<{ projectChanged: boolean }> = ({ projectChanged }) =>  {
+const ChatMain: React.FC<{ projectChanged: boolean }> = ({ projectChanged }) => {
     const [sessions, setSessions] = useState<ChatSession[]>([]);
     const [activeSessionId, setActiveSessionId] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(false);
@@ -231,7 +230,7 @@ const ChatMain: React.FC<{ projectChanged: boolean }> = ({ projectChanged }) => 
             const accessToken = await user.getIdToken(true);
 
             const response = await axios.post<{
-                message: ChatMessage; // SendMessageResponse
+                message: ChatMessage;
             }>(
                 apiUrlPostRetrieverChatSendMessage,
                 {
@@ -268,71 +267,80 @@ const ChatMain: React.FC<{ projectChanged: boolean }> = ({ projectChanged }) => 
         if (!user) {
             setLoading(false);
             return;
-          }
+        }
         fetchSessionList();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [projectChanged, user]);
 
     return (
-        <Layout style={{ height: "100vh" }}>
-            {/* 上部 (10%) */}
-            <Header style={{ height: "10%", background: "#fff", display: 'flex', alignItems: 'center' }}>
-                <div style={{ flex: 1 }}>
-                    {loading ? (
-                        <Spin />
-                    ) : (
+        <Layout style={{
+            height: "100vh",
+            background: '#ffffff',
+            borderRight: '1px solid #f0f0f0',
+            borderBottom: '1px solid #f0f0f0',
+            borderLeft: '1px solid #f0f0f0',
+            borderTopRightRadius: '5px',
+            borderTopLeftRadius: '5px',
+        }}>
+            <Space style={{padding: '10px 0px'}}>
+            <Button
+                type="default"
+                onClick={handleCreateSession}
+                loading={creatingSession}
+                block
+            >
+                ＋ 新規会話を開始する
+            </Button>
+            </Space>
+
+            <div style={{ flex: 1 }}>
+                {loading ? (
+                    <Spin spinning={loading}>
                         <ChatTabs
                             sessions={sessions}
                             activeSessionId={activeSessionId}
                             onChangeTab={handleChangeTab}
                         />
+                    </Spin>
+                ) : (
+                    <ChatTabs
+                        sessions={sessions}
+                        activeSessionId={activeSessionId}
+                        onChangeTab={handleChangeTab}
+                    />
+                )}
+            </div>
+
+            <Row style={{ height: "100%" }}>
+                <Col span={6} style={{ height: "100%" }}>
+                    {/* アクティブセッションが未設定の場合を考慮 */}
+                    {activeSession ? (
+                        <FileListPane
+                            selectedFileUuids={activeSession.selectedFileUuids}
+                            onChangeSelectedFiles={handleChangeSelectedFiles}
+                        />
+                    ) : (
+                        <div style={{ padding: 8 }}>セッションが選択されていません</div>
                     )}
-                </div>
-                <Button
-                    type="primary"
-                    onClick={handleCreateSession}
-                    loading={creatingSession}
-                >
-                    新規セッション
-                </Button>
-            </Header>
+                </Col>
 
-            {/* 下部 (90%) */}
-            <Content style={{ height: "90%" }}>
-                <Row style={{ height: "100%" }}>
-                    {/* 左列 (30%)：ファイル一覧 */}
-                    <Col span={6} style={{ height: "100%", borderRight: "1px solid #ccc" }}>
-                        {/* アクティブセッションが未設定の場合を考慮 */}
+                {/* 右列 (70%)：チャット画面 */}
+                <Col span={18} style={{ height: "100%" }}>
+                    <h3>調査内容</h3>
+                    <div style={{ height: "500px", overflowY: "auto", padding: "0px 10px"}}>
                         {activeSession ? (
-                            <FileListPane
-                                selectedFileUuids={activeSession.selectedFileUuids}
-                                onChangeSelectedFiles={handleChangeSelectedFiles}
-                            />
+                            <ChatPane messages={activeSession.messages} />
                         ) : (
-                            <div style={{ padding: 8 }}>セッションが選択されていません</div>
+                            <div>セッションが選択されていません</div>
                         )}
-                    </Col>
-
-                    {/* 右列 (70%)：チャット画面 */}
-                    <Col span={18} style={{ height: "100%" }}>
-                        {/* 上～中部 (80%) */}
-                        <div style={{ height: "90%", overflowY: "auto", padding: "8px" }}>
-                            {activeSession ? (
-                                <ChatPane messages={activeSession.messages} />
-                            ) : (
-                                <div>セッションが選択されていません</div>
-                            )}
-                        </div>
-
-                        {/* 下部 (20%): チャット入力フォーム */}
-                        <div style={{ height: "10%", borderTop: "1px solid #ccc", padding: "8px" }}>
-                            {activeSession ? (
-                                <ChatInput onSendMessage={handleSendMessage} />
-                            ) : null}
-                        </div>
-                    </Col>
-                </Row>
-            </Content>
+                    </div>
+                    <div style={{ height: "50px", padding: "8px" }}>
+                        {activeSession ? (
+                            <ChatInput onSendMessage={handleSendMessage} />
+                        ) : null}
+                    </div>
+                </Col>
+            </Row>
         </Layout>
     );
 };

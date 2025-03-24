@@ -1,17 +1,24 @@
+/*=====================================*/
+/* カードデザイン */
+/*=====================================*/
 /* card タイプのタブのボーダーをカスタマイズ */
 .ant-tabs-card .ant-tabs-card-content {
-    border: 3px solid #000;
+    border: 3px solid #000 !important;
 }
 
 .ant-tabs-tab {
-    background-color: #333;
-    /* タブの背景色 */
+    background-color: #f0f0f0 !important;
+    /*border: 0.5px solid #4f4f4f !important;*/
     color: #fff;
     /* タブの文字色 */
 }
 
+.ant-tabs-nav {
+    margin: 0px !important;
+}
+
 .ant-tabs-tab-active {
-    background-color: #555;
+    background-color: #ffffff !important;
     /* アクティブなタブの背景色 */
     color: #fff;
     /* アクティブなタブの文字色 */
