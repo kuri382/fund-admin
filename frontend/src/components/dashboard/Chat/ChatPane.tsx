@@ -1,99 +1,167 @@
 // src/components/Chat/ChatPane.tsx
-import React, { useEffect, useRef } from "react";
-import { ChatMessage } from "@/components/dashboard/Chat/types";
+import React, { useEffect, useRef, useState } from "react";
 import { List } from "antd";
+import ReferenceDrawer from "./References/ReferenceDrawer";
+import ReferenceList from "./References/ReferenceList";
+import { getAuth } from "firebase/auth";
+import axios from "axios";
 
-// Markdown風の記法をHTMLに変換する関数
-const formatText = (text: string | undefined) => {
-    if (!text) return "";
+import { ChatMessage, ChatReference } from "@/components/dashboard/Chat/types";
+import { formatText } from "@/components/dashboard/Chat/chatFormat";
 
-    // まずMarkdown風の記法(####, ###, ##, #, ** **)だけを処理
-    let replaced = text
-        .replace(/####\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
-        .replace(/###\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
-        .replace(/##\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
-        .replace(/#\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+import { apiUrlGetImageUrl } from "@/utils/api";
 
-    // ハッシュタグ (#) や箇条書き記号 (- や ・など) の前で改行を入れる
-    replaced = replaced
-        .replace(/([^>\n]|^)(#)/g, '$1<br/>$2') // # の前に改行
-        .replace(/([^>\n]|^)([-・])\s/g, '$1<br/>$2 '); // - や ・の前に改行
+// =============================
+// 1. 必要に応じた型の定義例
+// =============================
 
-    // 改行文字を <br/> に統一
-    replaced = replaced.replace(/\n/g, '<br/>');
 
-    return replaced;
-};
-
-interface ChatPaneProps {
-    messages: ChatMessage[];
+export interface ChatPaneProps {
+  messages: ChatMessage[];
 }
 
+// エンドポイントのレスポンス型
+export interface ResGetImageUrl {
+  imageUrl: string;
+}
+
+// Drawer に表示するデータ
+interface DrawerContent {
+  imageUrl: string;
+  transcription: string;
+}
+
+// =============================
+// 個別メッセージ項目コンポーネント
+// =============================
+interface ChatMessageItemProps {
+  msg: ChatMessage;
+  onOpenReference: (ref: ChatReference) => void;
+}
+
+const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
+  msg,
+  onOpenReference,
+}) => {
+  const isUser = msg.sender === "user";
+  return (
+    <List.Item
+      style={{
+        display: "block",
+        textAlign: isUser ? "right" : "left",
+        marginBottom: "5px",
+        padding: "5px",
+      }}
+    >
+      <div
+        style={{
+          padding: "8px 12px",
+          backgroundColor: isUser ? "#e6f7ff" : "#ffffff",
+          display: "inline-block",
+          borderRadius: "8px",
+          maxWidth: "70%",
+          wordBreak: "break-word",
+        }}
+        dangerouslySetInnerHTML={{ __html: formatText(msg.text) }}
+      />
+      {msg.references && msg.references.length > 0 && (
+        <ReferenceList
+          references={msg.references}
+          onOpenReference={onOpenReference}
+        />
+      )}
+    </List.Item>
+  );
+};
+
+// =============================
+// メインチャットコンポーネント
+// =============================
 const ChatPane: React.FC<ChatPaneProps> = ({ messages }) => {
-    const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [drawerContent, setDrawerContent] = useState<DrawerContent>({
+    imageUrl: "",
+    transcription: "",
+  });
 
-    // メッセージが更新されるたびにスクロールして最下部を表示
-    useEffect(() => {
-        if (containerRef.current) {
-            containerRef.current.scrollTop = containerRef.current.scrollHeight;
-        }
-    }, [messages]);
+  const auth = getAuth();
+  const user = auth.currentUser;
 
-    return (
-        <div
-            ref={containerRef}
-            style={{
-                maxHeight: "100%",
-                overflowY: "auto",
-                padding: "16px",
-                background: "#f9f9f9",
-                borderRadius: "8px",
-            }}
-        >
-            <List
-                dataSource={messages}
-                renderItem={(msg) => {
-                    const isUser = msg.sender === "user";
-                    return (
-                        <List.Item
-                            style={{
-                                display: "block",
-                                textAlign: isUser ? "right" : "left",
-                                marginBottom: "16px",
-                            }}
-                        >
-                            {/*<div style={{ fontWeight: "bold", marginBottom: "4px" }}>
-                                [{msg.sender}] {msg.timestamp}
-                        </div>*/}
-                            <div
-                                style={{
-                                    padding: "8px 12px",
-                                    backgroundColor: isUser ? "#e6f7ff" : "#ffffff",
-                                    display: "inline-block",
-                                    borderRadius: "8px",
-                                    maxWidth: "70%",
-                                    wordBreak: "break-word",
-                                }}
-                                // HTMLを挿入するために dangerouslySetInnerHTML を利用
-                                dangerouslySetInnerHTML={{ __html: formatText(msg.text) }}
-                            />
-                            {/* 参照情報があれば表示 */}
-                            {msg.references && msg.references.length > 0 && (
-                                <div style={{ marginTop: "4px", fontSize: "0.85em", color: "#888" }}>
-                                    {msg.references.map((ref, idx) => (
-                                        <div key={idx}>
-                                            {ref.sourceText && <div>引用: {ref.fileName}</div>}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </List.Item>
-                    );
-                }}
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  if (!user) {
+    setError("認証が必要です");
+    return null; // コンポーネントとして何も描画しない
+  }
+
+  // 引用ボタン押下時の処理
+  const handleOpenReference = async (ref: ChatReference) => {
+    try {
+      const accessToken = await user.getIdToken(true);
+      const url = apiUrlGetImageUrl(ref.fileUuid, ref.pageNumber);
+
+      const response = await axios.get<ResGetImageUrl>(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      const data = response.data;
+
+      setDrawerContent({
+        imageUrl: data.imageUrl,
+        transcription: ref.sourceText || "",
+      });
+      setDrawerVisible(true);
+    } catch (error) {
+      console.error("Error fetching image:", error);
+      setError("画像の取得に失敗しました");
+    }
+  };
+
+  return (
+    <>
+      <div
+        ref={containerRef}
+        style={{
+          maxHeight: "100%",
+          overflowY: "auto",
+          padding: "16px",
+          background: "#f9f9f9",
+          borderRadius: "8px",
+        }}
+      >
+        {/* エラーがある場合の表示 */}
+        {error && (
+          <div style={{ color: "red", marginBottom: "8px" }}>{error}</div>
+        )}
+
+        <List
+          dataSource={messages}
+          split={false}
+          renderItem={(msg) => (
+            <ChatMessageItem
+              key={msg.messageId}
+              msg={msg}
+              onOpenReference={handleOpenReference}
             />
-        </div>
-    );
+          )}
+        />
+      </div>
+
+      <ReferenceDrawer
+        visible={drawerVisible}
+        onClose={() => setDrawerVisible(false)}
+        imageUrl={drawerContent.imageUrl}
+        transcription={drawerContent.transcription}
+      />
+    </>
+  );
 };
 
 export default ChatPane;

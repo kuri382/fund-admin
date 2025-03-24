@@ -37,10 +37,9 @@ const styleTabPane: React.CSSProperties = {
   padding: '10px'
 };
 
-const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files }) => {
+const PdfsFileTabs: React.FC<PdfsFileTabsProps> = ({ files = [] }) => {
   const [selectedFileIndex, setSelectedFileIndex] = useState<number | null>(null);
 
-  // filesの変更時に有効なインデックスかどうかチェックする
   useEffect(() => {
     if (selectedFileIndex !== null && selectedFileIndex >= files.length) {
       setSelectedFileIndex(null);

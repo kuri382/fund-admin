@@ -29,6 +29,7 @@ const ChatTabs: React.FC<ChatTabsProps> = ({
 
     return (
         <Tabs
+            type="card"
             activeKey={activeSessionId}
             onChange={onChangeTab}
             style={{ height: "100%" }}

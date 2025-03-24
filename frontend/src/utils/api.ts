@@ -32,7 +32,10 @@ export const apiUrlGetExplorerFinancialStatements = `${api.baseUrl}/explorer/fin
 export const apiUrlGetExplorerFinancialStatementsUUID = `${api.baseUrl}/explorer/financial_statements`;
 export const apiUrlGetExplorerFinancialStatementsUUIDPages = `${api.baseUrl}/explorer/financial_statements`;
 
+// 画像取得
 export const apiUrlGetImageList = `${api.baseUrl}/image/list`;
+export const apiUrlGetImageUrl = (fileUuid: string, pageNumber: number) =>
+  `${api.baseUrl}/image/${fileUuid}/${pageNumber}`;
 
 export const apiUrlGetParameterSummary = `${api.baseUrl}/parameter/summary`;
 export const apiUrlGetParameterSales = `${api.baseUrl}/parameter/sales`;
@@ -45,9 +48,9 @@ export const apiUrlPostProjectionSaaSCustomerRevenue = `${api.baseUrl}/projectio
 // task カウント
 export const apiUrlGetWorkerCount = `${api.baseUrl}/worker/count`;
 
-// 例：ファイルリスト取得用APIエンドポイント
+// ファイルリスト取得用APIエンドポイント
 export const apiUrlGetRetrieverFiles = `${api.baseUrl}/retriever/files`;
-// 例：選択されたファイルを送信するAPIエンドポイント
+// 選択されたファイルを送信するAPIエンドポイント
 export const apiUrlPostRetrieverDebug = `${api.baseUrl}/api/sendSelectedFileUuids`;
 export const apiUrlGetRetrieverChatSessions = `${api.baseUrl}/retriever/chat/sessions`;
 export const apiUrlGetRetrieverChatSessionsSessionId = (sessionId: string) =>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Input, Button } from "antd";
+import { SendOutlined, LoadingOutlined } from "@ant-design/icons";
 
 interface ChatInputProps {
   onSendMessage: (text: string) => Promise<void>;
@@ -13,10 +14,11 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
   const handleSend = async () => {
     if (!inputText.trim()) return;
 
+    const messageToSend = inputText;
+    setInputText("");
     setIsSending(true);
     try {
-      await onSendMessage(inputText);
-      setInputText("");
+      await onSendMessage(messageToSend);
     } catch (error) {
       console.error("Send message error:", error);
     } finally {
@@ -24,7 +26,6 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
     }
   };
 
-  // Composition(日本語変換)の開始/終了を管理
   const handleComposition = (e: React.CompositionEvent<HTMLTextAreaElement>) => {
     if (e.type === "compositionstart") {
       setIsComposing(true);
@@ -33,9 +34,8 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
     }
   };
 
-  // Enter キー押下時に送信するが、日本語変換中は無視する
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (isComposing) return;
+    if (isSending || isComposing) return;
     if (e.key === "Enter") {
       e.preventDefault();
       handleSend();
@@ -51,10 +51,14 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
         onCompositionEnd={handleComposition}
         onPressEnter={handleKeyPress}
         autoSize={{ minRows: 1, maxRows: 4 }}
-        placeholder="メッセージを入力..."
-        //disabled={isSending}  // 送信中は入力も無効にする
+        placeholder="質問を入力してください..."
       />
-      <Button type="primary" onClick={handleSend} disabled={isSending}>
+      <Button
+        type="primary"
+        onClick={handleSend}
+        disabled={isSending}
+        icon={isSending ? <LoadingOutlined /> : <SendOutlined />}
+      >
         送信
       </Button>
     </div>

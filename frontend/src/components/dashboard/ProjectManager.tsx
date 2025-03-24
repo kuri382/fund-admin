@@ -29,7 +29,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newProjectName, setNewProjectName] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isProjectCreating, setIsProjectCreating] = useState(false);
   const [isComposing, setIsComposing] = useState(false); // キー入力中
@@ -37,7 +37,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
   const fetchProjects = async () => {
     const user = auth.currentUser;
     if (user) {
-      setLoading(true);
+      setIsLoading(true);
       try {
         const accessToken = await user.getIdToken(true);
         const response = await axios.get(apiUrlGetProjects, {
@@ -58,7 +58,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
         setProjects([]);
         return [];
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     } else {
       message.error('ユーザー情報が取得できませんでした');
@@ -230,7 +230,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
             placeholder="既存のプロジェクトから選択"
             onChange={handleSelectProject}
             value={selectedProjectId}
-            loading={loading}
+            loading={isLoading}
           >
             {projects.length > 0 ? (
               projects.map((project) => (
@@ -267,6 +267,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
                   handleAddProject();
                 }
               }}
+              disabled={isLoading || isProjectCreating}
             />
           </Form.Item>
         </Form>

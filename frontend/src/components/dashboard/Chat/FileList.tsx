@@ -4,7 +4,7 @@ import { List, Checkbox, Spin, Alert } from "antd";
 import axios from "axios";
 
 import { getAuth } from 'firebase/auth';
-import { ChatSession, FileItem } from "@/components/dashboard/Chat/types";
+import { FileItem } from "@/components/dashboard/Chat/types";
 import { apiUrlGetRetrieverFiles } from "@/utils/api";
 
 interface FileListPaneProps {
