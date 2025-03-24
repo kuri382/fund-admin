@@ -130,13 +130,14 @@ const TaskCount = () => {
           {taskCount === 0 && !error ? (
             <Text>解析スタンバイ中: 0</Text>
           ) : (
-            <Space align="center">
+            <>{/*<Space align="center">*/}
               <SyncOutlined spin style={{ color: "#262260", fontSize: 16 }} />
               <Text>1ページごとに解析中です。残り {taskCount === null ? "..." : Math.floor(taskCount / 0.5)} 秒ほどで全てのページの分析が完了します。</Text>
-            </Space>
+            </>
           )}
 
-          {/* 横に並べたプログレスバー */}
+          {/*
+
           <div
             style={{
               width: 200,
@@ -155,12 +156,16 @@ const TaskCount = () => {
               }}
             />
           </div>
+             */}
+
 
           {/* ランダムに表示する文章。ステートが空でなければ表示する */}
           {taskCount !== 0 && randomMessage && (
-            <Text style={{ marginLeft: 8 }}>
-              {randomMessage}
-            </Text>
+            <>
+              <Text style={{ marginLeft: 8 }}>
+                {randomMessage}
+              </Text>
+            </>
           )}
         </div>
       </div>

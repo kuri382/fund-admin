@@ -12,7 +12,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import { Tabs } from 'antd';  // Ant Design の Tabs コンポーネントをインポート
+import { Tabs } from 'antd';
 import type { TabsProps } from 'antd';
 
 import FileUpload from '@/components/dashboard/TableAnalysis/FileUpload'

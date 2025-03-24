@@ -6,6 +6,8 @@ import TableFileTabs from '@/components/dashboard/TableAnalysis/TablesFileTabs';
 import ChatMain from '@/components/dashboard/Chat/ChatMain';
 import MainTable from '@/components/dashboard/Projection/MainTable';
 
+import "@/styles/dashboard.css";
+
 interface AnalysisTabsProps {
   activeTab: string;
   onTabChange: (key: string) => void;
@@ -77,6 +79,7 @@ const AnalysisTabs: React.FC<AnalysisTabsProps> = ({
       items={tabItems}
       onChange={onTabChange}
       tabPosition='top'
+      type="card"
     />
   );
 };

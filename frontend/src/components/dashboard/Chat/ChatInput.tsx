@@ -58,6 +58,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
         onClick={handleSend}
         disabled={isSending}
         icon={isSending ? <LoadingOutlined /> : <SendOutlined />}
+        style={{padding: '0px 50px'}}
       >
         送信
       </Button>

@@ -31,7 +31,6 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   const handleUploadComplete = useCallback(() => {
     if (onUploadComplete) {
       onUploadComplete();
-      message.success('ファイル情報を更新しました');
     }
   }, [onUploadComplete]);
 
@@ -65,8 +64,6 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
 
       try {
         setUploadingCount(prev => prev + 1);
-        message.loading(`${file.name} をアップロードしています...`);
-
         // (1) 署名付きURLを発行する
         const accessToken = await user.getIdToken(true);
         const signedUrlRes: AxiosResponse<SignedUrlResponse> = await axios.post(

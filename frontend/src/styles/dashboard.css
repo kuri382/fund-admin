@@ -1,0 +1,25 @@
+/* card タイプのタブのボーダーをカスタマイズ */
+.ant-tabs-card .ant-tabs-card-content {
+    border: 3px solid #000;
+}
+
+.ant-tabs-tab {
+    background-color: #333;
+    /* タブの背景色 */
+    color: #fff;
+    /* タブの文字色 */
+}
+
+.ant-tabs-tab-active {
+    background-color: #555;
+    /* アクティブなタブの背景色 */
+    color: #fff;
+    /* アクティブなタブの文字色 */
+}
+
+.ant-tabs-tab:hover {
+    background-color: #444;
+    /* ホバー時の背景色 */
+    color: #fff;
+    /* ホバー時の文字色 */
+}
