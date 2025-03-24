@@ -333,6 +333,7 @@ async def send_chat_message(
             project_id=project_id,
             grouped_task=request.text,
             file_uuid_list=request.selectedFileUuids,
+            limit=5,
         )
 
     finally:
@@ -345,9 +346,9 @@ async def send_chat_message(
             transcription = obj.properties['transcription']
 
             references.append({
-                "fileUuid": "some-file-uuid",  # 必要に応じて適切な UUID に置き換え
+                "fileUuid": obj.properties['file_uuid'],
                 "fileName": file_name,
-                "pageNumber": obj.properties.get('page_number'),  # 'page_number' が存在しない場合も考慮
+                "pageNumber": obj.properties['page_number'],
                 "sourceText": transcription
             })
         system_text = response.generated
