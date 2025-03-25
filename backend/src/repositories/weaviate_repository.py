@@ -54,6 +54,7 @@ class WeaviateDocumentRepository(DocumentRepository):
                     Filter.by_property("user_id").equal(user_id) &
                     Filter.by_property("file_uuid").contains_any(file_uuid_list)
                 ),
+                grouped_properties=["transcription"],
                 grouped_task=grouped_task,
             )
             return response
@@ -66,6 +67,7 @@ class WeaviateDocumentRepository(DocumentRepository):
                     Filter.by_property("project_id").equal(project_id) &
                     Filter.by_property("user_id").equal(user_id)
                 ),
+                grouped_properties=["transcription"],
                 grouped_task=grouped_task,
             )
             return response

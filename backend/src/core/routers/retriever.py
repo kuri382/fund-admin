@@ -326,14 +326,15 @@ async def send_chat_message(
     # 2) AI 等で処理（ダミーで固定のテキストを返す）
     #    実際には LLM への問い合わせや Retriever 処理を行い、参照情報を生成する。
     try:
-        query='ビジネス'
+        query=request.text # test
+
         response = doc_repository.search_documents(
             query=query,
             user_id=user_id,
             project_id=project_id,
             grouped_task=request.text,
             file_uuid_list=request.selectedFileUuids,
-            limit=5,
+            limit=10,
         )
 
     finally:
