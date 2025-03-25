@@ -327,14 +327,14 @@ const ChatMain: React.FC<{ projectChanged: boolean }> = ({ projectChanged }) => 
                 {/* 右列 (70%)：チャット画面 */}
                 <Col span={18} style={{ height: "100%" }}>
                     <h3>調査内容</h3>
-                    <div style={{ height: "500px", overflowY: "auto", padding: "0px 10px"}}>
+                    <div style={{ height: "75vh", overflowY: "auto", padding: "0px 10px"}}>
                         {activeSession ? (
                             <ChatPane messages={activeSession.messages} />
                         ) : (
                             <div>セッションが選択されていません</div>
                         )}
                     </div>
-                    <div style={{ height: "50px", padding: "8px" }}>
+                    <div style={{ height: "10vh", padding: "8px" }}>
                         {activeSession ? (
                             <ChatInput onSendMessage={handleSendMessage} />
                         ) : null}

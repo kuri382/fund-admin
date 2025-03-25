@@ -58,7 +58,7 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           padding: "8px 12px",
           backgroundColor: isUser ? "#e6f7ff" : "#ffffff",
           display: "inline-block",
-          borderRadius: "8px",
+          borderRadius: "5px",
           maxWidth: "70%",
           wordBreak: "break-word",
         }}

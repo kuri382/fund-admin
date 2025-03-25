@@ -1,4 +1,5 @@
 import React from "react";
+import { Tag } from "antd";
 import { ChatReference } from "@/components/dashboard/Chat/types";
 
 interface ReferenceListProps {
@@ -12,22 +13,21 @@ const ReferenceList: React.FC<ReferenceListProps> = ({
 }) => {
   return (
     <div style={{ marginTop: "4px", fontSize: "0.85em", color: "#888" }}>
-      {references.map((ref, idx) => (
-        <div key={idx}>
-          {ref.sourceText && (
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                onOpenReference(ref);
-              }}
-              style={{ textDecoration: "underline", color: "#1890ff", cursor: "pointer" }}
-            >
-              引用: {ref.fileName}, p{ref.pageNumber}
-            </a>
-          )}
-        </div>
-      ))}
+      {references.map((ref, idx) => {
+        if (!ref.sourceText) return null;
+
+        return (
+          <Tag
+            key={idx}
+            color="blue"
+            style={{ cursor: "pointer", marginBottom: "4px" }}
+            onClick={() => onOpenReference(ref)}
+          >
+            {/** Tag の中の文言は自由に変更 */}
+            引用: {ref.fileName}, p{ref.pageNumber}
+          </Tag>
+        );
+      })}
     </div>
   );
 };

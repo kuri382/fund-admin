@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Spin, Alert, Typography, Button, Modal } from 'antd';
 import axios from 'axios';
+import { marked } from 'marked';
+
 import { getAuth } from 'firebase/auth';
 import { apiUrlGetDataReport } from '@/utils/api';
 
@@ -15,28 +17,11 @@ interface DataReportResponse {
     summary: string;
 }
 
-const formatText = (text: string | undefined) => {
+export const formatText = (text: string) => {
     if (!text) return "";
-
-    // まずMarkdown風の記法(####, ###, ##, #, ** **)だけを処理
-    let replaced = text
-        .replace(/####\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
-        .replace(/###\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
-        .replace(/##\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
-        .replace(/#\s(.*?)(?:\n|$)/g, '<strong>$1</strong>')
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-    // ハッシュタグ (#) や箇条書き記号 (- や ・など) の前で改行を入れる(必要に応じてパターンを追加)
-    // （既に <strong>化した箇所との衝突を避けるため、前後の正規表現を微調整）
-    replaced = replaced
-        .replace(/([^>\n]|^)(#)/g, '$1<br/>$2')        // # の前に改行
-        .replace(/([^>\n]|^)([-・])\s/g, '$1<br/>$2 '); // - や ・の前に改行
-
-    // 仕上げとして文字列中の改行(\n)は <br/> に統一
-    replaced = replaced.replace(/\n/g, '<br/>');
-
-    return replaced;
+    return marked(text);
 };
+
 
 const SummaryModal: React.FC<SummaryModalProps> = ({ file_uuid }) => {
     const [reportSummary, setReportSummary] = useState<string>('');
@@ -116,7 +101,7 @@ const SummaryModal: React.FC<SummaryModalProps> = ({ file_uuid }) => {
                 width="70%"
                 styles={{
                     body: {
-                        maxHeight: '75vh',
+                        maxHeight: '77vh',
                         overflowY: 'auto',
                     },
                 }}
