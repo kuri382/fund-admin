@@ -19,13 +19,8 @@ export const apiUrlGetSelectedProject = `${api.baseUrl}/projects/selected`;
 export const apiUrlPostProjects = `${api.baseUrl}/projects`;
 export const apiUrlArciveProjects = `${api.baseUrl}/projects`;
 
-// llm オペレーション
-// old
-
-export const apiUrlCreateEmbeddings = `${api.baseUrl}/explorer/create`;
-export const apiUrlQueryQuestionAnswer = `${api.baseUrl}/explorer/query/qa`;
-export const apiUrlQueryRag = `${api.baseUrl}/explorer/query`;
-export const apiUrlQueryIssueAnalysis = `${api.baseUrl}/explorer/query/ia`;
+// auth
+export const apiUrlPostAuthInvitationCheck = `${api.baseUrl}/auth/invitation/check`;
 
 // ページごと分析
 export const apiUrlGetExplorerFinancialStatements = `${api.baseUrl}/explorer/financial_statements`;

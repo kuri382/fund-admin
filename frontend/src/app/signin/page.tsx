@@ -1,12 +1,10 @@
 "use client";
 
+import styles from '@/components/top/Top.module.css';
 import React from 'react';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Col, Row, Spin} from 'antd';
 
-import styles from '@/components/top/Top.module.css';
 import SignInForm from '@/components/auth/SignInForm';
 
 const background: React.CSSProperties = {
@@ -14,14 +12,15 @@ const background: React.CSSProperties = {
 };
 
 const SignInPage = () => {
-    const { user, loading } = useAuth();
-    const router = useRouter();
+    const { loading } = useAuth();
 
+    /*
     useEffect(() => {
         if (!loading && user) {
             router.push('/dashboard');  // 既にログインしている場合はダッシュボードにリダイレクト
         }
     }, [user, loading, router]);
+    */
 
     if (loading) (
         <div style={background} className={styles.loadingWrapper}>

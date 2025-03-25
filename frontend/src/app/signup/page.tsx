@@ -1,7 +1,7 @@
+import styles from '@/components/top/Top.module.css';
 import React from 'react';
 import { Col, Row } from 'antd';
 
-import styles from '@/components/top/Top.module.css';
 import SignUpForm from '@/components/auth/SignUpForm';
 
 const background: React.CSSProperties = {
