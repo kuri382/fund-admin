@@ -118,7 +118,7 @@ def create_rag_response(
     prompt: str,
 ) -> str:
 
-    system_prompt = 'ユーザーからの指示に従って、丁寧に文章で回答してください。前置きなしで直接的な回答から開始せよ'
+    system_prompt = 'ユーザーからの指示に従って、丁寧に文章で回答してください。'
     response = openai_client.chat.completions.create(
         model='gpt-4o',
         messages=[
