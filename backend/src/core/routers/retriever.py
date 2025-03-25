@@ -9,12 +9,15 @@ from typing import Literal
 from google.cloud import firestore
 from pydantic import BaseModel, Field
 from typing import Optional
+import openai
 
+from src.dependencies.external import get_openai_client
 from src.repositories.abstract import DocumentRepository
 from src.dependencies.document_repository import get_document_repository
 from src.dependencies.auth import get_user_id
 import src.core.services.firebase_driver as firebase_driver
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
+from src.core.services.worker import chat_client
 
 from ._base import BaseJSONSchema
 
@@ -281,6 +284,7 @@ async def send_chat_message(
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     user_id: str = Depends(get_user_id),
     doc_repository: DocumentRepository = Depends(get_document_repository),
+    openai_client: openai.ChatCompletion = Depends(get_openai_client),
 ):
     """
     ユーザーがメッセージを送信。
@@ -326,15 +330,14 @@ async def send_chat_message(
     # 2) AI 等で処理（ダミーで固定のテキストを返す）
     #    実際には LLM への問い合わせや Retriever 処理を行い、参照情報を生成する。
     try:
-        query=request.text # test
+        query=request.text
 
         response = doc_repository.search_documents(
             query=query,
             user_id=user_id,
             project_id=project_id,
-            grouped_task=request.text,
             file_uuid_list=request.selectedFileUuids,
-            limit=10,
+            limit=8,
         )
 
     finally:
@@ -352,7 +355,13 @@ async def send_chat_message(
                 "pageNumber": obj.properties['page_number'],
                 "sourceText": transcription
             })
-        system_text = response.generated
+
+        # open_aiへの問い合わせ
+        context = ""
+        for o in response.objects:
+            text = "".join([f"{k}には次の内容が記載されています：「{v}」" for k, v in o.properties.items()])
+            context += text
+        system_text = chat_client.create_rag_response(openai_client, context, query)
 
         # 3) systemメッセージを Firestore に保存
         system_msg_id = str(uuid.uuid4())

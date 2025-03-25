@@ -110,3 +110,22 @@ def create_response(
     parsed_response = response.choices[0].message.content
 
     return parsed_response
+
+
+def create_rag_response(
+    openai_client: openai.ChatCompletion,
+    context: str,
+    prompt: str,
+) -> str:
+
+    system_prompt = 'ユーザーからの指示に従って、丁寧に文章で回答してください。前置きなしで直接的な回答から開始せよ'
+    response = openai_client.chat.completions.create(
+        model='gpt-4o',
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": context},
+            {"role": "user", "content": prompt},
+        ],
+    )
+    parsed_response = response.choices[0].message.content
+    return parsed_response

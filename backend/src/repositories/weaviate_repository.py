@@ -39,6 +39,41 @@ class WeaviateDocumentRepository(DocumentRepository):
         query: str,
         user_id: str,
         project_id: str,
+        file_uuid_list: list[str] = None,
+        limit: int = 8,
+    ):
+        documents_collection = self.client.collections.get("Documents")
+
+        if file_uuid_list:
+            response = documents_collection.query.hybrid(
+                query=query,
+                limit=limit,
+                filters=(
+                    Filter.by_property("project_id").equal(project_id) &
+                    Filter.by_property("user_id").equal(user_id) &
+                    Filter.by_property("file_uuid").contains_any(file_uuid_list)
+                ),
+                query_properties=["transcription"],
+            )
+            return response
+
+        else:
+            response = documents_collection.query.hybrid(
+                query=query,
+                limit=limit,
+                filters=(
+                    Filter.by_property("project_id").equal(project_id) &
+                    Filter.by_property("user_id").equal(user_id)
+                ),
+                query_properties=["transcription"],
+            )
+            return response
+
+    def search_documents_and_generate_response(
+        self,
+        query: str,
+        user_id: str,
+        project_id: str,
         grouped_task: str,
         file_uuid_list: list[str] = None,
         limit: int = 5,
