@@ -1,30 +1,23 @@
 import React from 'react';
 import { Col, Row } from 'antd';
 
+import styles from '@/components/top/Top.module.css';
 import SignUpForm from '@/components/auth/SignUpForm';
 
-const areaStyle: React.CSSProperties = {
-    margin: '20px',
-    padding: '30px',
-    backgroundColor: '#efefef',
-    textAlign: 'center',
-    borderRadius: '10px',
-};
-
-const scrollable: React.CSSProperties = {
-    maxHeight: '700px',
-    overflowY: 'auto'
+const background: React.CSSProperties = {
+    height: '100vh',
 };
 
 const SignUpPage: React.FC = () => {
     return (
-        <div style={scrollable}>
-            <Row justify="center">
+        <div style={background} className={styles.signInUpPage}>
+            <Row justify="center" style={{ paddingTop: '20vh'}}>
                 <Col
                     md={10}
                     xs={20} // 100% on smartphone
-                    style={areaStyle}>
-                    <h2>新規登録</h2>
+                    className={styles.animatedGradient}
+                >
+                    <h2 style={{ color: '#262260', fontSize: '25px', fontStyle: 'bold' }}>新規登録</h2>
                     <SignUpForm />
                 </Col>
             </Row>

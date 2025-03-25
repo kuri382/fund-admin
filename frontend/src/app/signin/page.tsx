@@ -4,21 +4,13 @@ import React from 'react';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Col, Row } from 'antd';
+import { Col, Row, Spin} from 'antd';
 
+import styles from '@/components/top/Top.module.css';
 import SignInForm from '@/components/auth/SignInForm';
 
-const areaStyle: React.CSSProperties = {
-    margin: '20px',
-    padding: '30px',
-    backgroundColor: '#efefef',
-    textAlign: 'center',
-    borderRadius: '10px',
-};
-
-const scrollable: React.CSSProperties = {
-    maxHeight: '700px',
-    overflowY: 'auto'
+const background: React.CSSProperties = {
+    height: '100vh',
 };
 
 const SignInPage = () => {
@@ -31,19 +23,22 @@ const SignInPage = () => {
         }
     }, [user, loading, router]);
 
-    if (loading) {
-        return <p>読み込み中...</p>;  // 認証状態の確認中は読み込み表示
-    }
+    if (loading) (
+        <div style={background} className={styles.loadingWrapper}>
+        <Spin />
+      </div>
+    )
 
     return (
         <>
-            <div style={scrollable}>
-                <Row justify="center">
+            <div style={background} className={styles.signInUpPage}>
+                <Row justify="center" style={{ paddingTop: '20vh'}}>
                     <Col
                         md={10}
                         xs={20} // 100% on smartphone
-                        style={areaStyle}>
-                        <h2>ログイン</h2>
+                        className={styles.animatedGradient}
+                    >
+                        <h2 style={{color:'#262260', fontSize:'25px', fontStyle:'bold'}}>ログイン</h2>
                         <SignInForm />
                     </Col>
                 </Row>

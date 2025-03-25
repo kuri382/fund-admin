@@ -1,5 +1,4 @@
-"use client";
-
+"use client"
 import React, { useState } from 'react';
 import { Form, Input, Button } from 'antd';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -11,6 +10,20 @@ interface SignUpFormValues {
   password: string;
 }
 
+// Firebase Authエラーコード => 日本語メッセージのマッピング
+const getAuthErrorMessage = (code: string): string => {
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'このメールアドレスは既に使われています。';
+    case 'auth/invalid-email':
+      return 'メールアドレスの形式が正しくありません。';
+    case 'auth/weak-password':
+      return 'パスワードが短すぎます。もう少し複雑なパスワードを設定してください。';
+    default:
+      return 'サインアップに失敗しました。お手数ですが管理者に連絡してください。';
+  }
+};
+
 const SignUpForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,9 +34,11 @@ const SignUpForm: React.FC = () => {
     setError('');
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      router.push('/signup-complete'); // サインアップ完了後に完了ページへリダイレクト
+      router.push('/signup-complete');
     } catch (error: any) {
-      setError('サインアップに失敗しました: ' + error.message);
+      const errorCode = error.code || '';
+      const friendlyMessage = getAuthErrorMessage(errorCode);
+      setError(friendlyMessage);
     } finally {
       setLoading(false);
     }
@@ -39,14 +54,14 @@ const SignUpForm: React.FC = () => {
       </Form.Item>
       <Form.Item
         name="password"
-        rules={[{ required: true, message: 'パスワードを入力してください', min: 6 }]} // 最低6文字のパスワード
+        rules={[{ required: true, message: 'パスワードを入力してください', min: 6 }]}
       >
         <Input.Password placeholder="パスワード" />
       </Form.Item>
-      {error && <p>{error}</p>} {/* エラーがある場合に表示 */}
+      {error && <p style={{ color: 'white' }}>{error}</p>} {/* エラーがある場合に表示 */}
       <Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading}>
-          サインアップ
+        <Button type="default" htmlType="submit" loading={loading} block>
+          登録
         </Button>
       </Form.Item>
     </Form>

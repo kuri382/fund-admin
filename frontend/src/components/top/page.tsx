@@ -3,7 +3,7 @@
 import { Layout, Button, Typography, Row, Col } from 'antd';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
-import styles from './Top.module.css'; // CSS Module for custom styles
+import styles from './Top.module.css';
 
 const { Header, Content, Footer } = Layout;
 const { Title, Paragraph } = Typography;

@@ -36,7 +36,7 @@ const SignInForm: React.FC = () => {
   };
 
   return (
-    <Form name="signin" onFinish={onFinish}>
+    <Form name="signin" onFinish={onFinish} >
       <Form.Item
         name="email"
         rules={[{ required: true, message: 'メールアドレスを入力してください' }]}
@@ -51,7 +51,12 @@ const SignInForm: React.FC = () => {
       </Form.Item>
       {error && <p>{error}</p>}
       <Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading} disabled={loading}>
+        <Button
+          block
+          type="default"
+          htmlType="submit"
+          loading={loading}
+          disabled={loading}>
           {loading ? '読み込み中' : 'ログイン'}
         </Button>
       </Form.Item>

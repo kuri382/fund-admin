@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, signOut as firebaseSignOut, User } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { auth } from '@/services/firebase';
 
 interface AuthContextType {
@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     // Firebaseの認証状態の変化を監視
@@ -27,13 +28,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  // もしロード完了時にuserがいなければ、セッション切れとみなしてログインページへ
+  // ユーザーが null で、かつ /dashboard にいたら /signin に移動させる
   useEffect(() => {
-    // ロードが完了している && user が null の場合
-    if (!loading && !user) {
+    if (!loading && !user && pathname === '/dashboard') {
       router.push('/signin');
     }
-  }, [loading, user, router]);
+  }, [loading, user, pathname, router]);
 
   const signOut = async () => {
     try {
