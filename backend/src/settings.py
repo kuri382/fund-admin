@@ -9,6 +9,9 @@ class Settings:
     openai_project_id: str = os.environ['OPENAI_PROJECT_ID']
     openai_organization_id: str = os.environ['OPENAI_ORGANIZATION_ID']
 
+    weaviate_url: str = os.environ["WEAVIATE_URL"]
+    weaviate_api_key: str = os.environ["WEAVIATE_API_KEY"]
+
     firebase_auth_secret_key: str = os.environ['FIREBASE_AUTH_SECRET_KEY']
     access_token_expire_minutes: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
     algorithm: str = str(os.getenv("ALGORITHM", "HS256"))

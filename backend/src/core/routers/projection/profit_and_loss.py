@@ -6,11 +6,12 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
 from pydantic import  Field
 
-from src.core.dependencies.auth import get_user_id
-from src.core.dependencies.external import get_openai_client
+from src.dependencies.auth import get_user_id
+from src.dependencies.external import get_openai_client
 from src.core.routers._base import BaseJSONSchema
 from src.core.services.endpoints.projection import process_profit_and_loss_metrics
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
+import src.core.services.firebase_driver as firebase_driver
 from src.core.services.query import profit_and_loss
 
 logger = logging.getLogger(__name__)
@@ -82,8 +83,14 @@ class ResGetPLMetrics(BaseJSONSchema):
     rows: list[GetPLMetrics] = Field(None, description='月ごとのデータ')
 
 
-def get_image_url(storage_client, user_id: str, file_uuid: str, page_number: int):
-    blobs = storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}/{page_number}")
+def get_image_url(
+    storage_client,
+    user_id: str,
+    project_id: str,
+    file_uuid: str,
+    page_number: int
+):
+    blobs = storage_client.list_blobs(prefix=f"{user_id}/projects/{project_id}/image/{file_uuid}/{page_number}")
     for blob in blobs:
         url = blob.generate_signed_url(expiration=3600, method='GET', version='v4')
     return url
@@ -92,6 +99,7 @@ def get_image_url(storage_client, user_id: str, file_uuid: str, page_number: int
 def add_or_update_monthly_data(
     storage_client,
     user_id: str,
+    project_id: str,
     monthly_data: dict,
     summary: dict,
     year: int,
@@ -99,7 +107,7 @@ def add_or_update_monthly_data(
 ):
     """月ごとのデータを追加または更新する"""
     month = summary["month"]
-    url = get_image_url(storage_client, user_id, summary["file_uuid"], int(summary["page_number"]))
+    url = get_image_url(storage_client, user_id, project_id, summary["file_uuid"], int(summary["page_number"]))
 
     # 初期データの作成
     if month not in monthly_data:
@@ -157,19 +165,19 @@ def add_or_update_monthly_data(
                     existing_param.values.append(Items(value=str(value), url=url))
 
 
-def process_summaries(storage_client, user_id: str, summaries: list[dict], year: int) -> ResGetPLMetrics:
+def process_summaries(storage_client, user_id: str, project_id: str, summaries: list[dict], year: int) -> ResGetPLMetrics:
     """すべてのサマリーを処理して月ごとのデータを生成する"""
     monthly_data = {}
 
     for summary in summaries:
         if summary["business_scope"]["scope_type"] == "company":
             data_key = 'profit_and_loss'
-            add_or_update_monthly_data(storage_client, user_id, monthly_data, summary, year, data_key)
+            add_or_update_monthly_data(storage_client, user_id, project_id, monthly_data, summary, year, data_key)
         else:
             data_key = 'saas_customer_metrics'
-            add_or_update_monthly_data(storage_client, user_id, monthly_data, summary, year, data_key)
+            add_or_update_monthly_data(storage_client, user_id, project_id, monthly_data, summary, year, data_key)
             data_key = 'saas_revenue_metrics'
-            add_or_update_monthly_data(storage_client, user_id, monthly_data, summary, year, data_key)
+            add_or_update_monthly_data(storage_client, user_id, project_id, monthly_data, summary, year, data_key)
 
     return ResGetPLMetrics(rows=list(monthly_data.values()))
 
@@ -190,6 +198,7 @@ async def get_projection_profit_and_loss_metrics(
 ):
     firestore_client = firebase_client.get_firestore()
     storage_client = firebase_client.get_storage()
+    project_id = firebase_driver.get_project_id(user_id, firestore_client)
 
     try:
         summaries = profit_and_loss.fetch_metrics_by_year(
@@ -197,7 +206,7 @@ async def get_projection_profit_and_loss_metrics(
             user_id,
             year,
         )
-        content = process_summaries(storage_client, user_id, summaries, year)
+        content = process_summaries(storage_client, user_id, project_id, summaries, year)
 
         return ORJSONResponse(content=jsonable_encoder(content))
 

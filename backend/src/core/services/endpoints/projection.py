@@ -36,7 +36,6 @@ def save_parameters(
         raise ValueError("No project selected for the user")
 
     selected_project_id = selected_project[0].id
-    logger.info(f'selected_project_id: {summary.period.year}')
 
     doc_ref = (
         firestore_client.collection('users')
@@ -85,7 +84,6 @@ def save_parameters(
                 },
             }
         )
-        logger.info('data saved ===========')
         return
 
     except Exception as e:
@@ -96,7 +94,7 @@ def send_to_analysis_api(openai_client, image_url, max_retries=3):
     """OpenAI APIにリクエストを送信し、パースされたレスポンスを取得する。リトライ機能付き"""
     retry_count = 0
     while retry_count < max_retries:
-        logger.info(f'OpenAI API retry: {retry_count+1}/{max_retries}')
+        #logger.info(f'OpenAI API retry: {retry_count+1}/{max_retries}')
         try:
             response = openai_client.beta.chat.completions.parse(
                 model='gpt-4o-2024-08-06',
@@ -142,7 +140,6 @@ async def process_profit_and_loss_metrics(
         pages_to_parse = range(1, max_pages_to_parse + 1)
 
         for page_number in pages_to_parse:
-            logger.info(f'page_number: {page_number}')
             blobs = storage_client.list_blobs(prefix=f"{user_id}/image/{file_uuid}/{page_number}")
 
             url = None
@@ -201,8 +198,6 @@ async def process_single_page_profit_and_loss(
         raise HTTPException(status_code=400, detail=detail)
 
     try:
-        logger.info(f"Processing page_number: {page_number}")
-
         # ページ番号に基づいてストレージ内のBlobを検索
         blobs = storage_client.list_blobs(prefix=f"{user_id}/projects/{project_id}/image/{file_uuid}/{page_number}")
 
@@ -212,9 +207,6 @@ async def process_single_page_profit_and_loss(
             url = blob.generate_signed_url(expiration=3600, method='GET', version='v4')
 
         if url:
-            logger.info(f"Signed URL generated for page {page_number}")
-
-            # 分析APIに送信
             data = send_to_analysis_api(openai_client, url)
 
             if data.business_summaries:

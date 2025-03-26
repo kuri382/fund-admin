@@ -2,26 +2,27 @@ import asyncio
 import base64
 import io
 import logging
-import os
 import uuid
 
-import openai
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
+from datetime import timedelta
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import ORJSONResponse
 from google.cloud import tasks_v2
 from pydantic import BaseModel, Field
 from pydantic_core import ValidationError
 
 import src.core.services.firebase_driver as firebase_driver
-from src.core.dependencies.auth import get_user_id
-from src.core.dependencies.cloud_tasks import get_cloud_tasks_client, get_queue_path
-from src.core.dependencies.external import get_openai_client
+from src.dependencies.auth import get_user_id
+from src.dependencies.cloud_tasks import get_cloud_tasks_client, get_queue_path
 from src.core.services.endpoints import projection
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
-from src.core.services.openai_client import extract_document_information
-from src.core.services.pdf_processing import extract_text_from_pdf
-from src.core.services.upload import generate_summary, pdf_processor, table_processor
+from src.core.services.upload import generate_summary, pdf_processor
 from src.core.services.worker import cloud_tasks, models
 from src.settings import Settings
+
+from ._base import BaseJSONSchema
+
 
 router = APIRouter(prefix='/upload', tags=['upload'])
 logger = logging.getLogger(__name__)
@@ -197,255 +198,101 @@ async def process_pdf_background(
     logger.info("Processing completed for all pages.")
 
 
-
-@router.post("")
-async def upload_file(
-    file: UploadFile,
-    background_tasks: BackgroundTasks,
-    firebase_client: FirebaseClient = Depends(get_firebase_client),
-    openai_client: openai.ChatCompletion = Depends(get_openai_client),
-    user_id: str = Depends(get_user_id),
-):
-    try:
-        contents = await file.read()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"File read error: {str(e)}")
-
-    file_uuid = uuid.uuid4()
-    unique_filename = f"{file_uuid}_{file.filename}"
-
-    try:
-        firestore_client = firebase_client.get_firestore()
-        project_id = firebase_driver.get_project_id(user_id, firestore_client)
-
-    except Exception as e:
-        detail = f'error loading project id: {str(e)}'
-        raise HTTPException(status_code=400, detail=detail)
-
-    try:
-        storage_client = firebase_client.get_storage()
-        blob = storage_client.blob(f"{user_id}/projects/{project_id}/documents/{unique_filename}")
-        blob.upload_from_string(
-            contents,
-            content_type='application/pdf',
-        )
-
-    except Exception as e:
-        detail = f'error uploading file: {str(e)}'
-        raise HTTPException(status_code=400, detail=detail)
-
-    firestore_client = firebase_client.get_firestore()
-
-    file_extension = os.path.splitext(file.filename)[1].lower()
-    match file_extension:
-        case ".xlsx":
-            try:
-                content_text = table_processor.convert_xlsx_row_to_text(contents)
-                analysis_result = extract_document_information(openai_client=openai_client, content_text=content_text)
-
-            except Exception as e:
-                logger.error(f"Error: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"Error analyzing Excel file: {str(e)}")
-
-            try:
-                firebase_driver.save_analysis_result(
-                    firestore_client=firestore_client,
-                    user_id=user_id,
-                    file_name=file.filename,
-                    file_uuid=file_uuid,
-                    analysis_result=analysis_result,
-                    target_collection='tables',
-                )
-
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Error saving csv result: {str(e)}")
-
-        case ".csv":
-            try:
-                content_text = table_processor.analyze_csv_content(contents)
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Error converting csv file: {str(e)}")
-
-            try:
-                analysis_result = extract_document_information(openai_client=openai_client, content_text=content_text)
-
-            except Exception as e:
-                if "rate_limit_exceeded" in str(e) or "Too Many Requests" in str(e):
-                    raise HTTPException(
-                        status_code=429,
-                        detail="Token limit exceeded or too many requests. Please try again later.",
-                    )
-                raise HTTPException(status_code=500, detail=f"Error analyizing csv file: {str(e)}")
-
-            try:
-                firebase_driver.save_analysis_result(
-                    firestore_client=firestore_client,
-                    user_id=user_id,
-                    file_name=file.filename,
-                    file_uuid=file_uuid,
-                    analysis_result=analysis_result,
-                    target_collection='tables',
-                )
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Error uploading csv file: {str(e)}")
-
-        case ".pdf":
-            try:
-                pdf_text = extract_text_from_pdf(file)
-                pdf_text = pdf_text[:3000] # token数の関係上小さめに
-                analysis_result = extract_document_information(openai_client=openai_client, content_text=pdf_text)
-
-            except Exception as e:
-                if "rate_limit_exceeded" in str(e) or "Too Many Requests" in str(e):
-                    raise HTTPException(
-                        status_code=429,
-                        detail="Token limit exceeded or too many requests. Please try again later.",
-                    )
-                raise HTTPException(status_code=500, detail=f"Error analyizing csv file: {str(e)}")
-
-            try:
-                firebase_driver.save_analysis_result(
-                    firestore_client=firestore_client,
-                    user_id=user_id,
-                    file_name=file.filename,
-                    file_uuid=file_uuid,
-                    analysis_result=analysis_result,
-                    target_collection='documents',
-                )
-
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Error saving pdf result: {str(e)}")
-
-            try:
-                background_tasks.add_task(
-                    process_pdf_background,
-                    contents,
-                    user_id,
-                    file_uuid,
-                    unique_filename,
-                    storage_client,
-                    openai_client,
-                    firestore_client,
-                )
-                logger.info('upload finished')
-
-            except Exception as e:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Error saving pdf image to storage: {str(e)}",
-                )
-
-        case _:
-            raise HTTPException(status_code=400, detail="サポートされていないファイル形式です")
-
-    return {"filename": file.filename, "status": "ファイルを解析し保存しました"}
+class ReqPostUploadCreateTask(BaseJSONSchema):
+    gcs_path: str
+    content_type: str
+    filename: str
+    file_uuid: str
 
 
 @router.post("/task")
 async def create_task(
-    file: UploadFile,
+    request: ReqPostUploadCreateTask,
     firebase_client: FirebaseClient = Depends(get_firebase_client),
     user_id: str = Depends(get_user_id),
     cloud_tasks_client: tasks_v2.CloudTasksClient = Depends(get_cloud_tasks_client),
     queue_path: str = Depends(get_queue_path),
 ):
     """
-    Cloud Tasks にタスクを登録
+    Singned URLによりファイルがアップロードされる
+    その後、フロントエンド側からこのエンドポイントに対してタスク開始が指示される
     """
-    # ファイルを読み込む
-    # PDFファイルだった場合それぞれのページを分析する
-    # 元ファイルはストレージに保存
-    # 元ファイルを画像化し、1画像ごとに保存
-    # 1画像ごとの解析を行う
+    firestore_client = firebase_client.get_firestore()
+    project_id = firebase_driver.get_project_id(user_id, firestore_client)
 
-    try:
-        contents = await file.read()
+    match request.content_type:
+        case "application/pdf":
+            payload_summary = models.SingedUrlMetadata(
+                user_id=user_id,
+                project_id=project_id,
+                gcs_path=request.gcs_path,
+                filename=request.filename,
+                file_uuid=request.file_uuid,
+            )
+            worker_url = f'{Settings.google_cloud.api_base_url}/worker/file:separate'
+            task = cloud_tasks.create_task_payload(worker_url, payload_summary)
 
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"File read error: {str(e)}")
+            try:
+                logger.info("Creating a new task in Cloud Tasks...")
+                response = cloud_tasks_client.create_task(parent=queue_path, task=task)
+                eta = response.schedule_time.strftime("%m/%d/%Y, %H:%M:%S")
+                logger.info(f"Task created successfully: {response.name}, {eta}")
 
-    file_uuid = uuid.uuid4()
-    unique_filename = f"{file_uuid}_{file.filename}"
+            except Exception as e:
+                logger.error(f"Error occurred while creating a task: {e}")
 
-    # project_idを取得する
-    try:
-        firestore_client = firebase_client.get_firestore()
-        project_id = firebase_driver.get_project_id(user_id, firestore_client)
+    return {"filename": request.filename, "status": "解析を始めます"}
 
-    except Exception as e:
-        detail = f'error loading project id: {str(e)}'
-        raise HTTPException(status_code=400, detail=detail)
+
+class SignedUrlRequest(BaseModel):
+    filename: str
+    content_type: str
+
+
+class ResPostGenerateSignedUrl(BaseJSONSchema):
+    upload_url: str
+    gcs_path: str
+    filename: str
+    file_uuid: str
+
+
+@router.post("/signed_url")
+def generate_signed_url(
+    request: SignedUrlRequest,
+    firebase_client: FirebaseClient = Depends(get_firebase_client),
+    user_id: str = Depends(get_user_id),
+):
+    """
+    指定されたファイル名で Cloud Storage への書き込み用署名付きURLを生成して返す
+    """
+    filename = request.filename
+    content_type = request.content_type
+
+    file_uuid = str(uuid.uuid4())
+    unique_filename = f'{file_uuid}_{filename}'
+    firestore_client = firebase_client.get_firestore()
+    project_id = firebase_driver.get_project_id(user_id, firestore_client)
 
     try:
         storage_client = firebase_client.get_storage()
-        blob = storage_client.blob(f"{user_id}/projects/{project_id}/documents/{unique_filename}")
-        blob.upload_from_string(
-            contents,
-            content_type='application/pdf',
+        gcs_path = f"{user_id}/projects/{project_id}/documents/{unique_filename}"
+        blob = storage_client.blob(gcs_path)
+        expiration = timedelta(minutes=15)
+        url = blob.generate_signed_url(
+            version="v4",
+            expiration=expiration,
+            method="PUT",
+            content_type=content_type,
         )
 
+        content = ResPostGenerateSignedUrl(
+            upload_url=url,
+            gcs_path=gcs_path,
+            filename=filename,
+            file_uuid=file_uuid,
+        )
+
+        return ORJSONResponse(content=jsonable_encoder(content))
+
     except Exception as e:
-        detail = f'error uploading file: {str(e)}'
-        raise HTTPException(status_code=400, detail=detail)
-
-    file_extension = os.path.splitext(file.filename)[1].lower()
-
-    match file_extension:
-        case ".pdf":
-            try:
-                # pdfのサマリーを分析するタスクを投げる
-                pdf_text = extract_text_from_pdf(file)
-                max_length = 3000 # token数の関係上文章を短縮
-                extracted_text = pdf_text[:max_length]
-                payload_summary = models.SummaryMetadata(
-                    user_id=user_id,
-                    file_uuid=str(file_uuid),
-                    file_name=file.filename,
-                    summary_text=extracted_text,
-                )
-                worker_url = f'{Settings.google_cloud.api_base_url}/worker/summary:analyze'
-                task = cloud_tasks.create_task_payload(worker_url, payload_summary)
-
-                try:
-                    logger.info("Creating a new task in Cloud Tasks...")
-                    response = cloud_tasks_client.create_task(parent=queue_path, task=task)
-                    eta = response.schedule_time.strftime("%m/%d/%Y, %H:%M:%S")
-                    logger.info(f"Task created successfully: {response.name}, {eta}")
-
-                except Exception as e:
-                    logger.error(f"Error occurred while creating a task: {e}")
-
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Error saving pdf result: {str(e)}")
-
-            pdf_document = await pdf_processor.read_pdf_file(contents)
-            max_pages = min(Settings.max_pages_to_parse, len(pdf_document))
-
-            for page_number in range(max_pages):
-                logger.info(f'page number: {page_number}, max pages: {max_pages}')
-                image_bytes = pdf_processor.convert_pdf_page_to_image(pdf_document, page_number)
-                await pdf_processor.upload_image_to_firebase(
-                    image_bytes, user_id, project_id, page_number, file_uuid, storage_client
-                )
-
-                # 1ページごとの内容の解析
-                payload_page = models.PageMetadata(
-                    user_id=user_id,
-                    file_uuid=str(file_uuid),
-                    file_name=unique_filename,
-                    page_number=str(page_number),
-                )
-                worker_url = f'{Settings.google_cloud.api_base_url}/worker/page:analyze'
-                task_page = cloud_tasks.create_task_payload(worker_url, payload_page)
-                response = cloud_tasks_client.create_task(parent=queue_path, task=task_page)
-                eta = response.schedule_time.strftime("%m/%d/%Y, %H:%M:%S")
-                logger.info(f"Page analyze task created successfully: {response.name}, {eta}")
-
-                # projection内容の解析（時間のかかる処理）
-                worker_projection_url = f'{Settings.google_cloud.api_base_url}/worker/projection:analyze'
-                task_projection = cloud_tasks.create_task_payload(worker_projection_url, payload_page)
-                response = cloud_tasks_client.create_task(parent=queue_path, task=task_projection)
-                eta = response.schedule_time.strftime("%m/%d/%Y, %H:%M:%S")
-                logger.info(f"Projection analyze task created successfully: {response.name}, {eta}")
-
-    return {"filename": file.filename, "status": "ファイルを解析し保存しました"}
+        raise HTTPException(status_code=500, detail=f"Failed to generate signed URL: {str(e)}")

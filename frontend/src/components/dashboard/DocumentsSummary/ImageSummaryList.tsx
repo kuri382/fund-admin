@@ -7,7 +7,7 @@ import { apiUrlGetImageList, apiUrlGetParameterSummary } from '@/utils/api';
 import { ReloadOutlined } from '@ant-design/icons';
 import ButtonAnalyzePL from '@/components/dashboard/TableAnalysis/Button/ButtonAnalyzePL';
 import ButtonAnalyzeSaaS from '@/components/dashboard/TableAnalysis/Button/ButtonAnalyzeSaaS';
-import DetailModal from '@/components/dashboard/Generator/DetailModal';
+import DetailModal from '@/components/dashboard/DocumentsSummary/DetailModal';
 
 const { Paragraph } = Typography;
 
@@ -143,7 +143,9 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
       <div style={{ padding: '20px' }}></div>
 
       {loading && <Spin />}
-      {error && <Alert message={error} type="error" showIcon />}
+      <br />
+      <br />
+      {/*error && <Alert message={error} type="error" showIcon />*/}
 
       {images.length > 0 && (
         <List
@@ -180,7 +182,7 @@ const ImageListComponent: React.FC<ImageListComponentProps> = ({ file_uuid }) =>
                           <Paragraph><div dangerouslySetInnerHTML={{ __html: formatText(summary.transcription) }}></div></Paragraph>
                           <p><b><Tag color="blue">issues</Tag>潜在的なリスクや経営上の懸念点</b></p>
                           <Paragraph>{summary.issues}</Paragraph>
-                          <p><b><Tag color="geekblue">rationale</Tag>課題やリスクを推測した理由</b></p>
+                          <p><b><Tag color="geekblue">evidence</Tag>課題やリスクを推測した理由</b></p>
                           <Paragraph>{summary.rationale}</Paragraph>
                           {/*<p><b><Tag color="purple">investigation</Tag>課題やリスク推測をより精緻に行うために必要な情報</b></p>
                           <Paragraph>{summary.investigation}</Paragraph>*/}

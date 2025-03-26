@@ -8,8 +8,8 @@ from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 from pydantic import BaseModel, Field
 
-from src.core.dependencies.auth import get_user_id
-from src.core.dependencies.external import get_openai_client
+from src.dependencies.auth import get_user_id
+from src.dependencies.external import get_openai_client
 from src.core.models.plan import Step, TempSaaSMetrics
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 from src.settings import Settings

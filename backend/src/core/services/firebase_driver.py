@@ -510,3 +510,32 @@ async def get_pages_from_analysis_result(
             latest_pages[index] = PageDetail(index=index, summary=page["summary"], updated_at=updated_at)
 
     return list(latest_pages.values())
+
+
+def save_worker_analyst_report(
+    firestore_client: firestore.Client,
+    user_id: str,
+    project_id: str,
+    file_uuid: str,
+    result_sentence: str,
+) -> None:
+    doc_ref = (
+        firestore_client.collection('users')
+        .document(user_id)
+        .collection('projects')
+        .document(project_id)
+        .collection('documents')
+        .document(str(file_uuid))
+    )
+
+    # analyst_report コレクションの参照を取得
+    analyst_report_ref = doc_ref.collection('analyst_report').document('summary')
+
+    try:
+        analyst_report_ref.set({
+            "analyst_summary": result_sentence,
+        })
+        return
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

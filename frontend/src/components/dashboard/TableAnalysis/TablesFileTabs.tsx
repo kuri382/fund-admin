@@ -37,7 +37,11 @@ const styleTabPane: React.CSSProperties = {
   padding: '5px'
 };
 
-const TablesFileTab: React.FC<TablesFileTabProps> = ({ files }) => {
+const TablesFileTab: React.FC<TablesFileTabProps> = ({ files = [] }) => {
+  if (files.length === 0) {
+    return <Alert message="ファイルがありません" type="info" />;
+  }
+
   const items: TabsProps['items'] = files.map((file, index) => {
     const extension = getFileExtension(file.file_name);
     const tagColor = getExtensionColor(extension);

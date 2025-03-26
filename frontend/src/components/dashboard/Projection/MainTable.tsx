@@ -3,7 +3,7 @@ import { Table, Drawer, Button, Spin, Space, Image } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
-import { ReloadOutlined, BulbOutlined } from '@ant-design/icons';
+import { ReloadOutlined } from '@ant-design/icons';
 
 import { apiUrlGetProjectionProfitAndLoss } from "@/utils/api";
 import { PLMetricsResponse, Item } from "./types";
@@ -16,6 +16,17 @@ const formatNumber = (value: string | number): string => {
   return new Intl.NumberFormat("ja-JP").format(Number(value));
 };
 
+/**
+ * 複数の PLMetricsResponse をまとめて一つに合体するサンプル関数
+ * - 年月が重複した場合の扱いは要件に合わせて実装してください
+ */
+function mergePLMetricsResponses(responses: PLMetricsResponse[]): PLMetricsResponse {
+  // ここでは単純に rows を合体しているだけ
+  const mergedRows = responses.flatMap((resp) => resp.rows);
+  return {
+    rows: mergedRows,
+  };
+}
 
 const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged }) => {
   const [data, setData] = useState<PLMetricsResponse | null>(null);
@@ -30,34 +41,46 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
   const auth = getAuth();
   const user = auth.currentUser;
 
-  useEffect(() => {
-    fetchData();
-  }, [projectChanged]);
+  // もともと「year: 2024」固定だった部分を、
+  // デフォルトでは [2025, 2024, 2023] の3年ぶんをまとめて取得する例に変更。
+  // 必要に応じてここを変えれば取りたい年数を増減できます。
+  const yearsToFetch = [2025, 2024, 2023];
 
-  if (!user) {
-    setLoading(false);
-    return null;
-  }
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    fetchData();
+  }, [projectChanged, user]);
 
   const fetchAccessToken = async (): Promise<string> => {
-    return await user.getIdToken(true);
+    return await user!.getIdToken(true);
   };
 
+  /**
+   * 複数年ぶんをループで呼び出し、それらをマージして setData へ格納する
+   */
   const fetchData = async () => {
     try {
       setLoading(true);
       const accessToken = await fetchAccessToken();
-      const response = await axios.get<PLMetricsResponse>(
-        apiUrlGetProjectionProfitAndLoss,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          params: { year: 2024 },
-        }
-      );
-      console.log(response.data);
-      setData(response.data);
+
+      const allResponses: PLMetricsResponse[] = [];
+      for (const yr of yearsToFetch) {
+        const response = await axios.get<PLMetricsResponse>(
+          apiUrlGetProjectionProfitAndLoss,
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            params: { year: yr }, // 単年ずつ渡す
+          }
+        );
+        allResponses.push(response.data);
+      }
+
+      // 複数結果をマージして data に設定
+      const merged = mergePLMetricsResponses(allResponses);
+      setData(merged);
     } catch (error) {
       console.error("データの取得に失敗しました", error);
     } finally {
@@ -79,7 +102,6 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
     if (selectedCell && data) {
       const { rowKey, columnKey } = selectedCell;
 
-      // `data`の行と列を探して値を更新
       const updatedRows = data.rows.map((row) => {
         if (row.items.some((item) => item.title === rowKey)) {
           return {
@@ -105,19 +127,16 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
         return row;
       });
 
-      // 更新されたデータを保存
       setData({ ...data, rows: updatedRows });
-
-      // Drawerを閉じる
       setIsDrawerVisible(false);
     }
   };
 
-
-  const years = [2020, 2021, 2022, 2023, 2024];
+  // ▼ ここは元の実装をほぼそのまま流用
+  //   デフォルトで 2025, 2024, 2023 の三年分の列を descending(年→月)で生成
+  const years = [2025, 2024, 2023];
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
-  // 2024年12月から左起点にする
   const sortedColumns = years
     .flatMap((year) =>
       months.map((month) => ({ year, month }))
@@ -134,32 +153,31 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
     ...sortedColumns.map(({ year, month }) => ({
       title: `${year}年${month}月`,
       dataIndex: `${year}-${month}`,
-      key: `${year}-${month}`,
-      render: (value: any, record: any) => {
-        if (!value) return null;
-
-        const { displayValue, candidates } = value;
-        const hasDuplicates = candidates.length > 1;
-
+      onCell: (record: any) => {
+        const cellData = record[`${year}-${month}`];
         return {
-          props: {
-            style: {
-              background: hasDuplicates ? "#fadaaa" : "transparent",
-            },
+          style: {
+            background: cellData && cellData.candidates && cellData.candidates.length > 1 ? "#fadaaa" : "transparent",
           },
-          children: (
-            <Button
-              type="text"
-              onClick={() => handleCellClick(candidates, record.title, `${year}-${month}`)}
-            >
-              {formatNumber(displayValue)}
-            </Button>
-          ),
         };
       },
+      render: (value: any, record: any) => {
+        if (!value) return null;
+        const { displayValue, candidates } = value;
+        return (
+          <Button
+            type="text"
+            onClick={() => handleCellClick(candidates, record.title, `${year}-${month}`)}
+          >
+            {formatNumber(displayValue)}
+          </Button>
+        );
+      },
+      key: `${year}-${month}`,
     })),
   ];
 
+  /** 元の実装に近い形で rowData を組み立て */
   const generateRowData = (data: PLMetricsResponse) => {
     const rowMap: Record<string, any> = {};
 
@@ -177,8 +195,8 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
           currentData.candidates.push(...item.values);
         } else {
           rowMap[item.title][key] = {
-            displayValue: item.values[0]?.value || "None", // 最初の値を表示
-            isDuplicate: item.values.length > 1, // 候補が複数の場合は重複と判定
+            displayValue: item.values[0]?.value || "None",
+            isDuplicate: item.values.length > 1,
             candidates: [...item.values],
           };
         }
@@ -188,9 +206,8 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
     return Object.values(rowMap);
   };
 
-
   if (loading) {
-    return <Spin size="large" />;
+    return <Spin size="default" />;
   }
 
   if (!data) {
@@ -200,12 +217,16 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
   const rows = generateRowData(data);
 
   return (
-    <>
-      <Space>
-        <ExcelExportButton
-          rows={rows}
-          sortedColumns={sortedColumns}
-        />
+    <div style={{
+      background: '#ffffff',
+      borderRight: '1px solid #f0f0f0',
+      borderBottom: '1px solid #f0f0f0',
+      borderLeft: '1px solid #f0f0f0',
+      borderTopRightRadius: '5px',
+      borderTopLeftRadius: '5px',
+    }}>
+      <Space style={{ padding: '16px' }}>
+        <ExcelExportButton rows={rows} sortedColumns={sortedColumns} />
         <Button
           onClick={fetchData}
           type="default"
@@ -215,6 +236,7 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
           データ再読み込み
         </Button>
       </Space>
+
       <Table
         columns={columns}
         dataSource={rows}
@@ -223,7 +245,9 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
         rowKey="title"
         pagination={{ pageSize: 50 }}
         size="small"
+        style={{ height: '100%', padding: '16px' }}
       />
+
       <Drawer
         title="参照元データ"
         placement="right"
@@ -231,19 +255,12 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
         open={isDrawerVisible}
         width={450}
       >
-        <p>読み込んだ資料から自動で値を取得しました。</p>
-        <p>アップデート予定1: 読み込んだファイルの詳細情報を表示できるようになります。</p>
-        <p>アップデート予定2: 特定の会計科目について、どのように変化しているかグラフで抽出できるようになります。</p>
-        <p>アップデート予定3: 対話的にデータの探索を行えるようになります。
-        </p>
+        <p>ベータ版機能：読み込んだ資料から自動で値を取得しました。</p>
         {drawerData.map((item, index) => (
           <div key={index} style={{ marginBottom: "20px" }}>
             <Button
-              color="primary"
-              variant="outlined"
               onClick={() => handleCandidateSelect(item)}
-              style={{ marginBottom: '10px' }}
-            /*icon={< BulbOutlined />}*/
+              style={{ marginBottom: "10px" }}
             >
               {formatNumber(item.value)} を採用する
             </Button>
@@ -255,8 +272,7 @@ const PLMetricsTable: React.FC<{ projectChanged: boolean }> = ({ projectChanged 
           </div>
         ))}
       </Drawer>
-
-    </>
+    </div>
   );
 };
 

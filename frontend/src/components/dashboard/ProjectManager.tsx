@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Form, Input, Card, Modal, Select, Space, message } from 'antd';
+import { Button, Form, Input, Card, Modal, Select, message, Row, Col } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { auth } from '@/services/firebase';
@@ -29,13 +29,15 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newProjectName, setNewProjectName] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [isProjectCreating, setIsProjectCreating] = useState(false);
+  const [isComposing, setIsComposing] = useState(false); // キー入力中
 
   const fetchProjects = async () => {
     const user = auth.currentUser;
     if (user) {
-      setLoading(true);
+      setIsLoading(true);
       try {
         const accessToken = await user.getIdToken(true);
         const response = await axios.get(apiUrlGetProjects, {
@@ -56,7 +58,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
         setProjects([]);
         return [];
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     } else {
       message.error('ユーザー情報が取得できませんでした');
@@ -124,6 +126,8 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
       return;
     }
 
+    setIsProjectCreating(true);
+
     try {
       await createNewProject(newProjectName);
       setNewProjectName('');
@@ -131,6 +135,8 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
       onProjectChange();
     } catch (error) {
       console.error('Failed to create project:', error);
+    } finally {
+      setIsProjectCreating(false);
     }
   };
 
@@ -204,34 +210,27 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
 
   return (
     <div style={{ margin: '20px' }}>
-      <Card
-        title="Project"
-        styles={{
-          body: {
-            padding: '0px 20px',
-            backgroundColor: '#fafafa',
-            border: '1px solid #d9d9d9',
-          },
-        }}
-      >
-        <p>データを紐づけるプロジェクトを作成または選択してください。プロジェクトごとに文書・数値データが統合されます。</p>
 
-        <Space>
+      <p>データを紐づけるプロジェクトを作成または選択してください。プロジェクトごとに文書・数値データが統合されます。</p>
+
+      <Row gutter={16} align="middle">
+        <Col>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={openModal}
-            style={{ marginBottom: '20px' }}
+            style={{ marginBottom: 20 }}
           >
             プロジェクトを新規作成
           </Button>
-
+        </Col>
+        <Col flex="auto">
           <Select
-            style={{ width: '500px', marginBottom: 20 }}
+            style={{ width: '100%', marginBottom: 20 }}
             placeholder="既存のプロジェクトから選択"
             onChange={handleSelectProject}
             value={selectedProjectId}
-            loading={loading}
+            loading={isLoading}
           >
             {projects.length > 0 ? (
               projects.map((project) => (
@@ -243,8 +242,8 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
               <Option disabled>プロジェクトがありません</Option>
             )}
           </Select>
-        </Space>
-      </Card>
+        </Col>
+      </Row>
 
       <Modal
         title="新規作成する"
@@ -253,13 +252,22 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ onProjectChange }) => {
         onCancel={() => setIsModalVisible(false)}
         okText="作成"
         cancelText="キャンセル"
+        okButtonProps={{ disabled: isProjectCreating }}
       >
         <Form layout="vertical">
           <Form.Item label="プロジェクト名" required>
             <Input
               value={newProjectName}
+              onCompositionStart={() => setIsComposing(true)} // 変換開始
+              onCompositionEnd={() => setIsComposing(false)} // 変換確定
               onChange={(e) => setNewProjectName(e.target.value)}
               placeholder="プロジェクト名を入力"
+              onPressEnter={(e) => {
+                if (!isComposing) {
+                  handleAddProject();
+                }
+              }}
+              disabled={isLoading || isProjectCreating}
             />
           </Form.Item>
         </Form>

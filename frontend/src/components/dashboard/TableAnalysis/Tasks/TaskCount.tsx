@@ -18,7 +18,7 @@ const messages = [
   "数値情報から事業計画を整理しています",
   "テキストを画像から抽出しています",
   "数値データの参照元を整理しています",
-  "リスク要素の洗い出しをしています",
+  "数値データの読み取りを行っています",
   "元の資料から正確な文字起こしを行っています",
   "資料から重要なKPIを抽出しています",
   "セクションごとの要点を解析しています",
@@ -35,7 +35,7 @@ const messages = [
   "データの欠損部分を検索し、候補をリストアップしています",
   "業界ごとの特性を比較しています",
   "予測モデルに基づいて分析を進めています",
-  "リスク管理データを分類しています",
+  "データの分類を行っています",
   "関連情報を横断的に探索しています",
   "複数ドキュメントの統合を進めています",
 ];
@@ -130,13 +130,14 @@ const TaskCount = () => {
           {taskCount === 0 && !error ? (
             <Text>解析スタンバイ中: 0</Text>
           ) : (
-            <Space align="center">
+            <>{/*<Space align="center">*/}
               <SyncOutlined spin style={{ color: "#262260", fontSize: 16 }} />
-              <Text>解析中: {taskCount === null ? "..." : taskCount}</Text>
-            </Space>
+              <Text>1ページごとに解析中です。残り {taskCount === null ? "..." : Math.floor(taskCount / 0.5)} 秒ほどで全てのページの分析が完了します。</Text>
+            </>
           )}
 
-          {/* 横に並べたプログレスバー */}
+          {/*
+
           <div
             style={{
               width: 200,
@@ -155,12 +156,16 @@ const TaskCount = () => {
               }}
             />
           </div>
+             */}
+
 
           {/* ランダムに表示する文章。ステートが空でなければ表示する */}
           {taskCount !== 0 && randomMessage && (
-            <Text style={{ marginLeft: 8 }}>
-              {randomMessage}
-            </Text>
+            <>
+              <Text style={{ marginLeft: 8 }}>
+                {randomMessage}
+              </Text>
+            </>
           )}
         </div>
       </div>

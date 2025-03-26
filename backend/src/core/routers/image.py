@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
 
-from src.core.dependencies.auth import get_user_id
+from src.dependencies.auth import get_user_id
 import src.core.services.firebase_driver as firebase_driver
 from src.core.services.firebase_client import FirebaseClient, get_firebase_client
 
@@ -80,3 +80,57 @@ async def get_image_list(
         logger.error(f"Error retrieving images: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error retrieving or processing images: {str(e)}")
+
+
+class ResGetImageUrl(BaseJSONSchema):
+    image_url: str
+
+
+@router.get(
+    "/{file_uuid}/{page_number}",
+    response_class=ORJSONResponse,
+    responses={
+        status.HTTP_200_OK: {
+            'description': 'Image retrieved successfully.',
+        },
+        status.HTTP_404_NOT_FOUND: {
+            'description': 'Image not found.',
+        },
+    },
+)
+async def get_image_url(
+    file_uuid: str,
+    page_number: int,
+    firebase_client: FirebaseClient = Depends(get_firebase_client),
+    user_id: str = Depends(get_user_id),
+):
+    try:
+        firestore_client = firebase_client.get_firestore()
+        project_id = firebase_driver.get_project_id(user_id, firestore_client)
+    except Exception as e:
+        detail = f'error loading project id: {str(e)}'
+        raise HTTPException(status_code=400, detail=detail)
+
+    try:
+        storage_client = firebase_client.get_storage()
+        blob_path = f"{user_id}/projects/{project_id}/image/{file_uuid}/{page_number}"
+        blobs = storage_client.list_blobs(prefix=blob_path)
+        found_blob = None
+        for blob in blobs:
+            if blob.name == blob_path:
+                found_blob = blob
+                break
+
+        if not found_blob:
+            return ORJSONResponse(content=None, status_code=status.HTTP_404_NOT_FOUND)
+
+        # 署名付きURLを生成（有効期限は20分）
+        url = found_blob.generate_signed_url(expiration=1200, method="GET", version="v4")
+
+        result = ResGetImageUrl(image_url=url)
+        return ORJSONResponse(content=jsonable_encoder(result), status_code=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"Error retrieving image: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error retrieving or processing image: {str(e)}")
