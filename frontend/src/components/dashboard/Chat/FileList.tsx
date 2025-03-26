@@ -1,4 +1,3 @@
-// src/components/File/FileListPane.tsx
 import React, { useEffect, useState } from "react";
 import { List, Checkbox, Spin, Alert } from "antd";
 import axios from "axios";
@@ -74,21 +73,22 @@ const FileListPane: React.FC<FileListPaneProps> = ({
 
       {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
       {loading && <Spin style={{ marginBottom: 16 }} />}
-      <div>
-      <List
-        bordered
-        dataSource={fileList}
-        renderItem={(file) => (
-          <List.Item key={file.fileUuid}>
-            <Checkbox
-              checked={selectedFileUuids.includes(file.fileUuid)}
-              onChange={(e) => onChangeCheckbox(e.target.checked, file.fileUuid)}
-            >
-              {file.fileName}
-            </Checkbox>
-          </List.Item>
-        )}
-      />
+
+      <div style={{ maxHeight: '70vh', overflowY: 'auto', marginBottom: '10px'}}>
+        <List
+          bordered
+          dataSource={fileList}
+          renderItem={(file) => (
+            <List.Item key={file.fileUuid}>
+              <Checkbox
+                checked={selectedFileUuids.includes(file.fileUuid)}
+                onChange={(e) => onChangeCheckbox(e.target.checked, file.fileUuid)}
+              >
+                {file.fileName}
+              </Checkbox>
+            </List.Item>
+          )}
+        />
       </div>
     </div>
   );

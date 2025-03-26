@@ -274,7 +274,6 @@ const ChatMain: React.FC<{ projectChanged: boolean }> = ({ projectChanged }) => 
 
     return (
         <Layout style={{
-            height: "100vh",
             background: '#ffffff',
             borderRight: '1px solid #f0f0f0',
             borderBottom: '1px solid #f0f0f0',
@@ -327,7 +326,7 @@ const ChatMain: React.FC<{ projectChanged: boolean }> = ({ projectChanged }) => 
                 {/* 右列 (70%)：チャット画面 */}
                 <Col span={18} style={{ height: "100%" }}>
                     <h3>調査内容</h3>
-                    <div style={{ height: "75vh", overflowY: "auto", padding: "0px 10px"}}>
+                    <div style={{ height: "100%", overflowY: "auto", padding: "0px 10px"}}>
                         {activeSession ? (
                             <ChatPane messages={activeSession.messages} />
                         ) : (
