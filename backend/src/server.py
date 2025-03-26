@@ -12,7 +12,7 @@ from src.core.services import firebase_client
 from src.settings import settings
 
 TITLE: Final[str] = 'Granite API'
-VERSION: Final[str] = '0.7.0'
+VERSION: Final[str] = '1.0.0'
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

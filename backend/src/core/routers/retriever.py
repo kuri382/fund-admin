@@ -327,11 +327,10 @@ async def send_chat_message(
     }
     session_doc_ref.collection("messages").document(user_msg_id).set(user_msg_data)
 
-    # 2) AI 等で処理（ダミーで固定のテキストを返す）
-    #    実際には LLM への問い合わせや Retriever 処理を行い、参照情報を生成する。
-    try:
-        query=request.text
+    default_system_text = "もう少し背景情報を踏まえて質問いただけますか？"
+    query = request.text
 
+    try:
         response = doc_repository.search_documents(
             query=query,
             user_id=user_id,
@@ -339,54 +338,74 @@ async def send_chat_message(
             file_uuid_list=request.selectedFileUuids,
             limit=8,
         )
-
+    except Exception as e:
+        logger.error(f"search_documents error: {e}")
+        return ORJSONResponse(
+            content=jsonable_encoder(SendMessageResponse(message=default_system_text)),
+            status_code=status.HTTP_200_OK
+        )
     finally:
         doc_repository.client.close()
 
-    if response:
-        references = []
-        for obj in response.objects:
-            file_name = obj.properties['file_name']
-            transcription = obj.properties['transcription']
-
-            references.append({
-                "fileUuid": obj.properties['file_uuid'],
-                "fileName": file_name,
-                "pageNumber": obj.properties['page_number'],
-                "sourceText": transcription
-            })
-
-        # open_aiへの問い合わせ
-        context = ""
-        for o in response.objects:
-            text = "".join([f"{k}には次の内容が記載されています：「{v}」" for k, v in o.properties.items()])
-            context += text
-        system_text = chat_client.create_rag_response(openai_client, context, query)
-
-        # 3) systemメッセージを Firestore に保存
-        system_msg_id = str(uuid.uuid4())
-        system_msg_data = {
-            "messageId": system_msg_id,
-            "text": system_text,
-            "sender": "system",
-            "timestamp": _now_iso(),
-            "references": references,
-        }
-        session_doc_ref.collection("messages").document(system_msg_id).set(system_msg_data)
-
-        # 4) systemメッセージをレスポンス
-        response_message = ChatMessage(
-            messageId=system_msg_id,
-            text=system_text,
-            sender="system",
-            timestamp=system_msg_data["timestamp"],
-            references=[ChatReference(**ref) for ref in references]
-        )
-
+    # response が取得できなかったり、オブジェクトが空の場合
+    if not response or not response.objects:
         return ORJSONResponse(
-            content=jsonable_encoder(SendMessageResponse(message=response_message)),
+            content=jsonable_encoder(SendMessageResponse(message=default_system_text)),
             status_code=status.HTTP_200_OK
         )
 
-    else:
-        return None
+    # response.objects からリファレンス情報を作成
+    references = []
+    for obj in response.objects:
+        file_name = obj.properties['file_name']
+        transcription = obj.properties['transcription']
+        references.append({
+            "fileUuid": obj.properties['file_uuid'],
+            "fileName": file_name,
+            "pageNumber": obj.properties['page_number'],
+            "sourceText": transcription
+        })
+
+    # RAG 用コンテキスト作成
+    context = ""
+    for o in response.objects:
+        text = "".join([f"{k}には次の内容が記載されています：「{v}」" for k, v in o.properties.items()])
+        context += text
+
+    # OpenAI への問い合わせ
+    try:
+        system_text = chat_client.create_rag_response(openai_client, context, query)
+    except Exception as e:
+        logger.error(f"create_rag_response error: {e}")
+        system_text = None
+
+    # system_text が取得できなかった場合はデフォルトにする
+    if not system_text:
+        system_text = default_system_text
+
+    # Firestore に保存するデータを作成
+    system_msg_id = str(uuid.uuid4())
+    system_msg_data = {
+        "messageId": system_msg_id,
+        "text": system_text,
+        "sender": "system",
+        "timestamp": _now_iso(),
+        "references": references,
+    }
+
+    # DB への書き込み
+    session_doc_ref.collection("messages").document(system_msg_id).set(system_msg_data)
+
+    # レスポンス生成
+    response_message = ChatMessage(
+        messageId=system_msg_id,
+        text=system_text,
+        sender="system",
+        timestamp=system_msg_data["timestamp"],
+        references=[ChatReference(**ref) for ref in references]
+    )
+
+    return ORJSONResponse(
+        content=jsonable_encoder(SendMessageResponse(message=response_message)),
+        status_code=status.HTTP_200_OK
+    )
