@@ -9,6 +9,7 @@ import { apiUrlGetRetrieverFiles } from "@/utils/api";
 interface FileListPaneProps {
   selectedFileUuids: string[];
   onChangeSelectedFiles: (fileUuids: string[]) => void;
+  projectChanged: boolean;
 }
 
 interface GetFilesResponse {
@@ -17,7 +18,8 @@ interface GetFilesResponse {
 
 const FileListPane: React.FC<FileListPaneProps> = ({
   selectedFileUuids,
-  onChangeSelectedFiles
+  onChangeSelectedFiles,
+  projectChanged,
 }) => {
   const [fileList, setFileList] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,7 +59,7 @@ const FileListPane: React.FC<FileListPaneProps> = ({
 
   useEffect(() => {
     fetchFileList();
-  }, []);
+  }, [projectChanged]);
 
   const onChangeCheckbox = (checked: boolean, fileUuid: string) => {
     if (checked) {

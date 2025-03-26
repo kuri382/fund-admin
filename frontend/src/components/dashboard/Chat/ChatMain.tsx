@@ -316,6 +316,7 @@ const ChatMain: React.FC<{ projectChanged: boolean }> = ({ projectChanged }) => 
                         <FileListPane
                             selectedFileUuids={activeSession.selectedFileUuids}
                             onChangeSelectedFiles={handleChangeSelectedFiles}
+                            projectChanged={projectChanged}
                         />
                     ) : (
                         <div style={{ padding: 8 }}>セッションが選択されていません</div>
