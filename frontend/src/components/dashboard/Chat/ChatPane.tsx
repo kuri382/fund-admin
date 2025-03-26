@@ -129,7 +129,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({ messages }) => {
       <div
         ref={containerRef}
         style={{
-          maxHeight: "60vh",
+          maxHeight: "75vh",
           overflowY: "auto",
           padding: "16px",
           background: "#f9f9f9",

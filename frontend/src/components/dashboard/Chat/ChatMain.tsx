@@ -20,7 +20,6 @@ import {
 import {
     ChatSession,
     ChatMessage,
-    ChatReference
 } from "@/components/dashboard/Chat/types";
 
 
