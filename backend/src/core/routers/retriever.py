@@ -81,7 +81,7 @@ async def get_retriever_files(
 
 
 # ===================================
-# Pydantic モデル (TypeScript との対応)
+# Pydantic モデル
 # ===================================
 class ChatReference(BaseJSONSchema):
     fileUuid: str
@@ -329,6 +329,8 @@ async def send_chat_message(
 
     default_system_text = "もう少し背景情報を踏まえて質問いただけますか？"
     query = request.text
+    system_msg_id = str(uuid.uuid4())
+    logger.info(f'weaviate query: {query}')
 
     try:
         response = doc_repository.search_documents(
@@ -340,8 +342,16 @@ async def send_chat_message(
         )
     except Exception as e:
         logger.error(f"search_documents error: {e}")
+        empty_response_message = ChatMessage(
+            messageId=system_msg_id,
+            text=default_system_text,
+            sender="system",
+            timestamp=_now_iso(),
+            references=[],
+        )
+
         return ORJSONResponse(
-            content=jsonable_encoder(SendMessageResponse(message=default_system_text)),
+            content=jsonable_encoder(SendMessageResponse(message=empty_response_message)),
             status_code=status.HTTP_200_OK
         )
     finally:
@@ -349,8 +359,16 @@ async def send_chat_message(
 
     # response が取得できなかったり、オブジェクトが空の場合
     if not response or not response.objects:
+        empty_response_message = ChatMessage(
+            messageId=system_msg_id,
+            text=default_system_text,
+            sender="system",
+            timestamp=_now_iso(),
+            references=[],
+        )
+
         return ORJSONResponse(
-            content=jsonable_encoder(SendMessageResponse(message=default_system_text)),
+            content=jsonable_encoder(SendMessageResponse(message=empty_response_message)),
             status_code=status.HTTP_200_OK
         )
 
@@ -384,7 +402,6 @@ async def send_chat_message(
         system_text = default_system_text
 
     # Firestore に保存するデータを作成
-    system_msg_id = str(uuid.uuid4())
     system_msg_data = {
         "messageId": system_msg_id,
         "text": system_text,
